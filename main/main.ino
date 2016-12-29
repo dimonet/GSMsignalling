@@ -71,6 +71,9 @@ String val = "";
 
 bool inTestMod = 0;                  // режим тестирования датчиков (не срабатывает сирена и не отправляются СМС)
 
+bool isSiren = 0;                    // режим сирены
+long prMillisSiren = 0;             // здесь будет храниться время последнего включения сирены
+
 void setup() {
   delay(1000);                                //// !! чтобы нечего не повисало при включении
   
@@ -86,21 +89,31 @@ void setup() {
   pinMode(Button, INPUT_PULLUP);              /// кнопка для установки режима охраны
   pinMode(SirenGenerator, OUTPUT);            /// нога на сирену
   pinMode(power, INPUT);                      /// нога чтения типа питания (БП или батарея)    
-                                                 
-                                 
+
+  digitalWrite(SirenGenerator, HIGH);         /// выключаем сирену через релье
+                             
   InitializeGSM();                          // Инициализируем модемом (включения, настройка)
   gsm.println("AT+CLIP=1");                   // включаем АОН,
   mode = EEPROM.read(0);                      // читаем режим из еепром  
   if (mode == InContrMod) Set_InContrMod(1);          
   else Set_NotInContrMod();
 
-  inTestMod = EEPROM.read(1);                 // читаем тестовый режим из еепром
-  
+  inTestMod = EEPROM.read(1);                 // читаем тестовый режим из еепром    
 }
 
 void loop() 
 {  
-  if (inTestMod == 1) 
+  if (isSiren == 1)                           // если включена сирена проверяем время ее работы
+  {
+    unsigned long tm = millis();
+    unsigned long elapsed = (tm >= prMillisSiren) ? tm - prMillisSiren : 0xFFFFFFFF - prMillisSiren + tm + 1;  // выячисляем сколько времени уже работает сирена    
+    if( elapsed > timeSiren * 1000 )          // если сирена работает больше установленного времени то выключаем ее
+    {
+      StopSiren();
+    }
+  }
+  
+  if (inTestMod == 1 && isSiren == 0) 
   {
      digitalWrite(SirenLED, !digitalRead(SirenLED));     
      delay(200);
@@ -118,20 +131,10 @@ void loop()
                                    
     if (sTensionCable == true || sPIR1 == true)               
     {                                                                 // если обрыв
-      StartSiren();                                                   // Включаем сирену
+      if (isSiren == 0) StartSiren();                                 // Включаем сирену
             
       gsm.println(TELLNUMBER);                                        // отзваниваемся
-      delay(2500);                       
-      if (gsm.find("NO CARRIER"))                                     // ищим сброс вызова,  
-      {
-        StopSiren();                                                  // Выключаем cирену        
-      }
-      else
-      { 
-        delay(timeSiren * 1000);
-        StopSiren();      
-      }
-
+      
       if (sTensionCable == true && !inTestMod)                                      // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
         SendSMS(String(smsText_TensionCable), String(SMSNUMBER));    
       if (sPIR1 == true && !inTestMod)                                              // отправляем СМС если сработал датчик движения и не включен режим тестирование
@@ -316,18 +319,20 @@ bool Set_InContrMod(bool IsWaiting)
 
 void  StartSiren()
 {
-  digitalWrite(NotInContrLED, LOW);
-  digitalWrite(InContrLED, LOW);
   digitalWrite(SirenLED, HIGH);
   if (!inTestMod)                                        // если не включен тестовый режим
-    digitalWrite(SirenGenerator, LOW);                  // включаем сирену через релье 
+    digitalWrite(SirenGenerator, LOW);                  // включаем сирену через релье
+  isSiren = 1;
+  prMillisSiren = millis();
 }
 
 
 void  StopSiren()
 {
+  digitalWrite(SirenLED, LOW);
   digitalWrite(SirenGenerator, HIGH);                    // выключаем сирену через релье
-  Set_InContrMod(0);                                      // возвращаемся в режим охраны
+  isSiren = 0;
+  prMillisSiren = millis();
 }
 
 
