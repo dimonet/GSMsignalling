@@ -92,8 +92,7 @@ void setup() {
 
   digitalWrite(SirenGenerator, HIGH);         /// выключаем сирену через релье
                              
-  InitializeGSM();                          // Инициализируем модемом (включения, настройка)
-  gsm.println("AT+CLIP=1");                   // включаем АОН,
+  InitializeGSM();                          // Инициализируем модемом (включения, настройка)  
   mode = EEPROM.read(0);                      // читаем режим из еепром  
   if (mode == InContrMod) Set_InContrMod(1);          
   else Set_NotInContrMod();
@@ -113,7 +112,7 @@ void loop()
     }
   }
   
-  if (inTestMod == 1 && isSiren == 0) 
+  if (inTestMod == 1 && isSiren == 0)         // если включен режим тестирования и не сирена то мигаем светодиодом
   {
      digitalWrite(SirenLED, !digitalRead(SirenLED));     
      delay(200);
@@ -129,9 +128,9 @@ void loop()
     bool sTensionCable = SensorTriggered_TensionCable();              // проверяем датчики
     bool sPIR1 =  SensorTriggered_PIR1();
                                    
-    if (sTensionCable == true || sPIR1 == true)               
-    {                                                                 // если обрыв
-      if (isSiren == 0) StartSiren();                                 // Включаем сирену
+    if (sTensionCable == true || sPIR1 == true)                       // если обрыв
+    {                                                                 
+      if (isSiren == 0) StartSiren();                                 // включаем сирену
             
       gsm.println(TELLNUMBER);                                        // отзваниваемся
       
@@ -164,19 +163,13 @@ void loop()
          )       
       {  
         //Serial.println("--- MASTER RING DETECTED ---");
-        digitalWrite(gsmLED, LOW);                          // сигнализируем об этом
-        delay(500);  
-        digitalWrite(gsmLED, HIGH);
-        delay(250); 
-        digitalWrite(gsmLED, LOW);
-        
+        blinkLED(gsmLED, 500, 250);                         // сигнализируем об этом      
         delay(1500);                                        // небольшая пауза перед збросом звонка
-        gsm.println("ATH0");                                // сбрасываем вызов
-        
+        gsm.println("ATH0");                                // сбрасываем вызов        
         Set_NotInContrMod();                                // снимаем с охраны         
       }
       else
-      if (mode == NotInContrMod                                // если включен режим охраны и найден зарегистрированный звонок то снимаем с охраны
+      if (mode == NotInContrMod                                // если включен режим снята с охраны и найден зарегистрированный звонок то снимаем с охраны
           && (val.indexOf(NUMBER1_InContr) > -1 
               || val.indexOf(NUMBER2_InContr) > -1 
               || val.indexOf(NUMBER3_InContr) > -1 
@@ -186,16 +179,10 @@ void loop()
       {  
         // DOTO
         //Serial.println("--- MASTER RING DETECTED ---");
-        digitalWrite(gsmLED, LOW);                          // сигнализируем об этом
-        delay(500);  
-        digitalWrite(gsmLED, HIGH);
-        delay(250); 
-        digitalWrite(gsmLED, LOW);
-        
+        blinkLED(gsmLED, 500, 250);                         // сигнализируем об этом
         delay(7000);                                        // большая пауза перед збросом звонка
-        gsm.println("ATH0");                                // сбрасываем вызов
-        
-        Set_InContrMod(0);                                   // устанавливаем на охрану без паузы      
+        gsm.println("ATH0");                                // сбрасываем вызов        
+        Set_InContrMod(0);                                  // устанавливаем на охрану без паузы      
       }
       else gsm.println("ATH0");                             // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)
       val = "";
@@ -231,18 +218,13 @@ void InitializeGSM()
   {                             
     gsm.println("AT+COPS?");
     if (gsm.find("+COPS: 0")) break;
-    digitalWrite(gsmLED, LOW);          // блымаем светодиодом
-    delay(50);  
-    digitalWrite(gsmLED, HIGH);  
-    delay(500); 
+    blinkLED(gsmLED, 50, 500);          // блымаем светодиодом   
   }
+
+  gsm.println("AT+CLIP=1");             // включаем АОН,
   
   //Serial.println("Modem OK"); 
-  digitalWrite(gsmLED, LOW);            // блымаем светодиодом
-  delay(1500);  
-  digitalWrite(gsmLED, HIGH);
-  delay(250); 
-  digitalWrite(gsmLED, LOW);   
+  blinkLED(gsmLED, 1500, 250);          // блымаем светодиодом  
 }
 
 
@@ -395,4 +377,14 @@ void SendSMS(String text, String phone)       //процедура отправ�
   delay(500);
   //Serial.println("SMS send complete");
   delay(2000);
+}
+
+// Блымание светодиодом
+void blinkLED(int pinLED, int millisLOW, int millisHIGH)
+{ 
+  digitalWrite(pinLED, LOW);                          
+  delay(millisLOW);  
+  digitalWrite(pinLED, HIGH);                 // блымаем светодиодом
+  delay(millisHIGH); 
+  digitalWrite(pinLED, LOW);
 }
