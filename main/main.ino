@@ -221,13 +221,14 @@ void InitializeGSM()
   {                             
     gsm.println("AT+COPS?");
     if (gsm.find("+COPS: 0")) break;
-    BlinkLED(gsmLED, 50, 500);          // блымаем светодиодом   
+    BlinkLED(gsmLED, 500, 250);         // блымаем светодиодом   
   }
 
   gsm.println("AT+CLIP=1");             // включаем АОН,
   
   //Serial.println("Modem OK"); 
-  BlinkLED(gsmLED, 1500, 250);          // блымаем светодиодом  
+  BlinkLED(gsmLED, 250, 250);          // блымаем светодиодом 
+  BlinkLED(gsmLED, 250, 250);          // блымаем светодиодом  
 }
 
 // для подсчета сколько прошло милисикунд после последнего срабатывания события (сирена, звонок и т.д.)
