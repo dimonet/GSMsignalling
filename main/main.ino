@@ -107,11 +107,6 @@ void loop()
 {  
   if (isSiren == 1)                           // если включена сирена проверяем время ее работы
   {
-    gsm.println("");
-    gsm.print("Elapsed");
-    gsm.println(GetElapsed(prMillisSiren));
-    gsm.print("timeSiren");
-    gsm.println(timeSiren * 1000);
     if (GetElapsed(prMillisSiren) > (timeSiren * 1000))          // если сирена работает больше установленного времени то выключаем ее
     {
       StopSiren();
