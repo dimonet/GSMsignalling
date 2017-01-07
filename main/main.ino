@@ -31,7 +31,7 @@ const String smsText_PIR1         = "ALARM: PIR1 sensor";                 //те
 
 // паузы
 const int timeSiren = 20;                     // время работы сирены 20 сек.
-const int timeWaitingInContr = 5;//25;            // Время паузы от нажатие кнопки до установки режима охраны
+const int timeWaitingInContr = 25;            // Время паузы от нажатие кнопки до установки режима охраны
 const int timeHoldingBtn = 2;                 // время удерживания кнопки для включения режима охраны  2 сек.
 
 //Спикер
@@ -95,7 +95,7 @@ void setup() {
 
   digitalWrite(SirenGenerator, HIGH);         /// выключаем сирену через релье
                              
-  //InitializeGSM();                          // Инициализируем модемом (включения, настройка)  
+  InitializeGSM();                          // Инициализируем модемом (включения, настройка)  
   mode = EEPROM.read(0);                      // читаем режим из еепром  
   if (mode == InContrMod) Set_InContrMod(1);          
   else Set_NotInContrMod();
