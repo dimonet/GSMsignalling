@@ -221,14 +221,14 @@ void InitializeGSM()
   {                             
     gsm.println("AT+COPS?");
     if (gsm.find("+COPS: 0")) break;
-    BlinkLED(gsmLED, 500, 250);         // блымаем светодиодом   
+    BlinkLED(gsmLED, 0, 700);         // блымаем светодиодом      
   }
 
   gsm.println("AT+CLIP=1");             // включаем АОН,
   
   //Serial.println("Modem OK"); 
-  BlinkLED(gsmLED, 150, 150);          // блымаем светодиодом 
-  BlinkLED(gsmLED, 150, 150);          // блымаем светодиодом
+  BlinkLED(gsmLED, 500, 150);          // блымаем светодиодом 
+  BlinkLED(gsmLED, 150, 150);         // блымаем светодиодом   
   delay(200); 
 }
 
