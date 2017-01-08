@@ -23,9 +23,9 @@
 #define NUMBER4_InContr    "***"                      // 4-й номер для установки на охраны
 
 // SMS
-const String smsText_TensionCable = "ALARM: TensionCable sensor";         //текст смс для растяжки
-const String smsText_PIR1         = "ALARM: PIR1 sensor";                 //текст смс для датчика движения 1
-const String smsText_PIR2         = "ALARM: PIR2 sensor";                 //текст смс для датчика движения 2
+#define smsText_TensionCable  "ALARM: TensionCable sensor"         //текст смс для растяжки
+#define smsText_PIR1          "ALARM: PIR1 sensor"                 //текст смс для датчика движения 1
+#define smsText_PIR2          "ALARM: PIR2 sensor"                 //текст смс для датчика движения 2
 
 // паузы
 const int timeWaitingInContr = 25;            // Время паузы от нажатие кнопки до установки режима охраны
