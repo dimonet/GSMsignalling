@@ -12,7 +12,7 @@ class MyGSM
     void RejectCall();
     
   private:
-    void BlinkLED(int pinLED, int millisBefore, int millisHIGH, int millisAfter);
+    void BlinkLED(int millisBefore, int millisHIGH, int millisAfter);
     int _gsmLED;
     int _pinBOOT;                             // нога BOOT или K на модеме   
 };

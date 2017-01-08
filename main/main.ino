@@ -31,9 +31,9 @@ const String smsText_PIR2         = "ALARM: PIR2 sensor";                 //те
 const int timeWaitingInContr = 25;            // Время паузы от нажатие кнопки до установки режима охраны
 const int timeHoldingBtn = 2;                 // время удерживания кнопки для включения режима охраны  2 сек.
 const int timeSiren = 20;                     // время работы сирены (секунды).
-const int timeCall = 300;                     // время паузы после последнего звонка тревоги (секунды)
-const int timeSmsPIR1 = 300;                  // время паузы после последнего СМС датчика движения 1 (секунды)
-const int timeSmsPIR2 = 300;                  // время паузы после последнего СМС датчика движения 2 (секунды)
+const long timeCall = 120;                     // время паузы после последнего звонка тревоги (секунды)
+const long timeSmsPIR1 = 120;                  // время паузы после последнего СМС датчика движения 1 (секунды)
+const long timeSmsPIR2 = 120;                  // время паузы после последнего СМС датчика движения 2 (секунды)
 
 //Спикер
 const int specerTone = 98;                    //тон спикера
@@ -109,16 +109,16 @@ void setup()
 }
 
 void loop() 
-{  
-  if (isSiren == 1)                           // если включена сирена проверяем время ее работы
+{       
+  if (isSiren == 1)                                     // если включена сирена проверяем время ее работы
   {
-    if (GetElapsed(prSiren) > (timeSiren * 1000))          // если сирена работает больше установленного времени то выключаем ее
+    if (GetElapsed(prSiren) > (timeSiren * 1000))       // если сирена работает больше установленного времени то выключаем ее
     {
       StopSiren();
     }
   }
   
-  if (inTestMod == 1 && isSiren == 0)         // если включен режим тестирования и не сирена то мигаем светодиодом
+  if (inTestMod == 1 && isSiren == 0)                   // если включен режим тестирования и не сирена то мигаем светодиодом
   {
      digitalWrite(SirenLED, !digitalRead(SirenLED));     
      delay(200);
@@ -143,8 +143,9 @@ void loop()
       {
         gsm.Call(String(TELLNUMBER));                                              // отзваниваемся
         prCall = millis();
+        delay(3000);       
       }
-      
+    
       if (sTensionCable && !inTestMod)                                             // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
         gsm.SendSMS(String(smsText_TensionCable), String(SMSNUMBER));    
       
@@ -190,7 +191,7 @@ void loop()
         gsm.RejectCall();                                   // сбрасываем вызов
       }
       else
-      if (mode == NotInContrMod                                // если включен режим снята с охраны и найден зарегистрированный звонок то ставим на охрану
+      if (mode == NotInContrMod                             // если включен режим снята с охраны и найден зарегистрированный звонок то ставим на охрану
           && (val.indexOf(NUMBER1_InContr) > -1 
               || val.indexOf(NUMBER2_InContr) > -1 
               || val.indexOf(NUMBER3_InContr) > -1 
@@ -200,7 +201,7 @@ void loop()
       {  
         // DOTO
         //Serial.println("--- MASTER RING DETECTED ---");
-        BlinkLED(gsmLED, 0, 250, 0);                      // сигнализируем об этом
+        BlinkLED(gsmLED, 0, 250, 0);                        // сигнализируем об этом
         delay(7000);                                        // большая пауза перед збросом звонка
         gsm.RejectCall();                                   // сбрасываем вызов        
         Set_InContrMod(0);                                  // устанавливаем на охрану без паузы      
@@ -231,6 +232,7 @@ bool Set_NotInContrMod()
   digitalWrite(SirenLED, LOW);
   PlayTone(specerTone, 500);
   mode = NotInContrMod;                 // снимаем охранку
+  StopSiren();                          //останавливаем сирену
   EEPROM.write(0, mode);                // пишим режим в еепром 
   return true;
 }
@@ -268,16 +270,15 @@ bool Set_InContrMod(bool IsWaiting)
         Set_NotInContrMod();
         return false;      
       }            
-    }
-    
-    // установка переменных в дефолтное состояние
-    controlTensionCable = true;           // включаем контроль растяжки
-    prCall = 0;                           // сбрвсываем переменные пауз для gsm
-    prSmsPIR1 = 0;
-    prSmsPIR2 = 0;
-    
+    }    
     delay (300);  
   }
+  
+  // установка переменных в дефолтное состояние
+  controlTensionCable = true;           // включаем контроль растяжки
+  prCall = 0;                           // сбрвсываем переменные пауз для gsm
+  prSmsPIR1 = 0;
+  prSmsPIR2 = 0;
   
   //установка на охрану                                                       
   digitalWrite(NotInContrLED, LOW);

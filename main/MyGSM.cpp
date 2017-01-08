@@ -39,14 +39,14 @@ void MyGSM::Initialize()
   {                             
     serial.println("AT+COPS?");
     if (serial.find("+COPS: 0")) break;
-    BlinkLED(_gsmLED, 0, 500, 0);        // блымаем светодиодом      
+    BlinkLED(0, 500, 0);        // блымаем светодиодом      
   }
 
   serial.println("AT+CLIP=1");             // включаем АОН,
   
   //serial.println("Modem OK"); 
-  BlinkLED(_gsmLED, 500, 150, 0);        // блымаем светодиодом 
-  BlinkLED(_gsmLED, 150, 150, 200);      // блымаем светодиодом   
+  BlinkLED(500, 150, 0);        // блымаем светодиодом 
+  BlinkLED(150, 150, 200);      // блымаем светодиодом   
 }
 
 bool MyGSM::Available()
@@ -75,7 +75,7 @@ void MyGSM::SendSMS(String text, String phone)       //процедура отп
   delay(500);
   serial.print(text);
   delay(500);
-  serial.print((char)26);
+  serial.println((char)26);
   delay(500);
   //Serial.println("SMS send complete");
   delay(2000);
@@ -86,6 +86,7 @@ void MyGSM::Call(String phone)
 {
   serial.println("ATD+" + phone + ";");
   delay(100);
+  BlinkLED(0, 250, 0);                       // сигнализируем об этом 
 }
 
 // сброс звонка
@@ -95,12 +96,13 @@ void MyGSM::RejectCall()
 }
 
 // Блымание gsm светодиодом 
-void MyGSM::BlinkLED(int pinLED, int millisBefore, int millisHIGH, int millisAfter)
+void MyGSM::BlinkLED(int millisBefore, int millisHIGH, int millisAfter)
 { 
-  digitalWrite(pinLED, LOW);                          
+  serial.println("");
+  digitalWrite(_gsmLED, LOW);                          
   delay(millisBefore);  
-  digitalWrite(pinLED, HIGH);                 // блымаем светодиодом
+  digitalWrite(_gsmLED, HIGH);                 // блымаем светодиодом
   delay(millisHIGH); 
-  digitalWrite(pinLED, LOW);
+  digitalWrite(_gsmLED, LOW);
   delay(millisAfter);
 };
