@@ -27,12 +27,16 @@
 
 // SMS
 const String smsText_TensionCable = "ALARM: TensionCable sensor";         //текст смс для растяжки
-const String smsText_PIR1         = "ALARM: PIR1 sensor";                 //текст смс для датчика движения
+const String smsText_PIR1         = "ALARM: PIR1 sensor";                 //текст смс для датчика движения 1
+const String smsText_PIR2         = "ALARM: PIR2 sensor";                 //текст смс для датчика движения 2
 
 // паузы
-const int timeSiren = 20;                     // время работы сирены 20 сек.
 const int timeWaitingInContr = 25;            // Время паузы от нажатие кнопки до установки режима охраны
 const int timeHoldingBtn = 2;                 // время удерживания кнопки для включения режима охраны  2 сек.
+const int timeSiren = 20;                     // время работы сирены (секунды).
+const int timeCall = 300;                     // время паузы после последнего звонка тревоги (секунды)
+const int timeSmsPIR1 = 300;                  // время паузы после последнего СМС датчика движения 1 (секунды)
+const int timeSmsPIR2 = 300;                  // время паузы после последнего СМС датчика движения 2 (секунды)
 
 //Спикер
 const int specerTone = 98;                    //тон спикера
@@ -53,8 +57,8 @@ const int specerTone = 98;                    //тон спикера
 
 //Sensores
 #define SH1 A2                                // нога на растяжку
-#define pinPIR1 6                             // нога датчика движения
-
+#define pinPIR1 6                             // нога датчика движения 1
+#define pinPIR2 4                             // нога датчика движения 2
 
 //// КОНСТАНТЫ РЕЖИМОВ РАБОТЫ //// 
 const byte NotInContrMod = 1;                 // снята с охраны
@@ -72,12 +76,16 @@ String val = "";
 bool inTestMod = false;                 // режим тестирования датчиков (не срабатывает сирена и не отправляются СМС)
 
 bool isSiren = false;                   // режим сирены
-long prMillisSiren = 0;                 // здесь будет храниться время последнего включения сирены
+
+long prSiren = 0;                       // время включения сирены (милисекунды)
+long prCall = 0;                        // время последнего звонка тревоги (милисекунды)
+long prSmsPIR1 = 0;                     // время последнего СМС датчика движения 1 (милисекунды)
+long prSmsPIR2 = 0;                     // время последнего СМС датчика движения 2 (милисекунды)
 
 bool controlTensionCable = true;        // включаем контроль растяжки
 
-
-void setup() {
+void setup() 
+{
   delay(1000);                                //// !! чтобы нечего не повисало при включении
   
   gsm.begin(9600);                            /// незабываем указать скорость работы UART модема
@@ -88,7 +96,8 @@ void setup() {
   pinMode(SirenLED, OUTPUT);
   pinMode(pinBOOT, OUTPUT);                   /// нога BOOT на модеме
   pinMode(SH1, INPUT_PULLUP);                 /// нога на растяжку
-  pinMode(pinPIR1, INPUT);                    /// нога датчика движения
+  pinMode(pinPIR1, INPUT);                    /// нога датчика движения 1
+  pinMode(pinPIR2, INPUT);                    /// нога датчика движения 2
   pinMode(Button, INPUT_PULLUP);              /// кнопка для установки режима охраны
   pinMode(SirenGenerator, OUTPUT);            /// нога на сирену
   pinMode(power, INPUT);                      /// нога чтения типа питания (БП или батарея)    
@@ -107,7 +116,7 @@ void loop()
 {  
   if (isSiren == 1)                           // если включена сирена проверяем время ее работы
   {
-    if (GetElapsed(prMillisSiren) > (timeSiren * 1000))          // если сирена работает больше установленного времени то выключаем ее
+    if (GetElapsed(prSiren) > (timeSiren * 1000))          // если сирена работает больше установленного времени то выключаем ее
     {
       StopSiren();
     }
@@ -128,17 +137,32 @@ void loop()
   {
     bool sTensionCable = SensorTriggered_TensionCable();              // проверяем датчики
     bool sPIR1 =  SensorTriggered_PIR1();
+    bool sPIR2 =  SensorTriggered_PIR2();
                                    
-    if ((sTensionCable && controlTensionCable) || sPIR1)              // если обрыв
+    if ((sTensionCable && controlTensionCable) || sPIR1 || sPIR2)     // если обрыв
     {                                                                 
       if (isSiren == 0) StartSiren();                                 // включаем сирену
-            
-      gsm.println(TELLNUMBER);                                        // отзваниваемся
-
-      if (sTensionCable && !inTestMod)                               // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
+      
+      if (GetElapsed(prCall) > (timeCall * 1000))                     // проверяем сколько прошло времени после последнего звонка (выдерживаем паузц между звонками)
+      {
+        gsm.println(TELLNUMBER);                                      // отзваниваемся
+        prCall = millis();
+      }
+      
+      if (sTensionCable && !inTestMod)                                // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
         SendSMS(String(smsText_TensionCable), String(SMSNUMBER));    
-      if (sPIR1 && !inTestMod)                                        // отправляем СМС если сработал датчик движения и не включен режим тестирование
-        SendSMS(String(smsText_PIR1), String(SMSNUMBER));            
+      
+      if (sPIR1 && !inTestMod && (GetElapsed(prSmsPIR1) > (timeSmsPIR1 * 1000)))      // отправляем СМС если сработал датчик движения и не включен режим тестирование  и выдержена пауза после последнего смс
+      {
+        SendSMS(String(smsText_PIR1), String(SMSNUMBER));
+        prSmsPIR1 = millis();
+      }
+      
+      if (sPIR2 && !inTestMod && (GetElapsed(prSmsPIR2) > (timeSmsPIR2 * 1000)))      // отправляем СМС если сработал датчик движения и не включен режим тестирование  и выдержена пауза после последнего смс
+      {  
+        SendSMS(String(smsText_PIR2), String(SMSNUMBER));
+        prSmsPIR2 = millis();
+      }
       
       if (sTensionCable) controlTensionCable = false;                 // отключаем контроль растяжки что б сирена не работала постоянно после разрыва растяжки
     }
@@ -166,8 +190,8 @@ void loop()
          )       
       {  
         //Serial.println("--- MASTER RING DETECTED ---");
-        BlinkLED(gsmLED, 500, 250);                         // сигнализируем об этом      
-        delay(1500);                                        // небольшая пауза перед збросом звонка
+        BlinkLED(gsmLED, 0, 250, 0);                        // сигнализируем об этом      
+        delay(2000);                                        // небольшая пауза перед збросом звонка
         gsm.println("ATH0");                                // сбрасываем вызов        
         Set_NotInContrMod();                                // снимаем с охраны         
       }
@@ -182,7 +206,7 @@ void loop()
       {  
         // DOTO
         //Serial.println("--- MASTER RING DETECTED ---");
-        BlinkLED(gsmLED, 500, 250);                         // сигнализируем об этом
+        BlinkLED(gsmLED, 0, 250, 0);                      // сигнализируем об этом
         delay(7000);                                        // большая пауза перед збросом звонка
         gsm.println("ATH0");                                // сбрасываем вызов        
         Set_InContrMod(0);                                  // устанавливаем на охрану без паузы      
@@ -221,15 +245,14 @@ void InitializeGSM()
   {                             
     gsm.println("AT+COPS?");
     if (gsm.find("+COPS: 0")) break;
-    BlinkLED(gsmLED, 0, 700);         // блымаем светодиодом      
+    BlinkLED(gsmLED, 0, 500, 0);        // блымаем светодиодом      
   }
 
   gsm.println("AT+CLIP=1");             // включаем АОН,
   
   //Serial.println("Modem OK"); 
-  BlinkLED(gsmLED, 500, 150);          // блымаем светодиодом 
-  BlinkLED(gsmLED, 150, 150);         // блымаем светодиодом   
-  delay(200); 
+  BlinkLED(gsmLED, 500, 150, 0);        // блымаем светодиодом 
+  BlinkLED(gsmLED, 150, 150, 200);      // блымаем светодиодом   
 }
 
 // для подсчета сколько прошло милисикунд после последнего срабатывания события (сирена, звонок и т.д.)
@@ -242,13 +265,12 @@ unsigned long GetElapsed(long prEventMillis)
 ////// Function for setting of mods ////// 
 bool Set_NotInContrMod()
 {
-  controlTensionCable = true;           // включаем контроль растяжки    
   digitalWrite(NotInContrLED, HIGH);
   digitalWrite(InContrLED, LOW);
   digitalWrite(SirenLED, LOW);
   PlayTone(specerTone, 500);
   mode = NotInContrMod;                 // снимаем охранку
-  EEPROM.write(0, mode);                // пишим режим в еепром
+  EEPROM.write(0, mode);                // пишим режим в еепром 
   return true;
 }
 
@@ -274,22 +296,11 @@ bool Set_InContrMod(bool IsWaiting)
       }
       
       if (i < (timeWaitingInContr * 0.7))               // первых 70% паузы моргаем медленным темпом
-      {
-        digitalWrite(InContrLED, HIGH);                 // включаем/выключаем режим тестирование датчиков 
-        PlayTone(specerTone, 500);
-        digitalWrite(InContrLED, LOW);
-        delay (500);
-      }
+        BlinkLEDSpecer(InContrLED, 0, 500, 500);              
       else                                              // последних 30% паузы ускоряем темп
       {
-        digitalWrite(InContrLED, HIGH);
-        PlayTone(specerTone, 250);
-        digitalWrite(InContrLED, LOW);
-        delay (250);
-        digitalWrite(InContrLED, HIGH);
-        PlayTone(specerTone, 250);
-        digitalWrite(InContrLED, LOW);
-        delay (250);        
+        BlinkLEDSpecer(InContrLED, 0, 250, 250); 
+        BlinkLEDSpecer(InContrLED, 0, 250, 250);              
       }
       if (ButtonIsHold(timeHoldingBtn))                 // проверяем не нажата ли кнопка и если кнопка удерживается заданое время, функция вернет true и установка на охрану прерывается     
       {
@@ -297,6 +308,13 @@ bool Set_InContrMod(bool IsWaiting)
         return false;      
       }            
     }
+    
+    // установка переменных в дефолтное состояние
+    controlTensionCable = true;           // включаем контроль растяжки
+    prCall = 0;                           // сбрвсываем переменные пауз для gsm
+    prSmsPIR1 = 0;
+    prSmsPIR2 = 0;
+    
     delay (300);  
   }
   
@@ -317,7 +335,7 @@ void  StartSiren()
   if (!inTestMod)                                        // если не включен тестовый режим
     digitalWrite(SirenGenerator, LOW);                  // включаем сирену через релье
   isSiren = 1;
-  prMillisSiren = millis();
+  prSiren = millis();
 }
 
 
@@ -325,8 +343,7 @@ void  StopSiren()
 {
   digitalWrite(SirenLED, LOW);
   digitalWrite(SirenGenerator, HIGH);                    // выключаем сирену через релье
-  isSiren = 0;
-  prMillisSiren = millis();
+  isSiren = 0; 
 }
 
 
@@ -371,9 +388,15 @@ bool SensorTriggered_TensionCable()          // растяжка
   else return false;
 }
 
-bool SensorTriggered_PIR1()                  // датчик движения
+bool SensorTriggered_PIR1()                  // датчик движения 1
 {
   if (digitalRead(pinPIR1) == HIGH) return true;
+  else return false;
+}
+
+bool SensorTriggered_PIR2()                  // датчик движения 2
+{
+  if (digitalRead(pinPIR2) == HIGH) return true;
   else return false;
 }
 
@@ -392,11 +415,23 @@ void SendSMS(String text, String phone)       //процедура отправ�
 }
 
 // Блымание светодиодом
-void BlinkLED(int pinLED, int millisLOW, int millisHIGH)
+void BlinkLED(int pinLED, int millisBefore, int millisHIGH, int millisAfter)
 { 
   digitalWrite(pinLED, LOW);                          
-  delay(millisLOW);  
+  delay(millisBefore);  
   digitalWrite(pinLED, HIGH);                 // блымаем светодиодом
   delay(millisHIGH); 
   digitalWrite(pinLED, LOW);
+  delay(millisAfter);
+}
+
+// Блымание светодиодом со спикером
+void BlinkLEDSpecer(int pinLED, int millisBefore, int millisHIGH, int millisAfter)
+{ 
+  digitalWrite(pinLED, LOW);                          
+  delay(millisBefore);  
+  digitalWrite(pinLED, HIGH);                 // блымаем светодиодом
+  PlayTone(specerTone, millisHIGH);
+  digitalWrite(pinLED, LOW);
+  delay(millisAfter);
 }
