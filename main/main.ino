@@ -28,15 +28,15 @@
 #define smsText_PIR2          "ALARM: PIR2 sensor"                 //текст смс для датчика движения 2
 
 // паузы
-const int timeWaitingInContr = 25;            // Время паузы от нажатие кнопки до установки режима охраны
-const int timeHoldingBtn = 2;                 // время удерживания кнопки для включения режима охраны  2 сек.
-const int timeSiren = 20;                     // время работы сирены (секунды).
-const long timeCall = 120;                     // время паузы после последнего звонка тревоги (секунды)
-const long timeSmsPIR1 = 120;                  // время паузы после последнего СМС датчика движения 1 (секунды)
-const long timeSmsPIR2 = 120;                  // время паузы после последнего СМС датчика движения 2 (секунды)
+const unsigned int timeWaitingInContr = 25;            // Время паузы от нажатие кнопки до установки режима охраны
+const byte timeHoldingBtn = 2;                         // время удерживания кнопки для включения режима охраны  2 сек.
+const unsigned int timeSiren = 20;                     // время работы сирены (секунды).
+const unsigned long timeCall = 120;                     // время паузы после последнего звонка тревоги (секунды)
+const unsigned long timeSmsPIR1 = 120;                  // время паузы после последнего СМС датчика движения 1 (секунды)
+const unsigned long timeSmsPIR2 = 120;                  // время паузы после последнего СМС датчика движения 2 (секунды)
 
 //Спикер
-const int specerTone = 98;                    //тон спикера
+const byte specerTone = 98;                    //тон спикера
 
 
 //// КОНСТАНТЫ ДЛЯ ПИНОВ /////
@@ -72,10 +72,10 @@ bool inTestMod = false;                 // режим тестирования �
 
 bool isSiren = false;                   // режим сирены
 
-long prSiren = 0;                       // время включения сирены (милисекунды)
-long prCall = 0;                        // время последнего звонка тревоги (милисекунды)
-long prSmsPIR1 = 0;                     // время последнего СМС датчика движения 1 (милисекунды)
-long prSmsPIR2 = 0;                     // время последнего СМС датчика движения 2 (милисекунды)
+unsigned long prSiren = 0;                       // время включения сирены (милисекунды)
+unsigned long prCall = 0;                        // время последнего звонка тревоги (милисекунды)
+unsigned long prSmsPIR1 = 0;                     // время последнего СМС датчика движения 1 (милисекунды)
+unsigned long prSmsPIR2 = 0;                     // время последнего СМС датчика движения 2 (милисекунды)
 
 bool controlTensionCable = true;        // включаем контроль растяжки
 
@@ -137,7 +137,7 @@ void loop()
                                    
     if ((sTensionCable && controlTensionCable) || sPIR1 || sPIR2)                  // если обрыв
     {                                                                 
-      if (isSiren == 0) StartSiren();                                              // включаем сирену
+      if (isSiren == false) StartSiren();                                          // включаем сирену
       
       if ((GetElapsed(prCall) > (timeCall * 1000)) or prCall == 0)                 // проверяем сколько прошло времени после последнего звонка (выдерживаем паузц между звонками)
       {
@@ -218,7 +218,7 @@ void loop()
 //// ------------------------------- Functions --------------------------------- ////
 
 // подсчет сколько прошло милисикунд после последнего срабатывания события (сирена, звонок и т.д.)
-unsigned long GetElapsed(long prEventMillis)
+unsigned long GetElapsed(unsigned long prEventMillis)
 {
   unsigned long tm = millis();
   return (tm >= prEventMillis) ? tm - prEventMillis : 0xFFFFFFFF - prEventMillis + tm + 1;  //возвращаем милисикунды после последнего события
@@ -239,7 +239,7 @@ bool Set_NotInContrMod()
 
 bool Set_InContrMod(bool IsWaiting)
 {
-  int btnHold = 0;
+  byte btnHold = 0;
   if (IsWaiting == true)                                // если включен режим ожидание перед установкой охраны выдерживаем заданную паузу что б успеть покинуть помещение
   {
     digitalWrite(NotInContrLED, LOW);   
@@ -309,7 +309,7 @@ void  StopSiren()
 }
 
 
-bool ButtonIsHold(int timeHold)
+bool ButtonIsHold(byte timeHold)
 {  
   if (digitalRead(Button)) btnIsHolding = false;                       // если кнопка не нажата сбрасываем показатеь удерживания кнопки
   if (!digitalRead(Button) && btnIsHolding == false)                   // проверяем нажата ли кнопка и отпускалась ли после предыдущего нажатия (для избежание ложного считывание кнопки)
@@ -318,7 +318,7 @@ bool ButtonIsHold(int timeHold)
       digitalWrite(SirenLED, LOW); 
       
     btnIsHolding = true;
-    int i = 1;
+    byte i = 1;
     while(1) 
     {
       if (digitalRead(Button)) return false; 
@@ -331,9 +331,9 @@ bool ButtonIsHold(int timeHold)
 }
 
 
-void PlayTone(int tone, int duration) 
+void PlayTone(byte tone, unsigned int duration) 
 {
-  for (long i = 0; i < duration * 1000L; i += tone * 2) 
+  for (unsigned long i = 0; i < duration * 1000L; i += tone * 2) 
   {
     digitalWrite(SpecerPin, HIGH);
     delayMicroseconds(tone);
@@ -363,7 +363,7 @@ bool SensorTriggered_PIR2()                  // датчик движения 2
 }
 
 // Блымание светодиодом
-void BlinkLED(int pinLED, int millisBefore, int millisHIGH, int millisAfter)
+void BlinkLED(byte pinLED,  unsigned int millisBefore,  unsigned int millisHIGH,  unsigned int millisAfter)
 { 
   digitalWrite(pinLED, LOW);                          
   delay(millisBefore);  
@@ -374,7 +374,7 @@ void BlinkLED(int pinLED, int millisBefore, int millisHIGH, int millisAfter)
 }
 
 // Блымание светодиодом со спикером
-void BlinkLEDSpecer(int pinLED, int millisBefore, int millisHIGH, int millisAfter)
+void BlinkLEDSpecer(byte pinLED,  unsigned int millisBefore,  unsigned int millisHIGH,  unsigned int millisAfter)
 { 
   digitalWrite(pinLED, LOW);                          
   delay(millisBefore);  

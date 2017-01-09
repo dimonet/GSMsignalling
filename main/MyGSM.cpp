@@ -7,7 +7,7 @@
 #define serial Serial                           // если аппаратный в UNO
 //#define serial Serial1                          // если аппаратный в леонардо
 
-MyGSM::MyGSM(int gsmLED, int pinBOOT)
+MyGSM::MyGSM(byte gsmLED, byte pinBOOT)
 {
   _gsmLED = gsmLED;
   _pinBOOT = pinBOOT;
@@ -96,7 +96,7 @@ void MyGSM::RejectCall()
 }
 
 // Блымание gsm светодиодом 
-void MyGSM::BlinkLED(int millisBefore, int millisHIGH, int millisAfter)
+void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter)
 { 
   serial.println("");
   digitalWrite(_gsmLED, LOW);                          

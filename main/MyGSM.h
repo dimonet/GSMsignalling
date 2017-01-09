@@ -3,7 +3,7 @@
 class MyGSM
 {
   public: 
-    MyGSM(int gsmLED, int pinBOOT);
+    MyGSM(byte gsmLED, byte pinBOOT);
     void Initialize();
     bool Available();
     String Read();
@@ -12,7 +12,7 @@ class MyGSM
     void RejectCall();
     
   private:
-    void BlinkLED(int millisBefore, int millisHIGH, int millisAfter);
+    void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
     int _gsmLED;
     int _pinBOOT;                             // нога BOOT или K на модеме   
 };
