@@ -49,6 +49,7 @@ const byte specerTone = 98;                    //тон спикера
 #define NotInContrLED 12
 #define InContrLED 11
 #define SirenLED 10
+#define BattPowerLED 2
 
 #define pinBOOT 5                             // нога BOOT или K на модеме 
 #define Button 9                              // нога на кнопку
@@ -67,8 +68,8 @@ const byte NotInContrMod = 1;                 // снята с охраны
 const byte InContrMod = 2;                    // установлена охрана
 
 //// КОНСТАНТЫ ПИТЯНИЯ ////
-const float netVcc = 4.2;                     // значения питяния от сети (вольт)
-const float battVcc = 5.0;                    // значения питяния от сети (вольт)
+const float netVcc = 12.0;                     // значения питяния от сети (вольт)
+const float battVcc = 0.1;                    // значения питяния от сети (вольт)
 const float battVccMin = 2.75;                // минимальное напряжение батареи (для сигнализации о том, что батарея разряжена)
 
 
@@ -102,6 +103,7 @@ void setup()
   pinMode(NotInContrLED, OUTPUT);
   pinMode(InContrLED, OUTPUT);
   pinMode(SirenLED, OUTPUT);
+  pinMode(BattPowerLED, OUTPUT);
   pinMode(pinBOOT, OUTPUT);                   /// нога BOOT на модеме
   pinMode(SH1, INPUT_PULLUP);                 /// нога на растяжку
   pinMode(pinPIR1, INPUT);                    /// нога датчика движения 1
@@ -111,9 +113,14 @@ void setup()
   pinMode(pinMeasureVcc, INPUT);              /// нога чтения типа питания (БП или батарея)    
 
   digitalWrite(SirenGenerator, HIGH);         /// выключаем сирену через релье
-                             
-  gsm.Initialize();                           // Инициализация gsm модуля (включения, настройка) 
+  
+  analogReference(INTERNAL);
   powCtr.Refresh();                           // читаем тип питания (БП или батарея)
+  if (powCtr.IsBattPower())
+    digitalWrite(BattPowerLED, HIGH);
+  
+  gsm.Initialize();                           // Инициализация gsm модуля (включения, настройка) 
+    
   mode = EEPROM.read(0);                      // читаем режим из еепром
   if (mode == InContrMod) Set_InContrMod(1);          
   else Set_NotInContrMod();
@@ -123,6 +130,7 @@ void setup()
 
 void loop() 
 {       
+  PowerControl();
   if (isSiren == 1)                                     // если включена сирена проверяем время ее работы
   {
     if (GetElapsed(prSiren) > timeSiren)       // если сирена работает больше установленного времени то выключаем ее
@@ -404,15 +412,19 @@ void PowerControl()
     powCtr.Refresh();
     if (!powCtr.IsBattPowerPrevious() && powCtr.IsBattPower())   // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v)
     {
-      gsm.SendSMS(String(smsText_BattPower), String(SMSNUMBER));
+      digitalWrite(BattPowerLED, HIGH);
+      if (!inTestMod) 
+        gsm.SendSMS(String(smsText_BattPower), String(SMSNUMBER));      
     }
   
     if (powCtr.IsBattPowerPrevious() && !powCtr.IsBattPower())   // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено)
     {
-      gsm.SendSMS(String(smsText_NetPower), String(SMSNUMBER));
+      digitalWrite(BattPowerLED, LOW);
+      if (!inTestMod) 
+        gsm.SendSMS(String(smsText_NetPower), String(SMSNUMBER));      
     }
     prRefreshVcc = millis();
-  }
+  }   
 }
 
 

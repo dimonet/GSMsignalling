@@ -73,12 +73,13 @@ void MyGSM::SendSMS(String text, String phone)       //процедура отп
   //Serial.println("SMS send started");
   serial.println("AT+CMGS=\"" + phone + "\"");
   delay(500);
-  serial.print(text);
-  delay(500);
+  serial.print(text); 
+  BlinkLED(0, 250, 0);                       // сигнализируем об этом
+  delay(250);
   serial.println((char)26);
   delay(500);
   //Serial.println("SMS send complete");
-  delay(2000);
+  delay(2000);  
 }
 
 // звонок на заданый номер
