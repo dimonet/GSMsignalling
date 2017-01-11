@@ -1,5 +1,5 @@
-#include "PowerControl.h"
 #include "Arduino.h"
+#include "PowerControl.h"
 
 const float R1 = 100.0;
 const float R2 = 10.0;
@@ -23,15 +23,28 @@ void PowerControl::Refresh()
       _isBattPower = true;  
 }
 
+float PowerControl::MeasureVccValue()
+{
+  float Vbat = (analogRead(_pinMeasureVcc) * 1.1) / 1024.0;
+  return Vbat / (R2 / (R1 + R2));  
+}
 
-float PowerControl::GetVccValue()
+
+float PowerControl::VccValue()
 {
   return _vccValue;
 }
 
 
-float PowerControl::MeasureVccValue()
+bool PowerControl::IsBattPower()
 {
-  float Vbat = (analogRead(_pinMeasureVcc) * 1.1) / 1024.0;
-  return Vbat / (R2 / (R1 + R2));  
+  return _isBattPower;  
+}
+
+
+bool PowerControl::IsBattPowerPrevious()
+{
+  return _isBattPowerPrevious;
 };
+
+
