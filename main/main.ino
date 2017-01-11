@@ -5,6 +5,7 @@
 
 #include <EEPROM.h>
 #include "MyGSM.h"
+#include "PowerControl.h"
 
 #define debug Serial
 
@@ -46,11 +47,12 @@ const byte specerTone = 98;                    //тон спикера
 #define InContrLED 11
 #define SirenLED 10
 
-#define power 3                               // нога чтения типа питания (БП или батарея)
 #define pinBOOT 5                             // нога BOOT или K на модеме 
 #define Button 9                              // нога на кнопку
 #define SirenGenerator 7                      // нога на сирену
 
+//Power control 
+#define pinMeasureVcc A0                     // нога чтения типа питания (БП или батарея)
 
 //Sensores
 #define SH1 A2                                // нога на растяжку
@@ -60,6 +62,11 @@ const byte specerTone = 98;                    //тон спикера
 //// КОНСТАНТЫ РЕЖИМОВ РАБОТЫ //// 
 const byte NotInContrMod = 1;                 // снята с охраны
 const byte InContrMod = 2;                    // установлена охрана
+
+//// КОНСТАНТЫ ПИТЯНИЯ ////
+const float netVcc = 4.2;                     // значения питяния от сети (вольт)
+const float battVcc = 5.0;                    // значения питяния от сети (вольт)
+const float battVccMin = 2.75;                // минимальное напряжение батареи (для сигнализации о том, что батарея разряжена)
 
 
 //// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ////
@@ -79,7 +86,8 @@ unsigned long prSmsPIR2 = 0;                     // время последне�
 
 bool controlTensionCable = true;        // включаем контроль растяжки
 
-MyGSM gsm(gsmLED, pinBOOT);
+MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
+PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
 
 void setup() 
 {
@@ -96,7 +104,7 @@ void setup()
   pinMode(pinPIR2, INPUT);                    /// нога датчика движения 2
   pinMode(Button, INPUT_PULLUP);              /// кнопка для установки режима охраны
   pinMode(SirenGenerator, OUTPUT);            /// нога на сирену
-  pinMode(power, INPUT);                      /// нога чтения типа питания (БП или батарея)    
+  pinMode(pinMeasureVcc, INPUT);              /// нога чтения типа питания (БП или батарея)    
 
   digitalWrite(SirenGenerator, HIGH);         /// выключаем сирену через релье
                              
