@@ -73,7 +73,7 @@ void MyGSM::SendSMS(String text, String phone)       //процедура отп
   //Serial.println("SMS send started");
   serial.println("AT+CMGS=\"" + phone + "\"");
   delay(500);
-  serial.print(text); 
+  serial.println(text); 
   BlinkLED(0, 250, 0);                       // сигнализируем об этом
   delay(250);
   serial.println((char)26);
