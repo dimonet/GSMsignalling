@@ -97,7 +97,6 @@ void MyGSM::RejectCall()
 // Блымание gsm светодиодом 
 void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter)
 { 
-  serial.println("");
   digitalWrite(_gsmLED, LOW);                          
   delay(millisBefore);  
   digitalWrite(_gsmLED, HIGH);                 // блымаем светодиодом
