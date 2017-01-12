@@ -6,6 +6,7 @@ const float R2 = 67.0;
 
 PowerControl::PowerControl(byte netVcc, byte  battVcc, byte pinMeasureVcc)
 {
+  analogReference(INTERNAL);
   _netVcc = netVcc;
   _battVcc = battVcc;
   _pinMeasureVcc = pinMeasureVcc;
