@@ -74,19 +74,17 @@ void MyGSM::SendSMS(String text, String phone)       //процедура отп
   serial.println("AT+CMGS=\"" + phone + "\"");
   delay(500);
   serial.println(text); 
-  BlinkLED(0, 250, 0);                       // сигнализируем об этом
-  delay(250);
-  serial.println((char)26);
   delay(500);
-  //Serial.println("SMS send complete");
-  delay(2000);  
+  serial.println((char)26);
+  BlinkLED(0, 250, 0);                       // сигнализируем об этом
+   //Serial.println("SMS send complete");
+  delay(2250);
 }
 
 // звонок на заданый номер
 void MyGSM::Call(String phone)
 {
   serial.println("ATD+" + phone + ";");
-  delay(100);
   BlinkLED(0, 250, 0);                       // сигнализируем об этом 
 }
 
