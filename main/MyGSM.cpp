@@ -16,37 +16,68 @@ MyGSM::MyGSM(byte gsmLED, byte pinBOOT)
 // Инициализация gsm модуля (включения, настройка)
 void MyGSM::Initialize()
 {
-  serial.begin(9600);                            /// незабываем указать скорость работы UART модема
+  serial.begin(9600);                      // незабываем указать скорость работы UART модема
   delay(1000);                            
-  digitalWrite(_gsmLED, HIGH);           // на время включаем лед  
-  digitalWrite(_pinBOOT, LOW);           // включаем модем 
-   
-  // нужно дождатся включения модема и соединения с сетью
-  delay(2000);    
+  digitalWrite(_gsmLED, HIGH);             // на время включаем лед  
+  digitalWrite(_pinBOOT, LOW);             // включаем модем   
+  delay(2000);                             // нужно дождатся включения модема и соединения с сетью
+  
   serial.println("ATE0");                  // выключаем эхо  
-
   delay(100);
-  serial.println("AT+CLIP=1");  //включаем АОН
+  
+  serial.println("AT+CLIP=1");             //включаем АОН
+  delay(100);
     
   // настройка смс
-  delay(100);
   serial.println("AT+CMGF=1");             //режим кодировки СМС - обычный (для англ.)
   delay(100);
   serial.println("AT+CSCS=\"GSM\"");       //режим кодировки текста
   delay(100);
     
-  while(1)                              // ждем подключение модема к сети
+  while(1)                                 // ждем подключение модема к сети
   {                             
+    digitalWrite(_gsmLED, HIGH);
     serial.println("AT+COPS?");
-    if (serial.find("+COPS: 0")) break;
-    BlinkLED(0, 500, 0);        // блымаем светодиодом      
+    if (serial.find("+COPS: 0")) 
+    {
+      digitalWrite(_gsmLED, LOW);
+      BlinkLED(500, 150, 0);        // блымаем светодиодом 
+      BlinkLED(150, 150, 200);      // блымаем светодиодом 
+      break;
+    }
+    digitalWrite(_gsmLED, LOW);                   // блымаем светодиодом
+    delay(200);     
   }
+  //serial.println("Modem OK");     
+}
 
-  serial.println("AT+CLIP=1");             // включаем АОН,
-  
-  //serial.println("Modem OK"); 
-  BlinkLED(500, 150, 0);        // блымаем светодиодом 
-  BlinkLED(150, 150, 200);      // блымаем светодиодом   
+void MyGSM::ReInitialize()
+{
+  serial.println("ATE0");                  // выключаем эхо  
+  delay(100);                                 
+  serial.println("AT+CLIP=1");             //включаем АОН
+  delay(100);
+
+  // настройка смс
+  serial.println("AT+CMGF=1");             //режим кодировки СМС - обычный (для англ.)
+  delay(100);
+  serial.println("AT+CSCS=\"GSM\"");       //режим кодировки текста
+  delay(100);
+
+  while(1)                                 // ждем подключение модема к сети
+  {                             
+    digitalWrite(_gsmLED, HIGH);
+    serial.println("AT+COPS?");
+    if (serial.find("+COPS: 0")) 
+    {
+      digitalWrite(_gsmLED, LOW);
+      BlinkLED(500, 150, 0);        // блымаем светодиодом 
+      BlinkLED(150, 150, 200);      // блымаем светодиодом 
+      break;
+    }
+    digitalWrite(_gsmLED, LOW);                   // блымаем светодиодом
+    delay(200);     
+  }
 }
 
 bool MyGSM::Available()

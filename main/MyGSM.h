@@ -5,6 +5,7 @@ class MyGSM
   public: 
     MyGSM(byte gsmLED, byte pinBOOT);
     void Initialize();
+    void ReInitialize();
     bool Available();
     String Read();
     void SendSMS(String text, String phone);
