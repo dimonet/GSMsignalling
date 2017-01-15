@@ -68,7 +68,7 @@ const byte NotInContrMod = 1;                 // снята с охраны
 const byte InContrMod = 2;                    // установлена охрана
 
 //// КОНСТАНТЫ ПИТЯНИЯ ////
-const float netVcc = 12.0;                    // значения питяния от сети (вольт)
+const float netVcc = 10.0;                    // значения питяния от сети (вольт)
 const float battVcc = 0.1;                    // значения питяния от сети (вольт)
 const float battVccMin = 2.75;                // минимальное напряжение батареи (для сигнализации о том, что батарея разряжена)
 
@@ -114,9 +114,9 @@ void setup()
   
   
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
-  digitalWrite(BattPowerLED, powCtr.IsBattPower());     //если питаимся от батареи включам соотвествующий LED
+  digitalWrite(BattPowerLED, powCtr.IsBattPower());     // если питаимся от батареи включам соотвествующий LED
   
-  gsm.Initialize();                                     // Инициализация gsm модуля (включения, настройка) 
+  gsm.Initialize();                                     // инициализация gsm модуля (включения, настройка) 
     
   mode = EEPROM.read(0);                                // читаем режим из еепром
   if (mode == InContrMod) Set_InContrMod(1);          
@@ -411,13 +411,10 @@ void PowerControl()
         
     if (!powCtr.IsBattPowerPrevious() && powCtr.IsBattPower())   // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v)
     { 
-      gsm.ReInitialize();
       if (!inTestMod) gsm.SendSMS(String(smsText_BattPower), String(SMSNUMBER));               // если не включен режим тестирования отправляем смс о переходе на резервное питание         
     }  
     if (powCtr.IsBattPowerPrevious() && !powCtr.IsBattPower())   // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено)
     {  
-      delay(200);
-      gsm.ReInitialize();
       if (!inTestMod) gsm.SendSMS(String(smsText_NetPower), String(SMSNUMBER));                // если не включен отправляем смс о возобновлении  сетевое питание 220v
     }
     prRefreshVcc = millis();
