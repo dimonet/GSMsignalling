@@ -144,7 +144,7 @@ void loop()
 
   if (mode == InContrMod)                                             // если в режиме охраны
   {
-    if (ButtonIsHold(timeHoldingBtn) && isSiren)                      // снимаем с охраны если кнопка удерживается заданое время и включен режим тестирования
+    if (ButtonIsHold(timeHoldingBtn) && inTestMod)                      // снимаем с охраны если кнопка удерживается заданое время и включен режим тестирования
       Set_NotInContrMod();                     
     
     bool sTensionCable = SensorTriggered_TensionCable();              // проверяем датчики
@@ -291,8 +291,7 @@ bool Set_InContrMod(bool IsWaiting)
         Set_NotInContrMod();
         return false;      
       }            
-    }    
-    delay (2500);                                        // дополнительная пауза так как датчик держит лог. единицу 2,5
+    }        
   }
   
   // установка переменных в дефолтное состояние
@@ -308,6 +307,7 @@ bool Set_InContrMod(bool IsWaiting)
   PlayTone(specerTone, 500);
   mode = InContrMod;                                    // ставим на охрану  
   EEPROM.write(0, mode);                                // пишим режим в еепром
+  delay (2500);                                        // дополнительная пауза так как датчик держит лог. единицу 2,5
   return true;
 }
 
@@ -412,14 +412,12 @@ void PowerControl()
     powCtr.Refresh();    
     digitalWrite(BattPowerLED, powCtr.IsBattPower());
         
-    if (!powCtr.IsBattPowerPrevious() && powCtr.IsBattPower())   // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v)
-    { 
-      if (!inTestMod) gsm.SendSMS(String(smsText_BattPower), String(SMSNUMBER));               // если не включен режим тестирования отправляем смс о переходе на резервное питание         
-    }  
-    if (powCtr.IsBattPowerPrevious() && !powCtr.IsBattPower())   // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено)
-    {  
-      if (!inTestMod) gsm.SendSMS(String(smsText_NetPower), String(SMSNUMBER));                // если не включен отправляем смс о возобновлении  сетевое питание 220v
-    }
+    if (!inTestMod && !powCtr.IsBattPowerPrevious() && powCtr.IsBattPower())   // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v) и если не включен режим тестирования
+      gsm.SendSMS(String(smsText_BattPower), String(SMSNUMBER));               // отправляем смс о переходе на резервное питание         
+      
+    if (!inTestMod && powCtr.IsBattPowerPrevious() && !powCtr.IsBattPower())   // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования
+      gsm.SendSMS(String(smsText_NetPower), String(SMSNUMBER));                // отправляем смс о возобновлении  сетевое питание 220v
+    
     prRefreshVcc = millis();
   }   
 }
