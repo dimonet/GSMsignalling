@@ -31,14 +31,14 @@
 #define smsText_NetPower      "POWER: Network power has been restored"             // текст смс для оповещение о том что сетевое питание возобновлено
 
 // паузы
-const unsigned int timeWaitInContr = 25;                   // Время паузы от нажатие кнопки до установки режима охраны
-const unsigned int timeWaitInContrTest = 8;                // Время паузы от нажатие кнопки до установки режима охраны в режиме тестирования
+const byte timeWaitInContr = 25;                           // Время паузы от нажатие кнопки до установки режима охраны
+const byte timeWaitInContrTest = 8;                        // Время паузы от нажатие кнопки до установки режима охраны в режиме тестирования
 const byte timeHoldingBtn = 2;                             // время удерживания кнопки для включения режима охраны  2 сек.
 const unsigned int timeSiren = 20000;                      // время работы сирены (милисекунды).
 const unsigned long timeCall = 120000;                     // время паузы после последнего звонка тревоги (милисекунды)
 const unsigned long timeSmsPIR1 = 120000;                  // время паузы после последнего СМС датчика движения 1 (милисекунды)
 const unsigned long timeSmsPIR2 = 120000;                  // время паузы после последнего СМС датчика движения 2 (милисекунды)
-const unsigned long timeRefreshVcc = 1000;                // время паузы после последнего измерения питания (милисекунды)
+const unsigned long timeRefreshVcc = 1000;                 // время паузы после последнего измерения питания (милисекунды)
 
 //Спикер
 const byte specerTone = 98;                    //тон спикера
