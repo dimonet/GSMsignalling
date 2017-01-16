@@ -36,17 +36,14 @@ void MyGSM::Initialize()
     
   while(1)                                 // ждем подключение модема к сети
   {                             
-    digitalWrite(_gsmLED, HIGH);
     serial.println("AT+COPS?");
     if (serial.find("+COPS: 0")) 
     {
-      digitalWrite(_gsmLED, LOW);
-      BlinkLED(500, 150, 0);        // блымаем светодиодом 
-      BlinkLED(150, 150, 200);      // блымаем светодиодом 
+      BlinkLED(500, 150, 0);               // блымаем светодиодом 
+      BlinkLED(150, 150, 200);             // блымаем светодиодом 
       break;
-    }
-    digitalWrite(_gsmLED, LOW);                   // блымаем светодиодом
-    delay(200);     
+    }    
+    BlinkLED(0, 500, 0);                   // блымаем светодиодом  
   }
   //serial.println("Modem OK");     
 }
@@ -66,17 +63,14 @@ void MyGSM::ReInitialize()
 
   while(1)                                 // ждем подключение модема к сети
   {                             
-    digitalWrite(_gsmLED, HIGH);
     serial.println("AT+COPS?");
     if (serial.find("+COPS: 0")) 
     {
-      digitalWrite(_gsmLED, LOW);
-      BlinkLED(500, 150, 0);        // блымаем светодиодом 
-      BlinkLED(150, 150, 200);      // блымаем светодиодом 
+      BlinkLED(500, 150, 0);               // блымаем светодиодом 
+      BlinkLED(150, 150, 200);             // блымаем светодиодом 
       break;
-    }
-    digitalWrite(_gsmLED, LOW);                   // блымаем светодиодом
-    delay(200);     
+    }    
+    BlinkLED(0, 500, 0);                   // блымаем светодиодом  
   }
 }
 
