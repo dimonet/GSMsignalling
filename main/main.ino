@@ -127,28 +127,24 @@ void setup()
 
 void loop() 
 {       
-  PowerControl();
-  if (isSiren == 1)                                     // если включена сирена проверяем время ее работы
-  {
-    if (GetElapsed(prSiren) > timeSiren)                // если сирена работает больше установленного времени то выключаем ее
-    {
-      StopSiren();
-    }
-  }
+  PowerControl();                                                     // мониторим питание системы
+  if (isSiren && GetElapsed(prSiren) > timeSiren)                     // если включена сирена и сирена работает больше установленного времени то выключаем ее
+    StopSiren();  
   
-  if (inTestMod == 1 && isSiren == 0)                                 // если включен режим тестирования и не сирена то мигаем светодиодом
+  if (inTestMod == 1 && !isSiren)                                     // если включен режим тестирования и не сирена то мигаем светодиодом
   {
      digitalWrite(SirenLED, !digitalRead(SirenLED));     
      delay(200);
   }
   
   if (mode != InContrMod && ButtonIsHold(timeHoldingBtn))             // если режим не на охране и если кнопка удерживается заданое время то ставим на охрану
-  {
-    Set_InContrMod(1);                                                // ставим на охрану 
-  }
+    Set_InContrMod(1);                                                // ставим на охрану   
 
   if (mode == InContrMod)                                             // если в режиме охраны
   {
+    if (ButtonIsHold(timeHoldingBtn) && isSiren)                      // снимаем с охраны если кнопка удерживается заданое время и включен режим тестирования
+      Set_NotInContrMod();                     
+    
     bool sTensionCable = SensorTriggered_TensionCable();              // проверяем датчики
     bool sPIR1 = SensorTriggered_PIR1();
     bool sPIR2 = SensorTriggered_PIR2();
