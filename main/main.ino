@@ -31,7 +31,8 @@
 #define smsText_NetPower      "POWER: Network power has been restored"             // текст смс для оповещение о том что сетевое питание возобновлено
 
 // паузы
-const unsigned int timeWaitingInContr = 25;                // Время паузы от нажатие кнопки до установки режима охраны
+const unsigned int timeWaitInContr = 25;                   // Время паузы от нажатие кнопки до установки режима охраны
+const unsigned int timeWaitInContrTest = 8;                // Время паузы от нажатие кнопки до установки режима охраны в режиме тестирования
 const byte timeHoldingBtn = 2;                             // время удерживания кнопки для включения режима охраны  2 сек.
 const unsigned int timeSiren = 20000;                      // время работы сирены (милисекунды).
 const unsigned long timeCall = 120000;                     // время паузы после последнего звонка тревоги (милисекунды)
@@ -253,17 +254,22 @@ bool Set_NotInContrMod()
 
 bool Set_InContrMod(bool IsWaiting)
 {
-  byte btnHold = 0;
+  byte btnHold = 0;  
   if (IsWaiting == true)                                // если включен режим ожидание перед установкой охраны выдерживаем заданную паузу что б успеть покинуть помещение
   {
     digitalWrite(NotInContrLED, LOW);   
-    for(int i = 0; i < timeWaitingInContr; i++)   
+    
+    byte timeWait = 0;
+    if (inTestMod) timeWait = timeWaitInContrTest;     // если включен режим тестирования то устанавливаем для удобства тестирования меньшую паузу
+    else timeWait = timeWaitInContr;                   // если режим тестирования выклюяен то используем обычную паузу
+    
+    for(int i = 0; i < timeWait; i++)   
     {
       if (!digitalRead(Button))
         btnHold++;
       else btnHold = 0;
 
-      if (btnHold >= (timeWaitingInContr * 0.7) && mode == NotInContrMod )      //проверка на включение/выключение режима тестирование датчиков
+      if (btnHold >= (timeWait * 0.7) && mode == NotInContrMod )      //проверка на включение/выключение режима тестирование датчиков
       {
          inTestMod = !inTestMod;                        // включаем/выключаем режим тестирование датчиков 
          EEPROM.write(1, inTestMod);                    // пишим режим тестирование датчиков в еепром
@@ -272,7 +278,7 @@ bool Set_InContrMod(bool IsWaiting)
          return false;
       }
       
-      if (i < (timeWaitingInContr * 0.7))               // первых 70% паузы моргаем медленным темпом
+      if (i < (timeWait * 0.7))                         // первых 70% паузы моргаем медленным темпом
         BlinkLEDSpecer(InContrLED, 0, 500, 500);              
       else                                              // последних 30% паузы ускоряем темп
       {
