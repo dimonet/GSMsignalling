@@ -35,7 +35,7 @@
 const byte timeWaitInContr = 25;                           // Время паузы от нажатие кнопки до установки режима охраны
 const byte timeWaitInContrTest = 7;                        // Время паузы от нажатие кнопки до установки режима охраны в режиме тестирования
 const byte timeHoldingBtn = 2;                             // время удерживания кнопки для включения режима охраны  2 сек.
-const int  timeAfterPressBtn = 5000;                       // время удерживания кнопки для включения режима охраны  (милисекунды).
+const int  timeAfterPressBtn = 2000;                       // время выполнения операций после единичного нажатия на кнопку
 const unsigned int timeSiren = 20000;                      // время работы сирены (милисекунды).
 const unsigned long timeCall = 120000;                     // время паузы после последнего звонка тревоги (милисекунды)
 const unsigned long timeSmsPIR1 = 120000;                  // время паузы после последнего СМС датчика движения 1 (милисекунды)
@@ -59,7 +59,7 @@ const unsigned long timeRefreshVcc = 1000;                 // время пау�
 #define SirenGenerator 7                      // нога на сирену
 
 //Power control 
-#define pinMeasureVcc A0                     // нога чтения типа питания (БП или батарея)
+#define pinMeasureVcc A0                      // нога чтения типа питания (БП или батарея)
 
 //Sensores
 #define SH1 A2                                // нога на растяжку
@@ -84,13 +84,14 @@ bool btnIsHolding = false;
 byte countPressBtn = 0;                       // счетчик нажатий на кнопку
 bool inTestMod = false;                       // режим тестирования датчиков (не срабатывает сирена и не отправляются СМС)
 bool isSiren = false;                         // режим сирены
+String val = "";
 
 unsigned long prSiren = 0;                       // время включения сирены (милисекунды)
 unsigned long prCall = 0;                        // время последнего звонка тревоги (милисекунды)
 unsigned long prSmsPIR1 = 0;                     // время последнего СМС датчика движения 1 (милисекунды)
 unsigned long prSmsPIR2 = 0;                     // время последнего СМС датчика движения 2 (милисекунды)
 unsigned long prRefreshVcc = 0;                  // время последнего измирения питания (милисекунды)
-unsigned int  prLastPressBtn = 0;                  // время последнего нажатие на кнопку (милисекунды)
+unsigned long  prLastPressBtn = 0;                // время последнего нажатие на кнопку (милисекунды)
 
 bool controlTensionCable = true;                 // включаем контроль растяжки
 
@@ -121,7 +122,7 @@ void setup()
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
   digitalWrite(BattPowerLED, powCtr.IsBattPower());     // если питаимся от батареи включам соотвествующий LED
   
-  //gsm.Initialize();                                     // инициализация gsm модуля (включения, настройка) 
+  gsm.Initialize();                                     // инициализация gsm модуля (включения, настройка) 
     
   mode = EEPROM.read(0);                                // читаем режим из еепром
   if (mode == InContrMod) Set_InContrMod(1);          
@@ -129,6 +130,8 @@ void setup()
 
   inTestMod = EEPROM.read(1);                           // читаем тестовый режим из еепром    
 }
+
+bool newClick = true;
 
 void loop() 
 {       
@@ -141,35 +144,48 @@ void loop()
      digitalWrite(SirenLED, !digitalRead(SirenLED));     
      delay(200);
   }
-  bool prButton = true;
-  if (mode = NotInContrMod)                                           // если режим не на охране
+
+  if (mode == NotInContrMod)                                           // если режим не на охране
   {
+    if (digitalRead(Button)) newClick = true;
+    if (!digitalRead(Button) && newClick)
+    {
+      BlinkLEDlow(NotInContrLED,  0, 100, 0);      
+      PlayTone(specerTone, 40);
+      newClick = false;
+      countPressBtn++;
+      debug.println(countPressBtn);
+      prLastPressBtn = millis();              
+    }       
+    if (countPressBtn != 0 && (GetElapsed(prLastPressBtn) > timeAfterPressBtn))
+    {       
+      if (countPressBtn == 3)                                         // если кнопку нажали 3 раза
+      {
+        String balance;
+        PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером         
+        gsm.BalanceRequest();                                         // запрашиваем баланс
+               
+        if (gsm.Available())
+        {
+          val  = gsm.Read();
+         // if  (val.indexOf("+CUSD:") > -1) 
+         // {
+            int zzz = val.indexOf("UAH");
+            balance = val;//currStr.substring(10,zzz-3); //баланс на сим карте            
+            gsm.SendSMS(val, String(SMSNUMBER));  
+         // }
+        }        
+      }                                                               // отправляем смс с балансом      
+      //debug.println("Reset countPressBtn");
+      countPressBtn = 0;      
+    }
+
     if (ButtonIsHold(timeHoldingBtn))                                 // если режим не на охране и если кнопка удерживается заданое время
     {  
       Set_InContrMod(1);                                              // то ставим на охрану         
     } 
-    if (!digitalRead(Button))
-    {
-      countPressBtn++;
-      prLastPressBtn = millis();
-      debug.println(countPressBtn);    
-    }
-    
-    if (countPressBtn != 0 && GetElapsed(prLastPressBtn) > timeAfterPressBtn)
-    {
-      //debug.println(countPressBtn);
-      if (countPressBtn == 3)                                         // если кнопку нажали 3 раза
-      {
-        PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером
-                                                                      // запрашиваем баланс
-      }                                                               // отправляем смс с балансом      
-      countPressBtn = 0;    
-    }
-      
-    
-    
   }
-  
+    
   if (mode == InContrMod)                                             // если в режиме охраны
   {
     if (ButtonIsHold(timeHoldingBtn) && inTestMod)                    // снимаем с охраны если кнопка удерживается заданое время и включен режим тестирования
@@ -191,19 +207,19 @@ void loop()
       }
     
       if (sTensionCable && !inTestMod)                                             // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
-        gsm.SendSMS(String(smsText_TensionCable), String(SMSNUMBER));    
+        gsm.SendSMS(&String(smsText_TensionCable), String(SMSNUMBER));    
       
       if (sPIR1 && !inTestMod                                                      // отправляем СМС если сработал датчик движения и не включен режим тестирование 
         && ((GetElapsed(prSmsPIR1) > timeSmsPIR1) or prSmsPIR1 == 0))              // и выдержена пауза после последнего смс
       {
-        gsm.SendSMS(String(smsText_PIR1), String(SMSNUMBER));
+        gsm.SendSMS(&String(smsText_PIR1), String(SMSNUMBER));
         prSmsPIR1 = millis();
       }
       
       if (sPIR2 && !inTestMod                                                      // отправляем СМС если сработал датчик движения и не включен режим тестирование  
         && ((GetElapsed(prSmsPIR2) > timeSmsPIR2) or prSmsPIR2 == 0))              // и выдержена пауза после последнего смс
       {  
-        gsm.SendSMS(String(smsText_PIR2), String(SMSNUMBER));
+        gsm.SendSMS(&String(smsText_PIR2), String(SMSNUMBER));
         prSmsPIR2 = millis();
       }
       
@@ -216,7 +232,7 @@ void loop()
   
    if (gsm.Available())                                     // если GSM модуль что-то послал нам, то
    {    
-    String val = "";
+    val = "";
     val = gsm.Read();                                       // читаем посланую gsm строку
     if (val.indexOf("RING") > -1)                           // если звонок обнаружен, то проверяем номер
     {
@@ -229,7 +245,7 @@ void loop()
          )       
       {  
         //Serial.println("--- MASTER RING DETECTED ---");
-        BlinkLED(gsmLED, 0, 250, 0);                        // сигнализируем об этом      
+        BlinkLEDhigh(gsmLED, 0, 250, 0);                        // сигнализируем об этом      
         delay(2500);                                        // небольшая пауза перед збросом звонка
         Set_NotInContrMod();                                // снимаем с охраны         
         gsm.RejectCall();                                   // сбрасываем вызов
@@ -245,7 +261,7 @@ void loop()
       {  
         // DOTO
         //Serial.println("--- MASTER RING DETECTED ---");
-        BlinkLED(gsmLED, 0, 250, 0);                        // сигнализируем об этом
+        BlinkLEDhigh(gsmLED, 0, 250, 0);                        // сигнализируем об этом
         delay(7000);                                        // большая пауза перед збросом звонка
         gsm.RejectCall();                                   // сбрасываем вызов        
         Set_InContrMod(0);                                  // устанавливаем на охрану без паузы      
@@ -318,7 +334,7 @@ bool Set_InContrMod(bool IsWaiting)
       {
         Set_NotInContrMod();
         return false;      
-      }            
+      }           
     }        
   }
   
@@ -335,7 +351,7 @@ bool Set_InContrMod(bool IsWaiting)
   PlayTone(specerTone, 500);
   mode = InContrMod;                                    // ставим на охрану  
   EEPROM.write(0, mode);                                // пишим режим в еепром
-  delay (2500);                                        // дополнительная пауза так как датчик держит лог. единицу 2,5
+  delay (2500);                                         // дополнительная пауза так как датчик держит лог. единицу 2,5
   return true;
 }
 
@@ -414,13 +430,23 @@ bool SensorTriggered_PIR2()                                             // да�
 }
 
 // Блымание светодиодом
-void BlinkLED(byte pinLED,  unsigned int millisBefore,  unsigned int millisHIGH,  unsigned int millisAfter)
+void BlinkLEDhigh(byte pinLED,  unsigned int millisBefore,  unsigned int millisHIGH,  unsigned int millisAfter)
 { 
   digitalWrite(pinLED, LOW);                          
   delay(millisBefore);  
-  digitalWrite(pinLED, HIGH);                                          // блымаем светодиодом
+  digitalWrite(pinLED, HIGH);                                           // блымаем светодиодом
   delay(millisHIGH); 
   digitalWrite(pinLED, LOW);
+  delay(millisAfter);
+}
+
+void BlinkLEDlow(byte pinLED,  unsigned int millisBefore,  unsigned int millisLOW,  unsigned int millisAfter)
+{ 
+  digitalWrite(pinLED, HIGH);                          
+  delay(millisBefore);  
+  digitalWrite(pinLED, LOW);                                           // выключаем светодиод
+  delay(millisLOW); 
+  digitalWrite(pinLED, HIGH);
   delay(millisAfter);
 }
 
@@ -429,7 +455,7 @@ void BlinkLEDSpecer(byte pinLED,  unsigned int millisBefore,  unsigned int milli
 { 
   digitalWrite(pinLED, LOW);                          
   delay(millisBefore);  
-  digitalWrite(pinLED, HIGH);                                          // блымаем светодиодом
+  digitalWrite(pinLED, HIGH);                                           // блымаем светодиодом
   PlayTone(specerTone, millisHIGH);
   digitalWrite(pinLED, LOW);
   delay(millisAfter);
@@ -443,10 +469,10 @@ void PowerControl()
     digitalWrite(BattPowerLED, powCtr.IsBattPower());
         
     if (!inTestMod && !powCtr.IsBattPowerPrevious() && powCtr.IsBattPower())   // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v) и если не включен режим тестирования
-      gsm.SendSMS(String(smsText_BattPower), String(SMSNUMBER));               // отправляем смс о переходе на резервное питание         
+      gsm.SendSMS(&String(smsText_BattPower), String(SMSNUMBER));               // отправляем смс о переходе на резервное питание         
       
     if (!inTestMod && powCtr.IsBattPowerPrevious() && !powCtr.IsBattPower())   // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования
-      gsm.SendSMS(String(smsText_NetPower), String(SMSNUMBER));                // отправляем смс о возобновлении  сетевое питание 220v
+      gsm.SendSMS(&String(smsText_NetPower), String(SMSNUMBER));                // отправляем смс о возобновлении  сетевое питание 220v
     
     prRefreshVcc = millis();
   }   

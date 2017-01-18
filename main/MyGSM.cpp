@@ -93,12 +93,12 @@ String MyGSM::Read()
 }
 
 //отправка СМС
-void MyGSM::SendSMS(String text, String phone)       //процедура отправки СМС
+void MyGSM::SendSMS(String *text, String phone)       //процедура отправки СМС
 {
   //Serial.println("SMS send started");
   serial.println("AT+CMGS=\"" + phone + "\"");
   delay(500);
-  serial.print(text); 
+  serial.print(*text); 
   delay(500);
   serial.print((char)26);
   BlinkLED(0, 250, 0);                       // сигнализируем об этом
@@ -118,6 +118,27 @@ void MyGSM::RejectCall()
 {
   serial.println("ATH0");
 }
+
+// запрос баланса 
+void MyGSM::BalanceRequest()
+{
+  char data; 
+  String currStr = "";
+  serial.println("ATD*101#");  //запрос баланса
+  delay(5000);
+  /*while(serial.available()>0)
+  { 
+    data = serial.read();  
+    while(serial.available())
+    {
+      currStr += data;
+      data = serial.read();
+    }
+    SendSMS(&currStr, "+380509151369"); 
+    return;  
+  } */   
+}
+
 
 // Блымание gsm светодиодом 
 void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter)

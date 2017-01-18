@@ -8,9 +8,10 @@ class MyGSM
     void ReInitialize();
     bool Available();
     String Read();
-    void SendSMS(String text, String phone);
+    void SendSMS(String *text, String phone);
     void Call(String phone);
     void RejectCall();
+    void BalanceRequest();  // запрос баланса
     
   private:
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
