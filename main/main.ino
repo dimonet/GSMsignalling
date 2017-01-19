@@ -84,7 +84,6 @@ bool btnIsHolding = false;
 byte countPressBtn = 0;                       // счетчик нажатий на кнопку
 bool inTestMod = false;                       // режим тестирования датчиков (не срабатывает сирена и не отправляются СМС)
 bool isSiren = false;                         // режим сирены
-String val = "";
 
 unsigned long prSiren = 0;                       // время включения сирены (милисекунды)
 unsigned long prCall = 0;                        // время последнего звонка тревоги (милисекунды)
@@ -94,6 +93,7 @@ unsigned long prRefreshVcc = 0;                  // время последне�
 unsigned long  prLastPressBtn = 0;                // время последнего нажатие на кнопку (милисекунды)
 
 bool controlTensionCable = true;                 // включаем контроль растяжки
+String val = "";
 
 MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
 PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
@@ -163,18 +163,12 @@ void loop()
       {
         String balance;
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером         
-        gsm.BalanceRequest();                                         // запрашиваем баланс
-               
-        if (gsm.Available())
-        {
-          val  = gsm.Read();
-         // if  (val.indexOf("+CUSD:") > -1) 
-         // {
-            int zzz = val.indexOf("UAH");
-            balance = val;//currStr.substring(10,zzz-3); //баланс на сим карте            
-            gsm.SendSMS(val, String(SMSNUMBER));  
-         // }
-        }        
+        gsm.BalanceRequest();                                         // запрашиваем баланс              
+        if (gsm.Available())                                          // читаем баланс
+        {          
+          val = gsm.Read();
+          gsm.SendSMS(&val, String(SMSNUMBER));           
+        }       
       }                                                               // отправляем смс с балансом      
       //debug.println("Reset countPressBtn");
       countPressBtn = 0;      

@@ -76,20 +76,19 @@ void MyGSM::ReInitialize()
 
 bool MyGSM::Available()
 {
-  return serial.available();
+  if (serial.available() > 0) return true;
+  else return false;
 }
 
 String MyGSM::Read()
 {
-  String val = "";
-  int ch = 0;
-  while (serial.available())                                 //сохраняем входную строку в переменную val
-  {  
-    ch = serial.read();
-    val += char(ch);
+  String str = "";
+  while (Available())
+  {
+    str += String(char(Serial.read()));
     delay(10);
   }
-  return val;
+  return str;
 }
 
 //отправка СМС
@@ -122,21 +121,10 @@ void MyGSM::RejectCall()
 // запрос баланса 
 void MyGSM::BalanceRequest()
 {
-  char data; 
-  String currStr = "";
-  serial.println("ATD*101#");  //запрос баланса
-  delay(5000);
-  /*while(serial.available()>0)
-  { 
-    data = serial.read();  
-    while(serial.available())
-    {
-      currStr += data;
-      data = serial.read();
-    }
-    SendSMS(&currStr, "+380509151369"); 
-    return;  
-  } */   
+  //serial.println("ATD*101#");  //запрос баланса
+  serial.println("AT+CUSD=1,\"*101#\"");
+  
+  delay(5000);  
 }
 
 
