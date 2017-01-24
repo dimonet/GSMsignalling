@@ -86,7 +86,7 @@ String MyGSM::Read()
   while (Available())
   {
     str += String(char(Serial.read()));
-    delay(10);
+    delay(10);   
   }
   return str;
 }
@@ -124,7 +124,7 @@ void MyGSM::BalanceRequest()
   //serial.println("ATD*101#");  //запрос баланса
   serial.println("AT+CUSD=1,\"*101#\"");
   
-  delay(5000);  
+  delay(10000);  
 }
 
 

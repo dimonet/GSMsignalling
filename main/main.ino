@@ -166,8 +166,10 @@ void loop()
         gsm.BalanceRequest();                                         // запрашиваем баланс              
         if (gsm.Available())                                          // читаем баланс
         {          
-          val = gsm.Read();
-          gsm.SendSMS(&val, String(SMSNUMBER));           
+          val = gsm.Read();                   
+          int zzz = val.lastIndexOf("diysnyi");
+          val = val.substring(12);                                    //баланс на сим карте
+          gsm.SendSMS(&val, String(SMSNUMBER));                                                           
         }       
       }                                                               // отправляем смс с балансом      
       //debug.println("Reset countPressBtn");
