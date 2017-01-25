@@ -122,9 +122,7 @@ void MyGSM::RejectCall()
 void MyGSM::BalanceRequest()
 {
   //serial.println("ATD*101#");  //запрос баланса
-  serial.println("AT+CUSD=1,\"*101#\"");
-  
-  delay(10000);  
+  serial.println("AT+CUSD=1,\"*101#\"");   
 }
 
 
