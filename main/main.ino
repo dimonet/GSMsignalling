@@ -149,14 +149,14 @@ void loop()
   
   if (inTestMod == 1 && !isSiren)                                     // если включен режим тестирования и не сирена то мигаем светодиодом
   {
-    digitalWrite(SirenLED, !digitalRead(SirenLED));     
+    digitalWrite(SirenLED, digitalRead(SirenLED) == LOW);     
     delay(200);
   }
 
   if (mode == NotInContrMod)                                           // если режим не на охране
   {
-    if (digitalRead(Button)) newClick = true;
-    if (!digitalRead(Button) && newClick)
+    if (digitalRead(Button) == HIGH) newClick = true;
+    if (digitalRead(Button) == LOW && newClick)
     {
       BlinkLEDlow(NotInContrLED,  0, 100, 0);      
       PlayTone(specerTone, 40);
@@ -324,7 +324,7 @@ bool Set_InContrMod(bool IsWaiting)
         return false;      
       }          
       
-      if (!digitalRead(Button))
+      if (digitalRead(Button) == LOW)
         btnHold++;
       else btnHold = 0;
 
@@ -390,8 +390,8 @@ void  StopSiren()
 
 bool ButtonIsHold(byte timeHold)
 {  
-  if (digitalRead(Button)) btnIsHolding = false;                       // если кнопка не нажата сбрасываем показатеь удерживания кнопки
-  if (!digitalRead(Button) && btnIsHolding == false)                   // проверяем нажата ли кнопка и отпускалась ли после предыдущего нажатия (для избежание ложного считывание кнопки)
+  if (digitalRead(Button) == HIGH) btnIsHolding = false;                       // если кнопка не нажата сбрасываем показатеь удерживания кнопки
+  if (digitalRead(Button) == LOW && btnIsHolding == false)                   // проверяем нажата ли кнопка и отпускалась ли после предыдущего нажатия (для избежание ложного считывание кнопки)
   { 
     btnIsHolding = true;
     if (timeHold == 0) return true;                                    // если нужно реагировать немедленно после нажатия на кнопку (без паузы на удерживания)
@@ -403,7 +403,7 @@ bool ButtonIsHold(byte timeHold)
     {
       delay(500);
       if (i == timeHold) return true;  
-      if (digitalRead(Button)) return false;                 
+      if (digitalRead(Button) == HIGH) return false;                 
       i++;
       delay(500);      
     }
