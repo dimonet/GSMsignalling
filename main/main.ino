@@ -197,6 +197,7 @@ void loop()
 
     if (ButtonIsHold(timeHoldingBtn))                                 // если режим не на охране и если кнопка удерживается заданое время
     {  
+      countPressBtn = 0;                                              // сбрасываем счетчик нажатий на кнопку 
       Set_InContrMod(1);                                              // то ставим на охрану         
     } 
   }
