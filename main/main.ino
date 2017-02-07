@@ -198,7 +198,8 @@ void loop()
     if (ButtonIsHold(timeHoldingBtn))                                 // если режим не на охране и если кнопка удерживается заданое время
     {  
       countPressBtn = 0;                                              // сбрасываем счетчик нажатий на кнопку 
-      Set_InContrMod(1);                                              // то ставим на охрану         
+      Set_InContrMod(1);                                              // то ставим на охрану
+      return;     
     } 
   }
     
@@ -207,7 +208,8 @@ void loop()
     if (ButtonIsHold(timeHoldingBtn) && inTestMod)                    // снимаем с охраны если кнопка удерживается заданое время и включен режим тестирования
     {
       gsm.RejectCall();                                               // сбрасываем вызов
-      Set_NotInContrMod();                           
+      Set_NotInContrMod();
+      return;                         
     }
     
     bool sTensionCable = SensorTriggered_TensionCable();              // проверяем датчики
@@ -268,6 +270,7 @@ void loop()
         delay(2500);                                        // небольшая пауза перед збросом звонка
         Set_NotInContrMod();                                // снимаем с охраны         
         gsm.RejectCall();                                   // сбрасываем вызов
+        return;
       }
       else
       if (mode == NotInContrMod                             // если включен режим снята с охраны и найден зарегистрированный звонок то ставим на охрану
@@ -283,7 +286,8 @@ void loop()
         BlinkLEDhigh(gsmLED, 0, 250, 0);                    // сигнализируем об этом
         delay(7000);                                        // большая пауза перед збросом звонка
         gsm.RejectCall();                                   // сбрасываем вызов        
-        Set_InContrMod(0);                                  // устанавливаем на охрану без паузы      
+        Set_InContrMod(0);                                  // устанавливаем на охрану без паузы 
+        return;     
       }
       else gsm.RejectCall();                                // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)
       val = "";
