@@ -12,6 +12,7 @@ class MyGSM
     void Call(String phone);
     void RejectCall();
     void BalanceRequest();  // запрос баланса
+    bool ReadSMS(String *text, String *senderNumber);    
     
   private:
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);

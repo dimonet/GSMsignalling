@@ -99,7 +99,7 @@ String val = "";
 
 MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
 PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
-
+int tt = 0;
 void setup() 
 {
   delay(1000);                                // !! чтобы нечего не повисало при включении
@@ -167,17 +167,16 @@ void loop()
       // запрос баланса счета
       if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
       {
-        SendBalance(SMSNUMBER); 
+        SendBalance(SMSNUMBER);        
       }                                                               // отправляем смс с балансом            
-
+      else 
       // включение/отключения режима тестирования
       if (countPressBtn == countBtnInTestMod)                         // если кнопку нажали заданное количество для включение/отключения режима тестирования
       {
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером  
         inTestMod = !inTestMod;                                       // включаем/выключаем режим тестирование датчиков        
         EEPROM.write(1, inTestMod);                                   // пишим режим тестирование датчиков в еепром
-      }
-      
+      }      
       countPressBtn = 0;      
     }
 
@@ -186,7 +185,13 @@ void loop()
       countPressBtn = 0;                                              // сбрасываем счетчик нажатий на кнопку 
       Set_InContrMod(1);                                              // то ставим на охрану
       return;     
-    } 
+    }
+
+    if(tt == 0);
+    {
+      tt=1;
+      if (ExecSmsComand()) return;    
+    }
   }
     
   if (mode == InContrMod)                                             // если в режиме охраны
@@ -377,8 +382,8 @@ void  StopSiren()
 
 bool ButtonIsHold(byte timeHold)
 {  
-  if (digitalRead(Button) == HIGH) btnIsHolding = false;                       // если кнопка не нажата сбрасываем показатеь удерживания кнопки
-  if (digitalRead(Button) == LOW && btnIsHolding == false)                   // проверяем нажата ли кнопка и отпускалась ли после предыдущего нажатия (для избежание ложного считывание кнопки)
+  if (digitalRead(Button) == HIGH) btnIsHolding = false;               // если кнопка не нажата сбрасываем показатеь удерживания кнопки
+  if (digitalRead(Button) == LOW && btnIsHolding == false)             // проверяем нажата ли кнопка и отпускалась ли после предыдущего нажатия (для избежание ложного считывание кнопки)
   { 
     btnIsHolding = true;
     if (timeHold == 0) return true;                                    // если нужно реагировать немедленно после нажатия на кнопку (без паузы на удерживания)
@@ -494,4 +499,17 @@ void SendBalance(String smsNumber)
   }
 }
 
+// читаем смс и если доступна новая команда по смс то выполняем ее
+bool ExecSmsComand()
+{
+  String text;
+  String senderNumber;
+  gsm.ReadSMS(&text, &senderNumber);
+  if (senderNumber == "+380509151369" && text == "balance")
+  {   
+     SendBalance(senderNumber);
+     return true;
+  }
+  return false;
+}
 

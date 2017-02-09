@@ -135,4 +135,12 @@ void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigne
   delay(millisHIGH); 
   digitalWrite(_gsmLED, LOW);
   delay(millisAfter);
-};
+}
+
+bool ReadSMS(String *text, String *senderNumber)
+{
+   *text = "balance";
+   *senderNumber = "+380509151369";
+   return false;
+}
+;
