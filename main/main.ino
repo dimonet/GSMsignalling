@@ -167,21 +167,7 @@ void loop()
       // запрос баланса счета
       if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
       {
-        PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером         
-        gsm.BalanceRequest();                                         // запрашиваем баланс                      
-        byte sec = 0;                                                 // выдерживаем паузу перед чтением результата запроса баланса
-        while (sec < 10)
-        {  
-          BlinkLEDlow(NotInContrLED, 0, 500, 500);                    // мигаем светодиодом
-          sec++;
-        }                
-        if (gsm.Available())                                          // читаем баланс
-        {          
-          val = gsm.Read();                   
-          //int zzz = val.lastIndexOf("diysnyi");
-          val = val.substring(12);                                    //баланс на сим карте
-          gsm.SendSMS(&val, String(SMSNUMBER));                                                           
-        }       
+        SendBalance(SMSNUMBER); 
       }                                                               // отправляем смс с балансом            
 
       // включение/отключения режима тестирования
@@ -486,6 +472,26 @@ void PowerControl()
     
   if (!inTestMod && powCtr.IsBattPowerPrevious() && !powCtr.IsBattPower())   // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования
     gsm.SendSMS(&String(smsText_NetPower), String(SMSNUMBER));               // отправляем смс о возобновлении  сетевое питание 220v        
+}
+
+//Запрашиваем и отсылаем баланс через смс
+void SendBalance(String smsNumber)
+{
+  PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером         
+  gsm.BalanceRequest();                                         // запрашиваем баланс                      
+  byte sec = 0;                                                 // выдерживаем паузу перед чтением результата запроса баланса
+  while (sec < 10)
+  {  
+    BlinkLEDlow(NotInContrLED, 0, 500, 500);                    // мигаем светодиодом
+    sec++;
+  }                
+  if (gsm.Available())                                          // читаем баланс
+  {          
+    val = gsm.Read();                   
+    //int zzz = val.lastIndexOf("diysnyi");
+    val = val.substring(12);                                    //баланс на сим карте
+    gsm.SendSMS(&val, smsNumber);                                                           
+  }
 }
 
 
