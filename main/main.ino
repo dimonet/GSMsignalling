@@ -504,11 +504,13 @@ bool ExecSmsComand()
 {
   String text;
   String senderNumber;
-  gsm.ReadSMS(&text, &senderNumber);
-  if (senderNumber == "+380509151369" && text == "balance")
-  {   
-     SendBalance(senderNumber);
-     return true;
+  if(gsm.ReadSMS(&text, &senderNumber))
+  {
+    if (senderNumber == "+380509151369" && text == "balance")
+    {   
+       SendBalance(senderNumber);
+       return true;
+    }
   }
   return false;
 }

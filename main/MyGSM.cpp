@@ -141,6 +141,5 @@ bool MyGSM::ReadSMS(String *text, String *senderNumber)
 {
    *text = "balance";
    *senderNumber = "+380509151369";
-   return false;
-}
-;
+   return true;
+};
