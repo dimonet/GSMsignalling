@@ -12,7 +12,7 @@
 //// НАСТРОЕЧНЫЕ КОНСТАНТЫ /////
 // номера телефонов
 #define TELLNUMBER "380509151369"                     // номен на который будем звонить
-#define SMSNUMBER "+380509151369"                     // номер на который будем отправлять SMS
+#define SMSNUMBER  "+380509151369"                     // номер на который будем отправлять SMS
 
 #define NUMBER1_NotInContr "380509151369"             // 1-й номер для снятие с охраны (Мой МТС)
 #define NUMBER2_NotInContr "380506228524"             // 2-й номер для снятие с охраны (Тони МТС)
@@ -24,12 +24,23 @@
 #define NUMBER3_InContr    "***"                      // 3-й номер для установки на охраны
 #define NUMBER4_InContr    "***"                      // 4-й номер для установки на охраны
 
+#define NUMBER1_SmsCommand    "+380509151369"             // 1-й номер для управления через sms (Мой МТС)
+#define NUMBER2_SmsCommand    "+380506228524"             // 2-й номер для управления через sms (Тони МТС)
+#define NUMBER3_SmsCommand    "+380969405835"             // 3-й номер для управления через sms (Мой Киевстар)
+#define NUMBER4_SmsCommand    "***"                       // 4-й номер для управления через sms
+
+
 // SMS
-#define smsText_TensionCable  "ALARM: TensionCable sensor"                         // текст смс для растяжки
-#define smsText_PIR1          "ALARM: PIR1 sensor"                                 // текст смс для датчика движения 1
-#define smsText_PIR2          "ALARM: PIR2 sensor"                                 // текст смс для датчика движения 2
-#define smsText_BattPower     "POWER: Backup Battery is used for powering system"  // текст смс для оповещение о том что исчезло сетевое питание
-#define smsText_NetPower      "POWER: Network power has been restored"             // текст смс для оповещение о том что сетевое питание возобновлено
+#define smsText_TensionCable   "ALARM: TensionCable sensor"                         // текст смс для растяжки
+#define smsText_PIR1           "ALARM: PIR1 sensor"                                 // текст смс для датчика движения 1
+#define smsText_PIR2           "ALARM: PIR2 sensor"                                 // текст смс для датчика движения 2
+
+#define smsText_BattPower      "POWER: Backup Battery is used for powering system"  // текст смс для оповещения о том, что исчезло сетевое питание
+#define smsText_NetPower       "POWER: Network power has been restored"             // текст смс для оповещения о том, что сетевое питание возобновлено
+
+#define smsText_ErrorCommand   "Command: ERROR. Available only commands: Balance, Test on, Test off"  // смс команда не распознана
+#define smsText_TestModOn      "Command: Test mode has been turned on"               // выполнена команда для включения тестового режима для тестирования датчиков
+#define smsText_TestModOff     "Command: Test mode has been turned off"             // выполнена команда для выключения тестового режима для тестирования датчиков
 
 // паузы
 const byte timeWaitInContr = 25;                           // Время паузы от нажатие кнопки до установки режима охраны
@@ -99,7 +110,7 @@ String val = "";
 
 MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
 PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
-int tt = 0;
+
 void setup() 
 {
   delay(1000);                                // !! чтобы нечего не повисало при включении
@@ -140,10 +151,10 @@ void loop()
 {       
   PowerControl();                                                   // мониторим питание системы      
   
-  if (isSiren && GetElapsed(prSiren) > timeSiren)                     // если включена сирена и сирена работает больше установленного времени то выключаем ее
-    StopSiren();  
+  if (isSiren && GetElapsed(prSiren) > timeSiren)                   // если включена сирена и сирена работает больше установленного времени то выключаем ее
+    StopSiren();    
   
-  if (inTestMod == 1 && !isSiren)                                     // если включен режим тестирования и не сирена то мигаем светодиодом
+  if (inTestMod && !isSiren)                                        // если включен режим тестирования и не сирена то мигаем светодиодом
   {
     digitalWrite(SirenLED, digitalRead(SirenLED) == LOW);     
     delay(200);
@@ -162,11 +173,10 @@ void loop()
     }       
     if (countPressBtn != 0 && (GetElapsed(prLastPressBtn) > timeAfterPressBtn))
     {       
-      digitalWrite(SirenLED, LOW);                                  // выключаем светодиод
-       
       // запрос баланса счета
       if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
       {
+        PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером         
         SendBalance(SMSNUMBER);        
       }                                                               // отправляем смс с балансом            
       else 
@@ -175,6 +185,7 @@ void loop()
       {
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером  
         inTestMod = !inTestMod;                                       // включаем/выключаем режим тестирование датчиков        
+        digitalWrite(SirenLED, LOW);                                  // выключаем светодиод
         EEPROM.write(1, inTestMod);                                   // пишим режим тестирование датчиков в еепром
       }      
       countPressBtn = 0;      
@@ -185,13 +196,9 @@ void loop()
       countPressBtn = 0;                                              // сбрасываем счетчик нажатий на кнопку 
       Set_InContrMod(1);                                              // то ставим на охрану
       return;     
-    }
+    } 
 
-    if(tt == 0);
-    {
-      tt=1;
-      if (ExecSmsComand()) return;    
-    }
+    if (ExecSmsCommand()) return;                                      // читаем смс и если доступна новая команда по смс то выполняем ее
   }
     
   if (mode == InContrMod)                                             // если в режиме охраны
@@ -482,7 +489,7 @@ void PowerControl()
 //Запрашиваем и отсылаем баланс через смс
 void SendBalance(String smsNumber)
 {
-  PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером         
+  digitalWrite(SirenLED, LOW);                                  // выключаем светодиод  
   gsm.BalanceRequest();                                         // запрашиваем баланс                      
   byte sec = 0;                                                 // выдерживаем паузу перед чтением результата запроса баланса
   while (sec < 10)
@@ -493,24 +500,48 @@ void SendBalance(String smsNumber)
   if (gsm.Available())                                          // читаем баланс
   {          
     val = gsm.Read();                   
-    //int zzz = val.lastIndexOf("diysnyi");
-    val = val.substring(12);                                    //баланс на сим карте
+    int beginStr = val.indexOf('\"');
+    val = val.substring(beginStr + 1);                                    //баланс на сим карте
     gsm.SendSMS(&val, smsNumber);                                                           
   }
 }
 
 // читаем смс и если доступна новая команда по смс то выполняем ее
-bool ExecSmsComand()
+bool ExecSmsCommand()
 {
   String text;
   String senderNumber;
   if(gsm.ReadSMS(&text, &senderNumber))
   {
-    if (senderNumber == "+380509151369" && text == "balance")
+    if (senderNumber == NUMBER1_SmsCommand || senderNumber == NUMBER2_SmsCommand || senderNumber == NUMBER3_SmsCommand || senderNumber == NUMBER4_SmsCommand)
     {   
-       SendBalance(senderNumber);
-       return true;
-    }
+      if (text == "Balance" || text == "balance")                     // запрос баланса
+      {
+        PlayTone(specerTone, 250);                                             
+        SendBalance(senderNumber);
+        return true;
+      }
+      if (text == "Test on" || text == "test on")                     // включения тестового режима для тестирования датчиков
+      {
+        inTestMod = true;
+        PlayTone(specerTone, 250);                                            
+        gsm.SendSMS(&String(smsText_TestModOn), senderNumber);
+        return true;
+      }
+      if (text == "Test off" || text == "test off")                   // выключения тестового режима для тестирования датчиков
+      {
+        digitalWrite(SirenLED, LOW);                                  // выключаем светодиод
+        inTestMod = false;
+        PlayTone(specerTone, 250);                                            
+        gsm.SendSMS(&String(smsText_TestModOff), senderNumber);
+        return true;
+      }
+      else
+      {
+        gsm.SendSMS(&String(smsText_ErrorCommand), senderNumber);
+        return true;
+      }        
+    }    
   }
   return false;
 }

@@ -25,14 +25,22 @@ void MyGSM::Initialize()
   serial.println("ATE0");                  // выключаем эхо  
   delay(100);
   
-  serial.println("AT+CLIP=1");             //включаем АОН
+  serial.println("AT+CLIP=1");             // включаем АОН
   delay(100);
     
   // настройка смс
-  serial.println("AT+CMGF=1");             //режим кодировки СМС - обычный (для англ.)
+  serial.println("AT+CMGF=1\r");           // режим кодировки СМС - обычный (для англ.)
   delay(100);
-  serial.println("AT+CSCS=\"GSM\"");       //режим кодировки текста
+  serial.println("AT+CSCS=\"GSM\"");       // режим кодировки текста
   delay(100);
+  serial.println("AT+IFC=1, 1");           // устанавливает программный контроль потоком передачи данных
+  delay(100);
+  serial.println("AT+CPBS=\"SM\"");        // открывает доступ к данным телефонной книги SIM-карты
+  delay(100);
+  serial.println("AT+CNMI=2,2,0,0,0");     // включает оповещение о новых сообщениях
+  delay(100);
+  serial.println("AT+CMGDA=\"DEL ALL\"");  // удаление всех старых смс
+  
     
   while(1)                                 // ждем подключение модема к сети
   {                             
@@ -82,10 +90,12 @@ bool MyGSM::Available()
 
 String MyGSM::Read()
 {
-  String str = "";
+  String str = "";  
   while (Available())
   {
-    str += String(char(Serial.read()));
+    char currSymb = serial.read();
+    if (currSymb == '\"') str += String('\\') + String(currSymb);
+      else str += String(currSymb);    
     delay(10);   
   }
   return str;
@@ -101,8 +111,8 @@ void MyGSM::SendSMS(String *text, String phone)       //процедура от�
   delay(500);
   serial.print((char)26);
   BlinkLED(0, 250, 0);                       // сигнализируем об этом
-   //Serial.println("SMS send complete");
   delay(2250);
+  //Serial.println("SMS send complete");
 }
 
 // звонок на заданый номер
@@ -139,7 +149,49 @@ void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigne
 
 bool MyGSM::ReadSMS(String *text, String *senderNumber)
 {
-   *text = "balance";
-   *senderNumber = "+380509151369";
-   return true;
+   String currStr;   
+   bool isStringMessage = false;
+   bool isReceived = false;
+  if (!Available()) return false;
+ 
+   while (Available())
+   {
+     char currSymb = serial.read();    
+     if ('\r' == currSymb) 
+     {
+       if (isStringMessage) 
+       {
+         *text = currStr;
+         isStringMessage = false;
+       } 
+       else 
+       {
+         if (currStr.startsWith("+CMT")) 
+         {
+           BlinkLED(0, 250, 0);                             // сигнализируем об этом
+           int beginStr = currStr.indexOf('\"');
+           currStr = currStr.substring(beginStr + 1);
+           int duration = currStr.indexOf('\"') - 1;
+           *senderNumber = currStr.substring(0, duration);           
+           isStringMessage = true;
+           isReceived = true;
+         }
+       }
+     currStr = "";
+     } 
+     else if ('\n' != currSymb) 
+     {
+       if (currSymb == '\"') currStr += String('\\') + String(currSymb);
+       else currStr += String(currSymb);
+       delay(10);
+     }
+   }
+  //*senderNumber = "+380509151369";
+  if (isReceived)
+  { 
+    serial.println("AT+CMGDA=\"DEL ALL\"");           // удаление всех старых смс
+    delay(300);
+  }
+  
+  return isReceived;
 };
