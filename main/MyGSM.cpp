@@ -11,6 +11,8 @@ MyGSM::MyGSM(byte gsmLED, byte pinBOOT)
 {
   _gsmLED = gsmLED;
   _pinBOOT = pinBOOT;
+  NewRing = false;
+  NewSms = false;
 }
 
 // Инициализация gsm модуля (включения, настройка)
@@ -147,51 +149,83 @@ void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigne
   delay(millisAfter);
 }
 
-bool MyGSM::ReadSMS(String *text, String *senderNumber)
+void MyGSM::Refresh()
 {
-   String currStr;   
-   bool isStringMessage = false;
-   bool isReceived = false;
+  String currStr;   
+  //bool isSecondMsg = false;   
+  byte strCount = 1;
+  NewRing = false;
+  RingNumber = "";
+  SmsNumber = "";
+  SmsText = "";
+  NewSms = false;
   if (!Available()) return false;
  
-   while (Available())
-   {
-     char currSymb = serial.read();    
-     if ('\r' == currSymb) 
-     {
-       if (isStringMessage) 
-       {
-         *text = currStr;
-         isStringMessage = false;
-       } 
-       else 
-       {
-         if (currStr.startsWith("+CMT")) 
-         {
-           BlinkLED(0, 250, 0);                             // сигнализируем об этом
-           int beginStr = currStr.indexOf('\"');
-           currStr = currStr.substring(beginStr + 1);
-           int duration = currStr.indexOf('\"') - 1;
-           *senderNumber = currStr.substring(0, duration);           
-           isStringMessage = true;
-           isReceived = true;
-         }
-       }
-     currStr = "";
-     } 
-     else if ('\n' != currSymb) 
-     {
-       if (currSymb == '\"') currStr += String('\\') + String(currSymb);
-       else currStr += String(currSymb);
-       delay(10);
-     }
-   }
-  //*senderNumber = "+380509151369";
-  if (isReceived)
+  while (Available())
+  {
+    char currSymb = serial.read();    
+    if ('\r' == currSymb) 
+    {
+      if (strCount == 1)
+      {
+        if (currStr.startsWith("RING"))                    // если входящий звонок
+        {
+          BlinkLED(0, 250, 0);                             // сигнализируем об этом 
+          NewRing = true;          
+          strCount++;
+        }
+        else
+        if (currStr.startsWith("+CMT"))                    // если СМС
+        {
+          BlinkLED(0, 250, 0);                             // сигнализируем об этом 
+          NewSms = true;
+          SmsNumber = GetPhoneNumber(currStr);                                                 
+          strCount++;
+        }         
+      }
+      else
+      if (strCount == 2) 
+      {         
+        if (NewRing)                                       // если входящий звонок
+         strCount++;           
+               
+        if (NewSms)                                        // если СМС
+        {
+          SmsText = currStr;           
+          strCount++;
+        }        
+      }
+      else
+      if (strCount == 3) 
+      {
+        if (NewRing)                                       // если входящий звонок
+        {
+          RingNumber = GetPhoneNumber(currStr);           
+          strCount++;           
+        }                 
+      }        
+    currStr = "";
+    } 
+    else if ('\n' != currSymb) 
+    {
+      if (currSymb == '\"') currStr += String('\\') + String(currSymb);
+      else currStr += String(currSymb);
+      delay(10);
+    }
+  }
+    
+  if (NewSms)
   { 
     serial.println("AT+CMGDA=\"DEL ALL\"");           // удаление всех старых смс
     delay(300);
-  }
-  
-  return isReceived;
-};
+  }    
+}
+
+String MyGSM::GetPhoneNumber(String str)
+{
+  int beginStr = str.indexOf('\"');
+  str = str.substring(beginStr + 1);
+  int duration = str.indexOf('\"') - 1;
+  return str.substring(0, duration);
+}
+;
