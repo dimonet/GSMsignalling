@@ -498,8 +498,7 @@ void SendBalance(String smsNumber)
 bool ExecSmsCommand()
 {
   if (gsm.NewSms &&
-       (gsm.SmsNumber.indexOf(TELLNUMBER) > -1 ||
-        gsm.SmsNumber.indexOf(NUMBER1_SmsCommand) > -1 ||              
+       (gsm.SmsNumber.indexOf(NUMBER1_SmsCommand) > -1 ||              
         gsm.SmsNumber.indexOf(NUMBER2_SmsCommand) > -1 ||
         gsm.SmsNumber.indexOf(NUMBER3_SmsCommand) > -1 ||
         gsm.SmsNumber.indexOf(NUMBER4_SmsCommand) > -1         
