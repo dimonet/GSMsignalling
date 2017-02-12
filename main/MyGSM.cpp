@@ -41,7 +41,7 @@ void MyGSM::Initialize()
   delay(300);
   serial.println("AT+CNMI=1,2,2,1,0");     // включает оповещение о новых сообщениях
   delay(300);
-  serial.println("AT+CMGDA=\"DEL ALL\"");  // удаление всех старых смс
+  serial.println("AT+CMGD=1,4");           // удаление всех старых смс
   delay(500);
   
     
@@ -227,7 +227,7 @@ void MyGSM::Refresh()
     
   if (NewSms)
   { 
-    serial.println("AT+CMGDA=\"DEL ALL\"");           // удаление всех старых смс
+    serial.println("AT+CMGD=1,4");           // удаление всех старых смс
     delay(300);
   }    
 }
