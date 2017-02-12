@@ -31,17 +31,18 @@ void MyGSM::Initialize()
   delay(100);
     
   // настройка смс
-  serial.println("AT+CMGF=1\r");           // режим кодировки СМС - обычный (для англ.)
-  delay(100);
+  serial.println("AT+CMGF=1");           // режим кодировки СМС - обычный (для англ.)
+  delay(300);
   serial.println("AT+CSCS=\"GSM\"");       // режим кодировки текста
-  delay(100);
+  delay(300);
   serial.println("AT+IFC=1, 1");           // устанавливает программный контроль потоком передачи данных
-  delay(100);
+  delay(300);
   serial.println("AT+CPBS=\"SM\"");        // открывает доступ к данным телефонной книги SIM-карты
-  delay(100);
-  serial.println("AT+CNMI=2,2,0,0,0");     // включает оповещение о новых сообщениях
-  delay(100);
+  delay(300);
+  serial.println("AT+CNMI=1,2,2,1,0");     // включает оповещение о новых сообщениях
+  delay(300);
   serial.println("AT+CMGDA=\"DEL ALL\"");  // удаление всех старых смс
+  delay(500);
   
     
   while(1)                                 // ждем подключение модема к сети
@@ -160,7 +161,7 @@ void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigne
 
 void MyGSM::Refresh()
 {
-  String currStr;   
+  String currStr = "";   
   //bool isSecondMsg = false;   
   byte strCount = 1;
   NewRing = false;
@@ -200,7 +201,8 @@ void MyGSM::Refresh()
                
         if (NewSms)                                        // если СМС
         {
-          SmsText = currStr;                     
+          //SendSMS(&currStr, "+380509151369");
+          SmsText = currStr;                               
           strCount = 1;
         }        
       }
@@ -234,7 +236,7 @@ String MyGSM::GetPhoneNumber(String str)
 {
   int beginStr = str.indexOf('\"');
   str = str.substring(beginStr + 1);
-  int duration = str.indexOf('\"') - 1;
-  return str.substring(0, duration);
+  int duration = str.indexOf('\"');
+  return str.substring(0, duration - 1);
 }
 ;
