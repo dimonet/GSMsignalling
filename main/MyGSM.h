@@ -16,7 +16,8 @@ class MyGSM
     void SendSMS(String *text, String phone);
     void Call(String phone);
     void RejectCall();
-    void BalanceRequest();  // запрос баланса
+    void RequestBalance();  // запрос баланса
+    void RequestGsmCode(String code);  // запрос gsm кода (*#)
     void Refresh();    
     
   private:

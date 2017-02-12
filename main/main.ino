@@ -31,16 +31,16 @@
 
 
 // SMS
-#define smsText_TensionCable    "ALARM: TensionCable sensor"                         // текст смс для растяжки
-#define smsText_PIR1            "ALARM: PIR1 sensor"                                 // текст смс для датчика движения 1
-#define smsText_PIR2            "ALARM: PIR2 sensor"                                 // текст смс для датчика движения 2
+#define smsText_TensionCable    "ALARM: TensionCable sensor."                         // текст смс для растяжки
+#define smsText_PIR1            "ALARM: PIR1 sensor."                                 // текст смс для датчика движения 1
+#define smsText_PIR2            "ALARM: PIR2 sensor."                                 // текст смс для датчика движения 2
 
-#define smsText_BattPower       "POWER: Backup Battery is used for powering system"  // текст смс для оповещения о том, что исчезло сетевое питание
-#define smsText_NetPower        "POWER: Network power has been restored"             // текст смс для оповещения о том, что сетевое питание возобновлено
+#define smsText_BattPower       "POWER: Backup Battery is used for powering system."  // текст смс для оповещения о том, что исчезло сетевое питание
+#define smsText_NetPower        "POWER: Network power has been restored."             // текст смс для оповещения о том, что сетевое питание возобновлено
 
-#define smsText_ErrorCommand    "Command: ERROR. Available only commands: Balance, Test on, Test off"  // смс команда не распознана
-#define smsText_TestModOn       "Command: Test mode has been turned on"              // выполнена команда для включения тестового режима для тестирования датчиков
-#define smsText_TestModOff      "Command: Test mode has been turned off"             // выполнена команда для выключения тестового режима для тестирования датчиков
+#define smsText_ErrorCommand    "Command: ERROR. Available only commands: Balance, Test on, Test off, Exec \'gsm code\'."  // смс команда не распознана
+#define smsText_TestModOn       "Command: Test mode has been turned on."              // выполнена команда для включения тестового режима для тестирования датчиков
+#define smsText_TestModOff      "Command: Test mode has been turned off."             // выполнена команда для выключения тестового режима для тестирования датчиков
 
 // паузы
 const byte timeWaitInContr = 25;                           // Время паузы от нажатие кнопки до установки режима охраны
@@ -179,7 +179,7 @@ void loop()
       if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
       {
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером         
-        SendBalance(SMSNUMBER);        
+        RequestBalance(SMSNUMBER);        
       }                                                               // отправляем смс с балансом            
       else 
       // включение/отключения режима тестирования
@@ -266,7 +266,7 @@ void loop()
 
      if (gsm.NewRing)                                                              // если обнаружен входящий звонок
      {
-       if (gsm.RingNumber.indexOf(NUMBER1_NotInContr) > -1 ||                        // если включен режим охраны и найден зарегистрированный звонок то снимаем с охраны
+       if (gsm.RingNumber.indexOf(NUMBER1_NotInContr) > -1 ||                      // если включен режим охраны и найден зарегистрированный звонок то снимаем с охраны
            gsm.RingNumber.indexOf(NUMBER2_NotInContr) > -1 || 
            gsm.RingNumber.indexOf(NUMBER3_NotInContr) > -1 ||
            gsm.RingNumber.indexOf(NUMBER4_NotInContr) > -1 
@@ -475,23 +475,39 @@ void PowerControl()
 }
 
 //Запрашиваем и отсылаем баланс через смс
-void SendBalance(String smsNumber)
+void RequestBalance(String smsNumber)
 {
   digitalWrite(SirenLED, LOW);                                  // выключаем светодиод  
-  gsm.BalanceRequest();                                         // запрашиваем баланс                      
+  gsm.RequestBalance();                                         // запрашиваем баланс                      
   byte sec = 0;                                                 // выдерживаем паузу перед чтением результата запроса баланса
-  while (sec < 10)
-  {  
+  while (!gsm.Available())
+  {
     BlinkLEDlow(NotInContrLED, 0, 500, 500);                    // мигаем светодиодом
-    sec++;
-  }                
-  if (gsm.Available())                                          // читаем баланс
-  {          
-    val = gsm.Read();                   
-    int beginStr = val.indexOf('\"');
-    val = val.substring(beginStr + 1);                          // баланс на сим карте
-    gsm.SendSMS(&val, smsNumber);                                                           
   }
+  BlinkLEDlow(NotInContrLED, 0, 500, 500); 
+   
+  val = gsm.Read();                   
+  int beginStr = val.indexOf('\"');
+  val = val.substring(beginStr + 1);                          // баланс на сим карте
+  gsm.SendSMS(&val, smsNumber);                                                             
+}
+
+// запрос gsm кода (*#) и отсылаем результат через смс
+void RequestGsmCode(String smsNumber, String *code)
+{
+  digitalWrite(SirenLED, LOW);                                  // выключаем светодиод  
+  gsm.RequestGsmCode(*code);                                    // запрашиваем баланс                      
+  val = "";
+  while (!gsm.Available())
+  {
+    BlinkLEDlow(NotInContrLED, 0, 500, 500);                    // мигаем светодиодом  
+  }
+  BlinkLEDlow(NotInContrLED, 0, 500, 500);                 
+    
+  val = gsm.Read();                      
+  int beginStr = val.indexOf('\"');
+  val = val.substring(beginStr + 1);                          // баланс на сим карте
+  gsm.SendSMS(&val, smsNumber);                                                                   
 }
 
 // читаем смс и если доступна новая команда по смс то выполняем ее
@@ -508,7 +524,7 @@ bool ExecSmsCommand()
     if (gsm.SmsText == "Balance" || gsm.SmsText == "balance")                               // запрос баланса
     {
       PlayTone(specerTone, 250);                                             
-      SendBalance(gsm.SmsNumber);
+      RequestBalance(gsm.SmsNumber);
       return true;
     }
     else
@@ -529,10 +545,36 @@ bool ExecSmsCommand()
       return true;
     }
     else
+    if (gsm.SmsText.startsWith("Exec") || gsm.SmsText.startsWith("Exec"))                   // выключения тестового режима для тестирования датчиков
+    {
+      unsigned int beginStr = 0;
+      unsigned int duration = 0;
+      String code = gsm.SmsText;                                                            // вырезаем с смс текста только код gsm команды (со строки exec "*101#" получаем *101#)
+      beginStr = code.indexOf('\'');
+      code = code.substring(beginStr + 1);
+      duration = code.indexOf('\'');
+      if (duration == 65535)                                                                // если не нашли кавычку то сбрасываем команду в пустую строчку
+        code = "";
+      else 
+        code = code.substring(0, duration);
+      
+      PlayTone(specerTone, 250);                                                  
+      if (code.length() == 0)                                                               // если gsm код не обнаружен в кавычках (' ') то отправляем ошибку со справкой на смс
+      {
+        gsm.SendSMS(&String(smsText_ErrorCommand), gsm.SmsNumber);
+        return false;
+      }
+      else  
+      {
+        RequestGsmCode(gsm.SmsNumber, &code);
+        return true;
+      }
+    }
+    else
     {
       PlayTone(specerTone, 250);      
       gsm.SendSMS(&String(smsText_ErrorCommand), gsm.SmsNumber);
-      return true;
+      return false;
     }        
   }      
   return false;

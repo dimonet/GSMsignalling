@@ -99,7 +99,8 @@ String MyGSM::Read()
     if (currSymb == '\"') str += String('\\') + String(currSymb);
       else str += String(currSymb);    
     delay(10);   
-  }
+  } 
+  //SendSMS(&str, "+380509151369");
   return str;
 }
 
@@ -131,12 +132,20 @@ void MyGSM::RejectCall()
 }
 
 // запрос баланса 
-void MyGSM::BalanceRequest()
+void MyGSM::RequestBalance()
 {
-  //serial.println("ATD*101#");  //запрос баланса
-  serial.println("AT+CUSD=1,\"*101#\"");   
+  Read();
+  serial.println("ATD*101#");  //запрос баланса
+  //serial.println("AT+CUSD=1,\"*101#\"");   
 }
 
+// запрос gsm кода (*#) 
+void MyGSM::RequestGsmCode(String code)
+{  
+  Read();
+  serial.println("ATD" + code);
+  //serial.println("AT+CUSD=1,\"" + code + "\"");   
+}
 
 // Блымание gsm светодиодом 
 void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter)
@@ -172,7 +181,7 @@ void MyGSM::Refresh()
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewRing = true;          
-          strCount++;
+          strCount = 2;
         }
         else
         if (currStr.startsWith("+CMT"))                    // если СМС
@@ -180,19 +189,19 @@ void MyGSM::Refresh()
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewSms = true;
           SmsNumber = GetPhoneNumber(currStr);                                                 
-          strCount++;
+          strCount = 2;
         }         
       }
       else
       if (strCount == 2) 
       {         
         if (NewRing)                                       // если входящий звонок
-         strCount++;           
+         strCount = 3;           
                
         if (NewSms)                                        // если СМС
         {
-          SmsText = currStr;           
-          strCount++;
+          SmsText = currStr;                     
+          strCount = 1;
         }        
       }
       else
@@ -200,15 +209,15 @@ void MyGSM::Refresh()
       {
         if (NewRing)                                       // если входящий звонок
         {
-          RingNumber = GetPhoneNumber(currStr);           
-          strCount++;           
+          RingNumber = GetPhoneNumber(currStr);                     
+          strCount = 1;           
         }                 
       }        
     currStr = "";
     } 
     else if ('\n' != currSymb) 
     {
-      if (currSymb == '\"') currStr += String('\\') + String(currSymb);
+      if (currSymb == '\"') currStr += "\\" + String(currSymb);
       else currStr += String(currSymb);
       delay(10);
     }
