@@ -38,7 +38,7 @@
 #define smsText_BattPower       "POWER: Backup Battery is used for powering system."  // текст смс для оповещения о том, что исчезло сетевое питание
 #define smsText_NetPower        "POWER: Network power has been restored."             // текст смс для оповещения о том, что сетевое питание возобновлено
 
-#define smsText_ErrorCommand    "Command: ERROR. Available only commands: Balance, Test on, Test off, Exec \"gsm code\"."  // смс команда не распознана
+#define smsText_ErrorCommand    "Command: ERROR. Available only commands: Balance, Test on, Test off, gsm code."  // смс команда не распознана
 #define smsText_TestModOn       "Command: Test mode has been turned on."              // выполнена команда для включения тестового режима для тестирования датчиков
 #define smsText_TestModOff      "Command: Test mode has been turned off."             // выполнена команда для выключения тестового режима для тестирования датчиков
 
@@ -547,31 +547,18 @@ bool ExecSmsCommand()
       return true;
     }
     else
-    if (gsm.SmsText.startsWith("Exec") || gsm.SmsText.startsWith("Exec"))                   // выключения тестового режима для тестирования датчиков
+    if (gsm.SmsText.startsWith("*"))                                                        // Если сообщение начинается на * то это gsm код
     {
-      unsigned int beginStr = 0;
-      unsigned int duration = 0;
-      String code = gsm.SmsText;                                                            // вырезаем с смс текста только код gsm команды (со строки exec "*101#" получаем *101#)
-      beginStr = code.indexOf('"');
-      code = code.substring(beginStr + 1);
-      duration = code.indexOf('"');
-      if (duration == 65535)                                                                // если не нашли кавычку то сбрасываем команду в пустую строчку
-        code = "";
-      else 
-        code = code.substring(0, duration-1);
-      
-      //gsm.SendSMS(&String(gsm.SmsText + " " + code + " "+duration ), "+380509151369");
-      PlayTone(specerTone, 250);                                                  
-      if (code.length() == 0)                                                               // если gsm код не обнаружен в кавычках (' ') то отправляем ошибку со справкой на смс
+      unsigned int endCommand = gsm.SmsText.indexOf('#');                                            // если команда не заканчивается на # то информируем по смс об ошибке
+      if (endCommand == 65535)                                                                
       {
         gsm.SendSMS(&String(smsText_ErrorCommand), gsm.SmsNumber);
-        return false;
-      }
-      else  
-      {
-        RequestGsmCode(gsm.SmsNumber, &code);
-        return true;
-      }
+        return false;    
+      }      
+      //gsm.SendSMS(&String(gsm.SmsText + " " + code + " "+duration ), "+380509151369");
+      PlayTone(specerTone, 250);                                                  
+      RequestGsmCode(gsm.SmsNumber, &gsm.SmsText);
+      return true;      
     }
     else
     {
