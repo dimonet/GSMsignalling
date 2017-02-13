@@ -94,12 +94,16 @@ bool MyGSM::Available()
 String MyGSM::Read()
 {
   String str = "";  
+  char currSymb;
   while (Available())
   {
-    char currSymb = serial.read();
+    currSymb = serial.read();
+    if ('\n' != currSymb)
+    {
     if (currSymb == '\"') str += String('\\') + String(currSymb);
       else str += String(currSymb);    
-    delay(10);   
+    delay(10);
+    }
   } 
   //SendSMS(&str, "+380509151369");
   return str;
@@ -161,7 +165,8 @@ void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigne
 
 void MyGSM::Refresh()
 {
-  String currStr = "";   
+  String currStr1 = "";   
+  String currStr2 = "";   
   //bool isSecondMsg = false;   
   byte strCount = 1;
   NewRing = false;
@@ -178,18 +183,18 @@ void MyGSM::Refresh()
     {
       if (strCount == 1)
       {
-        if (currStr.startsWith("RING"))                    // если входящий звонок
+        if (currStr1.startsWith("RING"))                    // если входящий звонок
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewRing = true;          
           strCount = 2;
         }
         else
-        if (currStr.startsWith("+CMT"))                    // если СМС
+        if (currStr1.startsWith("+CMT"))                    // если СМС
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewSms = true;
-          SmsNumber = GetPhoneNumber(currStr);                                                 
+          SmsNumber = GetPhoneNumber(currStr1);                                                 
           strCount = 2;
         }         
       }
@@ -202,7 +207,7 @@ void MyGSM::Refresh()
         if (NewSms)                                        // если СМС
         {
           //SendSMS(&currStr, "+380509151369");
-          SmsText = currStr;                               
+          SmsText = currStr2;                               
           strCount = 1;
         }        
       }
@@ -211,16 +216,26 @@ void MyGSM::Refresh()
       {
         if (NewRing)                                       // если входящий звонок
         {
-          RingNumber = GetPhoneNumber(currStr);                     
+          RingNumber = GetPhoneNumber(currStr2);                     
           strCount = 1;           
         }                 
       }        
-    currStr = "";
+    currStr1 = "";
+    currStr2 = "";
     } 
     else if ('\n' != currSymb) 
     {
-      if (currSymb == '\"') currStr += "\\" + String(currSymb);
-      else currStr += String(currSymb);
+      if (strCount == 1)
+      {
+        if (currSymb == '\"') currStr1 += "\\" + String(currSymb);
+        else currStr1 += String(currSymb);        
+      }
+      else
+      {
+        if (currSymb == '\"') currStr2 += "\\" + String(currSymb);
+        else currStr2 += String(currSymb);
+        currStr1 = "";
+      }
       delay(10);
     }
   }
