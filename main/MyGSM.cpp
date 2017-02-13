@@ -165,9 +165,7 @@ void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigne
 
 void MyGSM::Refresh()
 {
-  String currStr1 = "";   
-  String currStr2 = "";   
-  //bool isSecondMsg = false;   
+  String currStr = "";     
   byte strCount = 1;
   NewRing = false;
   RingNumber = "";
@@ -183,18 +181,18 @@ void MyGSM::Refresh()
     {
       if (strCount == 1)
       {
-        if (currStr1.startsWith("RING"))                    // если входящий звонок
+        if (currStr.startsWith("RING"))                    // если входящий звонок
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewRing = true;          
           strCount = 2;
         }
         else
-        if (currStr1.startsWith("+CMT"))                    // если СМС
+        if (currStr.startsWith("+CMT"))                    // если СМС
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewSms = true;
-          SmsNumber = GetPhoneNumber(currStr1);                                                 
+          SmsNumber = GetPhoneNumber(currStr);                                                 
           strCount = 2;
         }         
       }
@@ -207,7 +205,7 @@ void MyGSM::Refresh()
         if (NewSms)                                        // если СМС
         {
           //SendSMS(&currStr, "+380509151369");
-          SmsText = currStr2;                               
+          SmsText = currStr;                               
           strCount = 1;
         }        
       }
@@ -216,26 +214,16 @@ void MyGSM::Refresh()
       {
         if (NewRing)                                       // если входящий звонок
         {
-          RingNumber = GetPhoneNumber(currStr2);                     
+          RingNumber = GetPhoneNumber(currStr);                     
           strCount = 1;           
         }                 
       }        
-    currStr1 = "";
-    currStr2 = "";
+    currStr = "";    
     } 
     else if ('\n' != currSymb) 
     {
-      if (strCount == 1)
-      {
-        if (currSymb == '\"') currStr1 += "\\" + String(currSymb);
-        else currStr1 += String(currSymb);        
-      }
-      else
-      {
-        if (currSymb == '\"') currStr2 += "\\" + String(currSymb);
-        else currStr2 += String(currSymb);
-        currStr1 = "";
-      }
+      if (currSymb == '\"') currStr += "\\" + String(currSymb);
+      else currStr += String(currSymb);      
       delay(10);
     }
   }
