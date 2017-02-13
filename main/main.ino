@@ -38,10 +38,10 @@
 #define smsText_BattPower       "POWER: Backup Battery is used for powering system."  // текст смс для оповещения о том, что исчезло сетевое питание
 #define smsText_NetPower        "POWER: Network power has been restored."             // текст смс для оповещения о том, что сетевое питание возобновлено
 
-#define smsText_ErrorCommand    "Command: ERROR. Available only commands: Balance, Test on, Test off, gsm code."  // смс команда не распознана
+#define smsText_ErrorCommand    "Command: ERROR. Available only commands: Balance, Test on, Test off, Control on, gsm code."  // смс команда не распознана
 #define smsText_TestModOn       "Command: Test mode has been turned on."              // выполнена команда для включения тестового режима для тестирования датчиков
 #define smsText_TestModOff      "Command: Test mode has been turned off."             // выполнена команда для выключения тестового режима для тестирования датчиков
-
+#define smsText_InContrMod      "Command: Control mode has been turned on."           // выполнена команда для установку на охрану
 // паузы
 #define  timeWaitInContr      25                           // Время паузы от нажатие кнопки до установки режима охраны
 #define  timeWaitInContrTest  7                            // Время паузы от нажатие кнопки до установки режима охраны в режиме тестирования
@@ -202,13 +202,14 @@ void loop()
 
     if (gsm.NewRing)                                                  // если обнаружен входящий звонок
     {
-      if (gsm.RingNumber.indexOf(NUMBER1_InContr) > -1 ||               // если включен режим снята с охраны и найден зарегистрированный звонок то ставим на охрану
+      if (gsm.RingNumber.indexOf(NUMBER1_InContr) > -1 ||             // если включен режим снята с охраны и найден зарегистрированный звонок то ставим на охрану
           gsm.RingNumber.indexOf(NUMBER2_InContr) > -1 ||
           gsm.RingNumber.indexOf(NUMBER3_InContr) > -1 ||
           gsm.RingNumber.indexOf(NUMBER4_InContr) > -1 
          )      
       {               
-        delay(5000);                                        // большая пауза перед збросом звонка
+        digitalWrite(SirenLED, LOW);                        // на время выключаем мигание светодиода сирены если включен режим тестирования
+        delay(5000);                                        // большая пауза перед збросом звонка        
         gsm.RejectCall();                                   // сбрасываем вызов        
         Set_InContrMod(0);                                  // устанавливаем на охрану без паузы 
         return;     
@@ -493,10 +494,10 @@ void RequestBalance(String smsNumber)
 }
 
 // запрос gsm кода (*#) и отсылаем результат через смс
-void RequestGsmCode(String smsNumber, String *code)
+void RequestGsmCode(String smsNumber, String code)
 {
   digitalWrite(SirenLED, LOW);                                  // выключаем светодиод  
-  gsm.RequestGsmCode(*code);                                    // запрашиваем баланс                      
+  gsm.RequestGsmCode(code);                                    // запрашиваем баланс                      
   val = "";
   while (!gsm.Available())
   {
@@ -506,7 +507,9 @@ void RequestGsmCode(String smsNumber, String *code)
     
   val = gsm.Read();                      
   int beginStr = val.indexOf('\"');
-  val = val.substring(beginStr + 1);                            // баланс на сим карте
+  val = val.substring(beginStr + 1);                            
+  if (code.startsWith("*150*"))                                   // если запрос на перевод денег то вырезаем только код подтверждения (что б самое главное влезло в смс)
+    val = val.substring(val.indexOf('*'), val.indexOf('#'));
   gsm.SendSMS(&val, smsNumber);                                                                   
 }
 
@@ -555,9 +558,17 @@ bool ExecSmsCommand()
         return false;    
       }            
       PlayTone(specerTone, 250);                                                  
-      RequestGsmCode(gsm.SmsNumber, &gsm.SmsText);
+      RequestGsmCode(gsm.SmsNumber, gsm.SmsText);
       return true;      
     }
+    if (gsm.SmsText.startsWith("Control on") || gsm.SmsText.startsWith("control on"))                                                        // Если сообщение начинается на * то это gsm код
+    {
+      digitalWrite(SirenLED, LOW);                                                          // выключаем светодиод
+      Set_InContrMod(0);                                                                    // устанавливаем на охрану без паузы                                                
+      gsm.SendSMS(&String(smsText_InContrMod), gsm.SmsNumber);
+      return true;      
+    }
+    
     else
     {
       PlayTone(specerTone, 250);      
