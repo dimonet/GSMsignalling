@@ -508,8 +508,6 @@ void RequestGsmCode(String smsNumber, String code)
   val = gsm.Read();                      
   int beginStr = val.indexOf('\"');
   val = val.substring(beginStr + 1);                            
-  if (code.startsWith("*150*"))                                   // если запрос на перевод денег то вырезаем только код подтверждения (что б самое главное влезло в смс)
-    val = val.substring(val.indexOf('*'), val.indexOf('#'));
   gsm.SendSMS(&val, smsNumber);                                                                   
 }
 

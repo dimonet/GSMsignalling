@@ -206,7 +206,7 @@ void MyGSM::Refresh()
         {
           //SendSMS(&currStr, "+380509151369");
           SmsText = currStr;                               
-          strCount = 1;
+          break;
         }        
       }
       else
@@ -215,7 +215,7 @@ void MyGSM::Refresh()
         if (NewRing)                                       // если входящий звонок
         {
           RingNumber = GetPhoneNumber(currStr);                     
-          strCount = 1;           
+          break;           
         }                 
       }        
     currStr = "";    
