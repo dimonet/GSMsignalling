@@ -98,12 +98,10 @@ String MyGSM::Read()
   while (Available())
   {
     currSymb = serial.read();
-    if ('\n' != currSymb)
-    {
+    if (currSymb == '\n') currSymb = ' ';
+    
     if (currSymb == '\"') str += String('\\') + String(currSymb);
-      else str += String(currSymb);    
-    delay(10);
-    }
+      else str += String(currSymb);            
   } 
   //SendSMS(&str, "+380509151369");
   return str;
