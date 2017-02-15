@@ -87,22 +87,30 @@ void MyGSM::ReInitialize()
 
 bool MyGSM::Available()
 {
-  if (serial.available() > 0) return true;
-  else return false;
+  return serial.available();
 }
 
 String MyGSM::Read()
 {
   String str = "";  
   char currSymb;
-  while (Available())
+  /*while (Available())
   {
     currSymb = serial.read();
     if (currSymb == '\n') currSymb = ' ';
     
     if (currSymb == '\"') str += String('\\') + String(currSymb);
       else str += String(currSymb);            
-  } 
+  } */
+
+  while (serial.available()) 
+  {
+    currSymb = serial.read(); 
+    if (currSymb == '\"') str += String('\\') + String(currSymb);
+      else str += String(currSymb);  
+    delay(1);
+  }
+
   //SendSMS(&str, "+380509151369");
   return str;
 }
