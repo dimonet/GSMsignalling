@@ -55,8 +55,7 @@ void MyGSM::Initialize()
       break;
     }    
     BlinkLED(0, 500, 0);                   // блымаем светодиодом  
-  }
-  //serial.println("Modem OK");     
+  }      
 }
 
 void MyGSM::ReInitialize()
@@ -94,24 +93,12 @@ String MyGSM::Read()
 {
   String str = "";  
   char currSymb;
-  /*while (Available())
+  while (Available())
   {
     currSymb = serial.read();
-    if (currSymb == '\n') currSymb = ' ';
-    
-    if (currSymb == '\"') str += String('\\') + String(currSymb);
-      else str += String(currSymb);            
-  } */
-
-  while (serial.available()) 
-  {
-    currSymb = serial.read(); 
-    if (currSymb == '\"') str += String('\\') + String(currSymb);
-      else str += String(currSymb);  
-    delay(1);
-  }
-
-  //SendSMS(&str, "+380509151369");
+    str += String(currSymb); 
+    delay(1);                 
+  }  
   return str;
 }
 
@@ -140,14 +127,6 @@ void MyGSM::Call(String phone)
 void MyGSM::RejectCall()
 {
   serial.println("ATH0");
-}
-
-// запрос баланса 
-void MyGSM::RequestBalance()
-{
-  Read();
-  serial.println("ATD*101#");  //запрос баланса
-  //serial.println("AT+CUSD=1,\"*101#\"");   
 }
 
 // запрос gsm кода (*#) 
@@ -210,7 +189,6 @@ void MyGSM::Refresh()
                
         if (NewSms)                                        // если СМС
         {
-          //SendSMS(&currStr, "+380509151369");
           SmsText = currStr;                               
           break;
         }        

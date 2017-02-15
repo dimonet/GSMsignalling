@@ -15,8 +15,7 @@ class MyGSM
     String Read();
     void SendSMS(String *text, String phone);
     void Call(String phone);
-    void RejectCall();
-    void RequestBalance();  // запрос баланса
+    void RejectCall();    
     void RequestGsmCode(String code);  // запрос gsm кода (*#)
     void Refresh();    
     

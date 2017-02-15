@@ -38,10 +38,13 @@
 #define smsText_BattPower       "POWER: Backup Battery is used for powering system."  // текст смс для оповещения о том, что исчезло сетевое питание
 #define smsText_NetPower        "POWER: Network power has been restored."             // текст смс для оповещения о том, что сетевое питание возобновлено
 
+#define GSMCODE_BALANCE         "*101#"                                               // GSM код для запроса баланца
+
 #define smsText_ErrorCommand    "Command: ERROR. Available only commands: Balance, Test on, Test off, Control on, gsm code."  // смс команда не распознана
 #define smsText_TestModOn       "Command: Test mode has been turned on."              // выполнена команда для включения тестового режима для тестирования датчиков
 #define smsText_TestModOff      "Command: Test mode has been turned off."             // выполнена команда для выключения тестового режима для тестирования датчиков
 #define smsText_InContrMod      "Command: Control mode has been turned on."           // выполнена команда для установку на охрану
+
 // паузы
 #define  timeWaitInContr      25                           // Время паузы от нажатие кнопки до установки режима охраны
 #define  timeWaitInContrTest  7                            // Время паузы от нажатие кнопки до установки режима охраны в режиме тестирования
@@ -106,7 +109,7 @@ unsigned long prSmsPIR2 = 0;                     // время последне�
 unsigned long prLastPressBtn = 0;                // время последнего нажатие на кнопку (милисекунды)
 
 bool controlTensionCable = true;                 // включаем контроль растяжки
-String val = "";
+String str = "";
 
 MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
 PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
@@ -179,7 +182,7 @@ void loop()
       if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
       {
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером         
-        RequestBalance(SMSNUMBER);        
+        RequestGsmCode(SMSNUMBER, GSMCODE_BALANCE);        
       }                                                               // отправляем смс с балансом            
       else 
       // включение/отключения режима тестирования
@@ -475,40 +478,23 @@ void PowerControl()
     gsm.SendSMS(&String(smsText_NetPower), String(SMSNUMBER));               // отправляем смс о возобновлении  сетевое питание 220v        
 }
 
-//Запрашиваем и отсылаем баланс через смс
-void RequestBalance(String smsNumber)
-{
-  digitalWrite(SirenLED, LOW);                                  // выключаем светодиод  
-  gsm.RequestBalance();                                         // запрашиваем баланс                      
-  byte sec = 0;                                                 // выдерживаем паузу перед чтением результата запроса баланса
-  while (!gsm.Available())
-  {
-    BlinkLEDlow(NotInContrLED, 0, 500, 500);                    // мигаем светодиодом
-  }
-  BlinkLEDlow(NotInContrLED, 0, 500, 500); 
-   
-  val = gsm.Read();                   
-  int beginStr = val.indexOf('\"');
-  val = val.substring(beginStr + 1);                          // баланс на сим карте
-  gsm.SendSMS(&val, smsNumber);                                                             
-}
-
 // запрос gsm кода (*#) и отсылаем результат через смс
 void RequestGsmCode(String smsNumber, String code)
 {
   digitalWrite(SirenLED, LOW);                                  // выключаем светодиод  
   gsm.RequestGsmCode(code);                                    // запрашиваем баланс                      
-  val = "";
+  str = "";
   while (!gsm.Available())
   {
     BlinkLEDlow(NotInContrLED, 0, 500, 500);                    // мигаем светодиодом  
   }
   BlinkLEDlow(NotInContrLED, 0, 500, 500);                 
-    
-  val = gsm.Read();                      
-  int beginStr = val.indexOf('\"');
-  val = val.substring(beginStr + 1);                            
-  gsm.SendSMS(&val, smsNumber);                                                                   
+
+  str = gsm.Read();
+  int beginStr = str.indexOf('\"');
+  str = str.substring(beginStr + 1); 
+  str = str.substring(0, str.indexOf("\","));
+  gsm.SendSMS(&str, smsNumber); 
 }
 
 // читаем смс и если доступна новая команда по смс то выполняем ее
@@ -526,7 +512,7 @@ bool ExecSmsCommand()
     if (gsm.SmsText == "Balance" || gsm.SmsText == "balance")                               // запрос баланса
     {
       PlayTone(specerTone, 250);                                             
-      RequestBalance(gsm.SmsNumber);
+      RequestGsmCode(gsm.SmsNumber, GSMCODE_BALANCE);
       return true;
     }
     else
@@ -565,8 +551,7 @@ bool ExecSmsCommand()
       Set_InContrMod(0);                                                                    // устанавливаем на охрану без паузы                                                
       gsm.SendSMS(&String(smsText_InContrMod), gsm.SmsNumber);
       return true;      
-    }
-    
+    }    
     else
     {
       PlayTone(specerTone, 250);      
