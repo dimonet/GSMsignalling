@@ -32,15 +32,15 @@ void MyGSM::Initialize()
     
   // настройка смс
   serial.println("AT+CMGF=1");           // режим кодировки СМС - обычный (для англ.)
-  delay(300);
+  delay(200);
   serial.println("AT+CSCS=\"GSM\"");       // режим кодировки текста
-  delay(300);
+  delay(200);
   serial.println("AT+IFC=1, 1");           // устанавливает программный контроль потоком передачи данных
-  delay(300);
+  delay(200);
   serial.println("AT+CPBS=\"SM\"");        // открывает доступ к данным телефонной книги SIM-карты
-  delay(300);
+  delay(200);
   serial.println("AT+CNMI=1,2,2,1,0");     // включает оповещение о новых сообщениях
-  delay(300);
+  delay(200);
   serial.println("AT+CMGD=1,4");           // удаление всех старых смс
   delay(500);
   
@@ -107,12 +107,11 @@ void MyGSM::SendSMS(String *text, String phone)       //процедура от�
 {
   //Serial.println("SMS send started");
   serial.println("AT+CMGS=\"" + phone + "\"");
-  delay(500);
+  delay(100);
   serial.print(*text); 
-  delay(500);
+  delay(850);
   serial.print((char)26);
-  BlinkLED(0, 250, 0);                       // сигнализируем об этом
-  delay(2250);
+  BlinkLED(0, 250, 0);                               // сигнализируем об этом  
   //Serial.println("SMS send complete");
 }
 
