@@ -256,7 +256,8 @@ void loop()
         && ((GetElapsed(prSmsPIR1) > timeSmsPIR1) or prSmsPIR1 == 0))              // и выдержена пауза после последнего смс
       {
         gsm.SendSMS(&String(smsText_PIR1), String(SMSNUMBER));
-        prSmsPIR1 = millis();       
+        prSmsPIR1 = millis();
+        delay(2000);       
       }
       
       if (sPIR2 && !inTestMod                                                      // отправляем СМС если сработал датчик движения и не включен режим тестирование  
@@ -264,11 +265,15 @@ void loop()
       {  
         gsm.SendSMS(&String(smsText_PIR2), String(SMSNUMBER));
         prSmsPIR2 = millis();       
+        delay(2000);
       }
 
       if (sTensionCable && !inTestMod)                                             // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
+      {  
         gsm.SendSMS(&String(smsText_TensionCable), String(SMSNUMBER));       
-
+        delay(2000);
+      }
+      
       if ((GetElapsed(prCall) > timeCall) or prCall == 0)                          // проверяем сколько прошло времени после последнего звонка (выдерживаем паузц между звонками)
       {
         gsm.Call(String(TELLNUMBER));                                              // отзваниваемся
@@ -318,6 +323,9 @@ bool Set_NotInContrMod()
   PlayTone(specerTone, 500);
   mode = NotInContrMod;                 // снимаем охранку
   StopSiren();                          //останавливаем сирену
+  prSmsPIR1 = 0;
+  prSmsPIR2 = 0;
+  prCall = 0;
   EEPROM.write(E_mode, mode);           // пишим режим в еепром 
   return true;
 }
