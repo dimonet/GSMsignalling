@@ -265,15 +265,15 @@ void loop()
       if (sPIR1 && !inTestMod                                                      // отправляем СМС если сработал датчик движения и не включен режим тестирование 
         && ((GetElapsed(prSmsPIR1) > timeSmsPIR1) or prSmsPIR1 == 0))              // и выдержена пауза после последнего смс
       {
-        gsm.SendSMS(&String(smsText_PIR1), String(SMSNUMBER));
-        prSmsPIR1 = millis();               
+        if(gsm.SendSMS(&String(smsText_PIR1), String(SMSNUMBER)))
+          prSmsPIR1 = millis();               
       }
       
       if (sPIR2 && !inTestMod                                                      // отправляем СМС если сработал датчик движения и не включен режим тестирование  
         && ((GetElapsed(prSmsPIR2) > timeSmsPIR2) or prSmsPIR2 == 0))              // и выдержена пауза после последнего смс
       {  
-        gsm.SendSMS(&String(smsText_PIR2), String(SMSNUMBER));
-        prSmsPIR2 = millis();               
+        if(gsm.SendSMS(&String(smsText_PIR2), String(SMSNUMBER)))
+          prSmsPIR2 = millis();               
       }
 
       if (sTensionCable && !inTestMod)                                             // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
@@ -283,8 +283,8 @@ void loop()
       
       if ((GetElapsed(prCall) > timeCall) or prCall == 0)                          // проверяем сколько прошло времени после последнего звонка (выдерживаем паузц между звонками)
       {
-        gsm.Call(String(TELLNUMBER));                                              // отзваниваемся
-        prCall = millis();                     
+        if(gsm.Call(String(TELLNUMBER)))                                           // отзваниваемся
+          prCall = millis();                                                       // если отзвон осуществлен то запоминаем время последнего отзвона
       }
             
       if (sTensionCable) controlTensionCable = false;                              // отключаем контроль растяжки что б сирена не работала постоянно после разрыва растяжки

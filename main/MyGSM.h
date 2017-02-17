@@ -19,7 +19,7 @@ class MyGSM
     void Refresh();    
     
   private:
-    bool IsReady();                                     // ожидание готовности gsm модуля
+    bool IsAvailable();                                     // ожидание готовности gsm модуля
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
     String GetPhoneNumber(String str);
     int _gsmLED;
