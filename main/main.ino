@@ -40,13 +40,14 @@
 
 #define GSMCODE_BALANCE         "*101#"                                               // GSM код для запроса баланца
 
-#define smsText_ErrorCommand    "Command: ERROR. Available only commands: Balance, Test on/off, Redirect on/off, Control on/off, gsm code."  // смс команда не распознана
+#define smsText_ErrorCommand    "Command: ERROR. Available only commands: Balance, Test on/off, Redirect on/off, Control on/off, Skimpy, gsm code."  // смс команда не распознана
 #define smsText_TestModOn       "Command: Test mode has been turned on."              // выполнена команда для включения тестового режима для тестирования датчиков
 #define smsText_TestModOff      "Command: Test mode has been turned off."             // выполнена команда для выключения тестового режима для тестирования датчиков
 #define smsText_InContrMod      "Command: Control mode has been turned on."           // выполнена команда для установку на охрану
 #define smsText_NotInContrMod   "Command: Control mode has been turned off."          // выполнена команда для установку на охрану
 #define smsText_RedirectOn      "Command: SMS redirection has been turned on."        // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
 #define smsText_RedirectOff     "Command: SMS redirection has been turned off."       // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
+#define smsText_SkimpySiren     "Command: Skimpy siren has been turned on."           // выполнена команда для коротковременного включения сирены
 
 // паузы
 #define  timeWaitInContr      25                           // Время паузы от нажатие кнопки до установки режима охраны
@@ -57,11 +58,13 @@
 #define  timeCall             120000                       // время паузы после последнего звонка тревоги (милисекунды)
 #define  timeSmsPIR1          120000                       // время паузы после последнего СМС датчика движения 1 (милисекунды)
 #define  timeSmsPIR2          120000                       // время паузы после последнего СМС датчика движения 2 (милисекунды)
+#define  timeSkimpySiren      300                          // время короткого срабатывания модуля сирены 
 
 
 // Количество нажатий на кнопку для включений режимова
-#define countBtnInTestMod 2                                // количество нажатий на кнопку для включение/отключения режима тестирования 
-#define countBtnBalance 3                                  // количество нажатий на кнопку для запроса баланса счета
+#define countBtnInTestMod   2                              // количество нажатий на кнопку для включение/отключения режима тестирования 
+#define countBtnBalance     3                              // количество нажатий на кнопку для запроса баланса счета
+#define countBtnSkimpySiren 4                              // количество нажатий на кнопку для кратковременного включения сирены
 
 //// КОНСТАНТЫ ПИТЯНИЯ ////
 #define netVcc      10.0                      // значения питяния от сети (вольт)
@@ -167,9 +170,6 @@ void loop()
   PowerControl();                                                   // мониторим питание системы
   gsm.Refresh();                                                    // читаем сообщения от GSM модема   
   
-  if (isSiren && GetElapsed(prSiren) > timeSiren)                   // если включена сирена и сирена работает больше установленного времени то выключаем ее
-    StopSiren();    
-  
   if (inTestMod && !isSiren)                                        // если включен режим тестирования и не сирена то мигаем светодиодом
   {
     digitalWrite(SirenLED, digitalRead(SirenLED) == LOW);     
@@ -204,7 +204,14 @@ void loop()
         inTestMod = !inTestMod;                                       // включаем/выключаем режим тестирование датчиков        
         digitalWrite(SirenLED, LOW);                                  // выключаем светодиод
         EEPROM.write(E_inTestMod, inTestMod);                         // пишим режим тестирование датчиков в еепром
-      }      
+      }
+      else
+      // кратковременное включение сирены (для тестирования модуля сирены)
+      if (countPressBtn == countBtnSkimpySiren)                      
+      {
+        PlayTone(specerTone, 250);                                    
+        SkimpySiren();
+      }  
       countPressBtn = 0;      
     }
 
@@ -237,6 +244,9 @@ void loop()
   ////// IN CONTROL MODE ///////  
   if (mode == InContrMod)                                             // если в режиме охраны
   {
+    if (isSiren && GetElapsed(prSiren) > timeSiren)                   // если включена сирена и сирена работает больше установленного времени то выключаем ее
+    StopSiren();
+    
     if (ButtonIsHold(timeHoldingBtn) && inTestMod)                    // снимаем с охраны если кнопка удерживается заданое время и включен режим тестирования
     {
       gsm.RejectCall();                                               // сбрасываем вызов
@@ -256,29 +266,25 @@ void loop()
         && ((GetElapsed(prSmsPIR1) > timeSmsPIR1) or prSmsPIR1 == 0))              // и выдержена пауза после последнего смс
       {
         gsm.SendSMS(&String(smsText_PIR1), String(SMSNUMBER));
-        prSmsPIR1 = millis();
-        delay(2000);       
+        prSmsPIR1 = millis();               
       }
       
       if (sPIR2 && !inTestMod                                                      // отправляем СМС если сработал датчик движения и не включен режим тестирование  
         && ((GetElapsed(prSmsPIR2) > timeSmsPIR2) or prSmsPIR2 == 0))              // и выдержена пауза после последнего смс
       {  
         gsm.SendSMS(&String(smsText_PIR2), String(SMSNUMBER));
-        prSmsPIR2 = millis();       
-        delay(2000);
+        prSmsPIR2 = millis();               
       }
 
       if (sTensionCable && !inTestMod)                                             // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
       {  
-        gsm.SendSMS(&String(smsText_TensionCable), String(SMSNUMBER));       
-        delay(2000);
+        gsm.SendSMS(&String(smsText_TensionCable), String(SMSNUMBER));               
       }
       
       if ((GetElapsed(prCall) > timeCall) or prCall == 0)                          // проверяем сколько прошло времени после последнего звонка (выдерживаем паузц между звонками)
       {
         gsm.Call(String(TELLNUMBER));                                              // отзваниваемся
-        prCall = millis();
-        delay(300);              
+        prCall = millis();                     
       }
             
       if (sTensionCable) controlTensionCable = false;                              // отключаем контроль растяжки что б сирена не работала постоянно после разрыва растяжки
@@ -517,6 +523,17 @@ void RequestGsmCode(String smsNumber, String code)
   gsm.SendSMS(&str, smsNumber); 
 }
 
+// короткое включение сирены (для тестирования модуля сирены)
+void SkimpySiren()
+{
+  digitalWrite(SirenLED, HIGH);
+  digitalWrite(SirenGenerator, LOW);                   // включаем сирену через релье
+  delay(timeSkimpySiren);                              // период короткой работы сирены
+  digitalWrite(SirenLED, LOW);
+  digitalWrite(SirenGenerator, HIGH);                  // выключаем сирену через релье
+  
+}
+
 // читаем смс и если доступна новая команда по смс то выполняем ее
 bool ExecSmsCommand()
 {
@@ -595,6 +612,12 @@ bool ExecSmsCommand()
         isRedirectSms = false;
         EEPROM.write(E_isRedirectSms, false);
         gsm.SendSMS(&String(smsText_RedirectOff), gsm.SmsNumber);
+      }
+      else
+      if (gsm.SmsText.startsWith("Skimpy") || gsm.SmsText.startsWith("skimpy"))   // если сообщение начинается на * то это gsm код       
+      {
+        SkimpySiren();
+        gsm.SendSMS(&String(smsText_SkimpySiren), gsm.SmsNumber);
       }
       else
       {

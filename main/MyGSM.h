@@ -4,8 +4,7 @@ class MyGSM
 {
   public: 
     MyGSM(byte gsmLED, byte pinBOOT);
-    void Initialize();
-    void ReInitialize();
+    void Initialize();    
     bool Available();
     bool NewRing;
     bool NewSms;    
@@ -13,15 +12,16 @@ class MyGSM
     String SmsNumber;
     String SmsText;
     String Read();
-    void SendSMS(String *text, String phone);
-    void Call(String phone);
+    bool SendSMS(String *text, String phone);         // метод возвращает true если смс отправлен успешно
+    bool Call(String phone);
     void RejectCall();    
-    void RequestGsmCode(String code);  // запрос gsm кода (*#)
+    bool RequestGsmCode(String code);                 // запрос gsm кода (*#)
     void Refresh();    
     
   private:
+    bool IsReady();                                     // ожидание готовности gsm модуля
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
     String GetPhoneNumber(String str);
     int _gsmLED;
-    int _pinBOOT;                             // нога BOOT или K на модеме       
+    int _pinBOOT;                                     // нога BOOT или K на модеме       
 };

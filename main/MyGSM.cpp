@@ -5,7 +5,9 @@
 //SoftwareSerial gsm(7, 8); // RX, TX
 
 #define serial Serial                           // если аппаратный в UNO
-//#define serial Serial1                          // если аппаратный в леонардо
+//#define serial Serial1                        // если аппаратный в леонардо
+
+#define GSM_TIMEOUT 60000                       // врем ожидание готовности модема (милсек)  
 
 MyGSM::MyGSM(byte gsmLED, byte pinBOOT)
 {
@@ -58,32 +60,6 @@ void MyGSM::Initialize()
   }      
 }
 
-void MyGSM::ReInitialize()
-{
-  serial.println("ATE0");                  // выключаем эхо  
-  delay(100);                                 
-  serial.println("AT+CLIP=1");             //включаем АОН
-  delay(100);
-
-  // настройка смс
-  serial.println("AT+CMGF=1");             //режим кодировки СМС - обычный (для англ.)
-  delay(100);
-  serial.println("AT+CSCS=\"GSM\"");       //режим кодировки текста
-  delay(100);
-
-  while(1)                                 // ждем подключение модема к сети
-  {                             
-    serial.println("AT+COPS?");
-    if (serial.find("+COPS: 0")) 
-    {
-      BlinkLED(500, 150, 0);               // блымаем светодиодом 
-      BlinkLED(150, 150, 200);             // блымаем светодиодом 
-      break;
-    }    
-    BlinkLED(0, 500, 0);                   // блымаем светодиодом  
-  }
-}
-
 bool MyGSM::Available()
 {
   return serial.available();
@@ -102,24 +78,49 @@ String MyGSM::Read()
   return str;
 }
 
-//отправка СМС
-void MyGSM::SendSMS(String *text, String phone)       //процедура отправки СМС
+// ожидание готовности gsm модуля
+bool MyGSM::IsReady()
 {
-  //Serial.println("SMS send started");
+  int i = 0;   
+  while(i <= GSM_TIMEOUT)
+  {  
+    serial.println("AT+CPAS");                        // спрашиваем состояние модема
+    if (serial.find("+CPAS: 0")) 
+      {
+        delay(10);
+        return true;                                  // и если он в "готовности" выходим из цикла возвращая true - модуль "готов"
+      }
+    delay(10);
+    i += 10;
+  }
+  return false;                                       // если gsm так и не ответил за заданный таймаут то возвращаем false - модуль не готов к работе
+}
+
+//отправка СМС
+bool MyGSM::SendSMS(String *text, String phone)       //процедура отправки СМС
+{
+  if (!IsReady()) return false;                       // ждем готовности модема и если он не ответил за заданный таймаут то прырываем отправку смс 
+  
+  // отправляем смс
   serial.println("AT+CMGS=\"" + phone + "\"");
   delay(100);
   serial.print(*text); 
   delay(850);
   serial.print((char)26);
   BlinkLED(0, 250, 0);                               // сигнализируем об этом  
+ 
+  return true;                                       // метод возвращает true - смс отправлено успешно
   //Serial.println("SMS send complete");
 }
 
 // звонок на заданый номер
-void MyGSM::Call(String phone)
-{
+bool MyGSM::Call(String phone)
+{  
+  if (!IsReady()) return false;                        // ждем готовности модема и если он не ответил за заданный таймаут то прырываем выполнения звонка 
+  
   serial.println("ATD+" + phone + ";");
-  BlinkLED(0, 250, 0);                       // сигнализируем об этом 
+  BlinkLED(0, 250, 0);                                 // сигнализируем об этом 
+  return true;
 }
 
 // сброс звонка
@@ -129,11 +130,12 @@ void MyGSM::RejectCall()
 }
 
 // запрос gsm кода (*#) 
-void MyGSM::RequestGsmCode(String code)
-{  
+bool MyGSM::RequestGsmCode(String code)
+{    
   Read();
   serial.println("ATD" + code);
-  //serial.println("AT+CUSD=1,\"" + code + "\"");   
+  //serial.println("AT+CUSD=1,\"" + code + "\"");
+  return true; 
 }
 
 // Блымание gsm светодиодом 
