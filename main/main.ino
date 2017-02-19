@@ -40,7 +40,7 @@
 
 #define GSMCODE_BALANCE         "*101#"                                               // GSM код для запроса баланца
 
-#define smsText_ErrorCommand    "Command: ERROR. Available only commands: Balance, Test on/off, Redirect on/off, Control on/off, Skimpy, gsm code."  // смс команда не распознана
+#define smsText_ErrorCommand    "Command: ERROR. Available only commands:\nBalance,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nStatus,\ngsm code."  // смс команда не распознана
 #define smsText_TestModOn       "Command: Test mode has been turned on."              // выполнена команда для включения тестового режима для тестирования датчиков
 #define smsText_TestModOff      "Command: Test mode has been turned off."             // выполнена команда для выключения тестового режима для тестирования датчиков
 #define smsText_InContrMod      "Command: Control mode has been turned on."           // выполнена команда для установку на охрану
