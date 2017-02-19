@@ -157,7 +157,7 @@ void setup()
   digitalWrite(InContrLED, HIGH);
   digitalWrite(SirenLED, HIGH);
   digitalWrite(BattPowerLED, HIGH);
-  delay(1500);
+  delay(1200);
   digitalWrite(gsmLED, LOW);
   digitalWrite(NotInContrLED, LOW);
   digitalWrite(InContrLED, LOW);
@@ -607,7 +607,7 @@ bool ExecSmsCommand()
         return true;      
       }
       else
-      if (gsm.SmsText.startsWith("Control off") || gsm.SmsText.startsWith("control off"))     // если сообщение начинается на * то это gsm код
+      if (gsm.SmsText.startsWith("Control off") || gsm.SmsText.startsWith("control off"))     
       {
         digitalWrite(SirenLED, LOW);                                                          // выключаем светодиод
         Set_NotInContrMod();                                                                 // устанавливаем на охрану без паузы                                                
@@ -615,25 +615,60 @@ bool ExecSmsCommand()
         return true;      
       }
       else
-      if (gsm.SmsText.startsWith("Redirect on") || gsm.SmsText.startsWith("redirect on"))     // если сообщение начинается на * то это gsm код       
+      if (gsm.SmsText.startsWith("Redirect on") || gsm.SmsText.startsWith("redirect on"))        
       {
+        PlayTone(specerTone, 250);
         isRedirectSms = true;
         EEPROM.write(E_isRedirectSms, true);
         gsm.SendSMS(&String(smsText_RedirectOn), gsm.SmsNumber);
+        return true;
       }
       else
-      if (gsm.SmsText.startsWith("Redirect off") || gsm.SmsText.startsWith("redirect off"))   // если сообщение начинается на * то это gsm код       
+      if (gsm.SmsText.startsWith("Redirect off") || gsm.SmsText.startsWith("redirect off"))         
       {
+        PlayTone(specerTone, 250);
         isRedirectSms = false;
         EEPROM.write(E_isRedirectSms, false);
         gsm.SendSMS(&String(smsText_RedirectOff), gsm.SmsNumber);
+        return true;
       }
       else
-      if (gsm.SmsText.startsWith("Skimpy") || gsm.SmsText.startsWith("skimpy"))   // если сообщение начинается на * то это gsm код       
+      if (gsm.SmsText.startsWith("Skimpy") || gsm.SmsText.startsWith("skimpy"))          
       {
         SkimpySiren();
         gsm.SendSMS(&String(smsText_SkimpySiren), gsm.SmsNumber);
+        return false;
       }
+      else
+      if (gsm.SmsText.startsWith("Status") || gsm.SmsText.startsWith("status"))          
+      {
+        PlayTone(specerTone, 250);
+        String rez = "";
+        String contr = "";
+        String test = "";
+        String redirSms = "";
+        
+        switch (mode)
+        {
+          case NotInContrMod:
+            contr = "off";
+            break;
+          case InContrMod:
+            contr = "on";
+            break;
+          default: 
+            contr = "n/a";
+            break;
+        }
+        test     = (inTestMod)     ? "on" : "off";
+        redirSms = (isRedirectSms) ? "on" : "off";
+       
+        rez = "On controlling: "   + String(contr)    + "\n"
+            + "Test mode: "        + String(test)     + "\n" 
+            + "Redirect SMS: "     + String(redirSms) + "\n";
+        gsm.SendSMS(&rez, gsm.SmsNumber);
+        return false;        
+      }     
       else
       {
         PlayTone(specerTone, 250);      
