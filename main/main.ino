@@ -130,7 +130,7 @@ PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль пи
 void setup() 
 {
   delay(1000);                                // !! чтобы нечего не повисало при включении
-  debug.begin(9600);
+  //debug.begin(9600);
   pinMode(SpecerPin, OUTPUT);
   pinMode(gsmLED, OUTPUT);
   pinMode(NotInContrLED, OUTPUT);
@@ -148,6 +148,21 @@ void setup()
   digitalWrite(SirenGenerator, HIGH);         // выключаем сирену через релье
   
   digitalWrite(BattPowerLED, powCtr.IsBattPower());     // если питаимся от батареи включам соотвествующий LED
+  
+  // блок тестирования спикера и всех светодиодов
+  PlayTone(specerTone, 100);                          
+  delay(500);
+  digitalWrite(gsmLED, HIGH);
+  digitalWrite(NotInContrLED, HIGH);
+  digitalWrite(InContrLED, HIGH);
+  digitalWrite(SirenLED, HIGH);
+  digitalWrite(BattPowerLED, HIGH);
+  delay(1500);
+  digitalWrite(gsmLED, LOW);
+  digitalWrite(NotInContrLED, LOW);
+  digitalWrite(InContrLED, LOW);
+  digitalWrite(SirenLED, LOW);
+  digitalWrite(BattPowerLED, LOW);
   
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
   digitalWrite(BattPowerLED, powCtr.IsBattPower());     // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
