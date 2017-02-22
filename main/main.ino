@@ -7,7 +7,7 @@
 #include "MyGSM.h"
 #include "PowerControl.h"
 
-#define debug Serial
+//#define debug Serial
 
 //// НАСТРОЕЧНЫЕ КОНСТАНТЫ /////
 // номера телефонов
@@ -40,7 +40,7 @@
 
 #define GSMCODE_BALANCE         "*101#"                                               // GSM код для запроса баланца
 
-#define smsText_ErrorCommand    "Command: ERROR. Available only commands:\nBalance,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nStatus,\ngsm code."  // смс команда не распознана
+#define smsText_ErrorCommand    "Command: ERROR. Available only commands:\nBalance,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nStatus,\nFrom 19 to 24,\ngsm code."  // смс команда не распознана
 #define smsText_TestModOn       "Command: Test mode has been turned on."              // выполнена команда для включения тестового режима для тестирования датчиков
 #define smsText_TestModOff      "Command: Test mode has been turned off."             // выполнена команда для выключения тестового режима для тестирования датчиков
 #define smsText_InContrMod      "Command: Control mode has been turned on."           // выполнена команда для установку на охрану
@@ -108,7 +108,11 @@
 byte mode = NotInContrMod;                    // 1 - снята с охраны                                  
                                               // 3 - установлено на охрану
                                               // при добавлении не забываем посмотреть рездел //// КОНСТАНТЫ РЕЖИМОВ РАБОТЫ ////
-                                               
+
+// Параметры для вырезания значения текущего баланса со строки ответа
+int blcFrom = 20;                            // вырезать строку с номера.. 
+int blcTo   = 24;                            // вырезать строку по номер..
+
 bool btnIsHolding = false;
 byte countPressBtn = 0;                       // счетчик нажатий на кнопку
 bool inTestMod = false;                       // режим тестирования датчиков (не срабатывает сирена и не отправляются СМС)
@@ -130,7 +134,7 @@ PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль пи
 void setup() 
 {
   delay(1000);                                // !! чтобы нечего не повисало при включении
-  //debug.begin(9600);
+ // debug.begin(9600);
   pinMode(SpecerPin, OUTPUT);
   pinMode(gsmLED, OUTPUT);
   pinMode(NotInContrLED, OUTPUT);
@@ -175,7 +179,7 @@ void setup()
   else Set_NotInContrMod();
 
   inTestMod = EEPROM.read(E_inTestMod);                 // читаем тестовый режим из еепром
-  isRedirectSms = EEPROM.read(E_isRedirectSms);         // читаем режима перенаправления всех смс    
+  isRedirectSms = EEPROM.read(E_isRedirectSms);         // читаем режима перенаправления всех смс   
 }
 
 bool newClick = true;
@@ -209,7 +213,7 @@ void loop()
       if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
       {
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером         
-        RequestGsmCode(SMSNUMBER, GSMCODE_BALANCE);        
+        SendStatusBySms(SMSNUMBER);                                   // формируем отчет о конфигурации и отправляем его по смс
       }                                                               // отправляем смс с балансом            
       else 
       // включение/отключения режима тестирования
@@ -407,6 +411,8 @@ void  StartSiren()
   digitalWrite(SirenLED, HIGH);
   if (!inTestMod)                                        // если не включен тестовый режим
     digitalWrite(SirenGenerator, LOW);                   // включаем сирену через релье
+  else
+    PlayTone(specerTone, 100);                           // если включен режим тестирование то сигнализируем только спикером
   isSiren = 1;
   prSiren = millis();
 }
@@ -454,7 +460,6 @@ void PlayTone(byte tone, unsigned int duration)
     delayMicroseconds(tone);
   }
 } 
-
 
 ////// Методы датчиков ////// 
 bool SensorTriggered_TensionCable()                                     // растяжка
@@ -520,22 +525,23 @@ void PowerControl()
 }
 
 // запрос gsm кода (*#) и отсылаем результат через смс
-void RequestGsmCode(String smsNumber, String code)
+String RequestGsmCode(String code)
 {
   digitalWrite(SirenLED, LOW);                                  // выключаем светодиод  
-  gsm.RequestGsmCode(code);                                    // запрашиваем баланс                      
-  str = "";
+  gsm.RequestGsmCode(code);                                     // запрашиваем баланс                      
+  
   while (!gsm.Available())
   {
     BlinkLEDlow(NotInContrLED, 0, 500, 500);                    // мигаем светодиодом  
   }
   BlinkLEDlow(NotInContrLED, 0, 500, 500);                 
 
+  str = "";
   str = gsm.Read();
   int beginStr = str.indexOf('\"');
   str = str.substring(beginStr + 1); 
   str = str.substring(0, str.indexOf("\","));
-  gsm.SendSMS(&str, smsNumber); 
+  return str;   
 }
 
 // короткое включение сирены (для тестирования модуля сирены)
@@ -545,8 +551,41 @@ void SkimpySiren()
   digitalWrite(SirenGenerator, LOW);                   // включаем сирену через релье
   delay(timeSkimpySiren);                              // период короткой работы сирены
   digitalWrite(SirenLED, LOW);
-  digitalWrite(SirenGenerator, HIGH);                  // выключаем сирену через релье
+  digitalWrite(SirenGenerator, HIGH);                  // выключаем сирену через релье  
+}
+
+// формируем отчет о конфигурации и отправляем его по смс
+void SendStatusBySms(String SmsNumber)
+{
+  String rez = "";
+  String contr = "";
+  String test = "";
+  String redirSms = "";
   
+  str = "";                  
+  str = RequestGsmCode(GSMCODE_BALANCE);   
+  str = str.substring(blcFrom, blcTo);
+        
+  switch (mode)
+  {
+    case NotInContrMod:
+      contr = "off";
+      break;
+    case InContrMod:
+      contr = "on";
+      break;
+    default: 
+      contr = "n/a";
+      break;
+  }
+  test     = (inTestMod)     ? "on" : "off";
+  redirSms = (isRedirectSms) ? "on" : "off";
+       
+  rez = "Balance: "          + str      + "\n"
+      + "On controlling: "   + contr    + "\n"
+      + "Test mode: "        + test     + "\n" 
+      + "Redirect SMS: "     + redirSms + "\n";
+  gsm.SendSMS(&rez, SmsNumber); 
 }
 
 // читаем смс и если доступна новая команда по смс то выполняем ее
@@ -560,14 +599,16 @@ bool ExecSmsCommand()
          gsm.SmsNumber.indexOf(NUMBER4_SmsCommand) > -1                                                                                      
        )
     {       
-      if (gsm.SmsText == "Balance" || gsm.SmsText == "balance")                               // запрос баланса
+      if (gsm.SmsText == "Balance" || gsm.SmsText == "balance")                          // запрос баланса
       {
         PlayTone(specerTone, 250);                                             
-        RequestGsmCode(gsm.SmsNumber, GSMCODE_BALANCE);
+        str = "";
+        str = RequestGsmCode(GSMCODE_BALANCE);
+        gsm.SendSMS(&str, gsm.SmsNumber);                                                // запрашиваем баланс и отправляем смс с результатом
         return true;
       }
       else
-      if (gsm.SmsText == "Test on" || gsm.SmsText == "test on")                               // включения тестового режима для тестирования датчиков
+      if (gsm.SmsText == "Test on" || gsm.SmsText == "test on")                          // включения тестового режима для тестирования датчиков
       {
         PlayTone(specerTone, 250); 
         inTestMod = true;
@@ -595,7 +636,9 @@ bool ExecSmsCommand()
           return false;    
         }            
         PlayTone(specerTone, 250);                                                  
-        RequestGsmCode(gsm.SmsNumber, gsm.SmsText);
+        str = "";
+        str = RequestGsmCode(gsm.SmsText);
+        gsm.SendSMS(&str, gsm.SmsNumber);                                                     // выполняем gsm команду и отправляем смс с результатом        
         return true;      
       }
       else
@@ -643,32 +686,20 @@ bool ExecSmsCommand()
       if (gsm.SmsText.startsWith("Status") || gsm.SmsText.startsWith("status"))          
       {
         PlayTone(specerTone, 250);
-        String rez = "";
-        String contr = "";
-        String test = "";
-        String redirSms = "";
-        
-        switch (mode)
-        {
-          case NotInContrMod:
-            contr = "off";
-            break;
-          case InContrMod:
-            contr = "on";
-            break;
-          default: 
-            contr = "n/a";
-            break;
-        }
-        test     = (inTestMod)     ? "on" : "off";
-        redirSms = (isRedirectSms) ? "on" : "off";
-       
-        rez = "On controlling: "   + String(contr)    + "\n"
-            + "Test mode: "        + String(test)     + "\n" 
-            + "Redirect SMS: "     + String(redirSms) + "\n";
-        gsm.SendSMS(&rez, gsm.SmsNumber);
+        SendStatusBySms(gsm.SmsNumber);                                                        // формируем отчет о конфигурации и отправляем его по смс                
         return false;        
-      }     
+      }
+      else
+      if (gsm.SmsText.startsWith("From") || gsm.SmsText.startsWith("from"))          
+      {
+        //blcFrom, blcTo
+        PlayTone(specerTone, 250);
+        byte to = gsm.SmsText.indexOf("to");
+        blcFrom = (gsm.SmsText.substring(5, to-1)).toInt();
+        blcTo = (gsm.SmsText.substring(to+3)).toInt();        
+                                                                                                       
+        return true;        
+      }       
       else
       {
         PlayTone(specerTone, 250);      
