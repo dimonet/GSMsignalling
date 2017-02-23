@@ -58,7 +58,8 @@
 #define  timeCall             120000                       // время паузы после последнего звонка тревоги (милисекунды)
 #define  timeSmsPIR1          120000                       // время паузы после последнего СМС датчика движения 1 (милисекунды)
 #define  timeSmsPIR2          120000                       // время паузы после последнего СМС датчика движения 2 (милисекунды)
-#define  timeSkimpySiren      300                          // время короткого срабатывания модуля сирены 
+#define  timeSkimpySiren      300                          // время короткого срабатывания модуля сирены
+#define  timeTestLeds         1200                         // время горение всех светодиодов во время включения устройства (тестирования светодиодов)
 
 
 // Количество нажатий на кнопку для включений режимова
@@ -157,7 +158,7 @@ void setup()
   digitalWrite(InContrLED, HIGH);
   digitalWrite(SirenLED, HIGH);
   digitalWrite(BattPowerLED, HIGH);
-  delay(1200);
+  delay(timeTestLeds);
   digitalWrite(gsmLED, LOW);
   digitalWrite(NotInContrLED, LOW);
   digitalWrite(InContrLED, LOW);
@@ -252,7 +253,8 @@ void loop()
         return;     
       }
       else gsm.RejectCall();                                // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)      
-    }    
+    }
+    gsm.ClearRing();                                        // очищаем обнаруженный входящий звонок    
   }                                                         // end NotInContrMod 
   else
   
@@ -280,20 +282,20 @@ void loop()
       if (sPIR1 && !inTestMod                                                      // отправляем СМС если сработал датчик движения и не включен режим тестирование 
         && ((GetElapsed(prSmsPIR1) > timeSmsPIR1) or prSmsPIR1 == 0))              // и выдержена пауза после последнего смс
       {
-        if(gsm.SendSMS(&String(smsText_PIR1), String(SMSNUMBER)))
+        if(gsm.SendSms(&String(smsText_PIR1), String(SMSNUMBER)))
           prSmsPIR1 = millis();               
       }
       
       if (sPIR2 && !inTestMod                                                      // отправляем СМС если сработал датчик движения и не включен режим тестирование  
         && ((GetElapsed(prSmsPIR2) > timeSmsPIR2) or prSmsPIR2 == 0))              // и выдержена пауза после последнего смс
       {  
-        if(gsm.SendSMS(&String(smsText_PIR2), String(SMSNUMBER)))
+        if(gsm.SendSms(&String(smsText_PIR2), String(SMSNUMBER)))
           prSmsPIR2 = millis();               
       }
 
       if (sTensionCable && !inTestMod)                                             // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
       {  
-        gsm.SendSMS(&String(smsText_TensionCable), String(SMSNUMBER));               
+        gsm.SendSms(&String(smsText_TensionCable), String(SMSNUMBER));               
       }
       
       if ((GetElapsed(prCall) > timeCall) or prCall == 0)                          // проверяем сколько прошло времени после последнего звонка (выдерживаем паузц между звонками)
@@ -319,9 +321,10 @@ void loop()
          return;
        }
        else gsm.RejectCall();                                // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)
+       gsm.ClearRing();                                      // очищаем обнаруженный входящий звонок 
      }         
   }                                                          // end InContrMod     
-  if (ExecSmsCommand()) return;                              // читаем смс и если доступна новая команда по смс то выполняем ее
+  if (!isSiren) ExecSmsCommand();                            // если не сирена проверяем доступна ли новая команда по смс и если да то выполняем ее
 }
 
 
@@ -515,29 +518,33 @@ void PowerControl()
   digitalWrite(BattPowerLED, powCtr.IsBattPower());
         
   if (!inTestMod && !powCtr.IsBattPowerPrevious() && powCtr.IsBattPower())   // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v) и если не включен режим тестирования
-    gsm.SendSMS(&String(smsText_BattPower), String(SMSNUMBER));              // отправляем смс о переходе на резервное питание         
+    gsm.SendSms(&String(smsText_BattPower), String(SMSNUMBER));              // отправляем смс о переходе на резервное питание         
     
   if (!inTestMod && powCtr.IsBattPowerPrevious() && !powCtr.IsBattPower())   // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования
-    gsm.SendSMS(&String(smsText_NetPower), String(SMSNUMBER));               // отправляем смс о возобновлении  сетевое питание 220v        
+    gsm.SendSms(&String(smsText_NetPower), String(SMSNUMBER));               // отправляем смс о возобновлении  сетевое питание 220v        
 }
 
 // запрос gsm кода (*#) и отсылаем результат через смс
 void RequestGsmCode(String smsNumber, String code)
 {
   digitalWrite(SirenLED, LOW);                                  // выключаем светодиод  
-  gsm.RequestGsmCode(code);                                    // запрашиваем баланс                      
+  gsm.RequestGsmCode(code);                                     // запрашиваем баланс                      
   str = "";
   while (!gsm.Available())
   {
-    BlinkLEDlow(NotInContrLED, 0, 500, 500);                    // мигаем светодиодом  
+    if (mode == InContrMod)                                  // опредиляем каким светодиодом мигать (какой на данный момент горит)
+      BlinkLEDlow(InContrLED, 0, 500, 500);                  // мигаем светодиодом
+    else  BlinkLEDlow(NotInContrLED, 0, 500, 500); 
   }
-  BlinkLEDlow(NotInContrLED, 0, 500, 500);                 
+   if (mode == InContrMod)                                   // для гарантийной готовности gsm модема выдерживаем додполнительную паузу миганием светодиода
+      BlinkLEDlow(InContrLED, 0, 500, 500);                  
+    else  BlinkLEDlow(NotInContrLED, 0, 500, 500);                 
 
   str = gsm.Read();
   int beginStr = str.indexOf('\"');
   str = str.substring(beginStr + 1); 
   str = str.substring(0, str.indexOf("\","));
-  gsm.SendSMS(&str, smsNumber); 
+  gsm.SendSms(&str, smsNumber); 
 }
 
 // короткое включение сирены (для тестирования модуля сирены)
@@ -552,8 +559,8 @@ void SkimpySiren()
 }
 
 // читаем смс и если доступна новая команда по смс то выполняем ее
-bool ExecSmsCommand()
-{
+void ExecSmsCommand()
+{ 
   if (gsm.NewSms)
   {
     if ( gsm.SmsNumber.indexOf(NUMBER1_SmsCommand) > -1 ||              
@@ -562,20 +569,18 @@ bool ExecSmsCommand()
          gsm.SmsNumber.indexOf(NUMBER4_SmsCommand) > -1                                                                                      
        )
     {       
-      if (gsm.SmsText == "Balance" || gsm.SmsText == "balance")                               // запрос баланса
+      if (gsm.SmsText == "Balance" || gsm.SmsText == "balance")                          // запрос баланса
       {
         PlayTone(specerTone, 250);                                             
         RequestGsmCode(gsm.SmsNumber, GSMCODE_BALANCE);
-        return true;
       }
       else
-      if (gsm.SmsText == "Test on" || gsm.SmsText == "test on")                               // включения тестового режима для тестирования датчиков
+      if (gsm.SmsText == "Test on" || gsm.SmsText == "test on")                          // включения тестового режима для тестирования датчиков
       {
         PlayTone(specerTone, 250); 
         inTestMod = true;
         EEPROM.write(E_inTestMod, true);                                                 // пишим режим тестирование датчиков в еепром                                          
-        gsm.SendSMS(&String(smsText_TestModOn), gsm.SmsNumber);      
-        return true;
+        gsm.SendSms(&String(smsText_TestModOn), gsm.SmsNumber);
       }
       else
       if (gsm.SmsText == "Test off" || gsm.SmsText == "test off")                        // выключения тестового режима для тестирования датчиков
@@ -584,37 +589,30 @@ bool ExecSmsCommand()
         PlayTone(specerTone, 250);                                            
         inTestMod = false;        
         EEPROM.write(E_inTestMod, false);                                                // пишим режим тестирование датчиков в еепром
-        gsm.SendSMS(&String(smsText_TestModOff), gsm.SmsNumber);
-        return true;
+        gsm.SendSms(&String(smsText_TestModOff), gsm.SmsNumber);
       }
       else
       if (gsm.SmsText.startsWith("*"))                                                        // Если сообщение начинается на * то это gsm код
       {
         unsigned int endCommand = gsm.SmsText.indexOf('#');                                   // если команда не заканчивается на # то информируем по смс об ошибке
         if (endCommand == 65535)                                                                
-        {
-          gsm.SendSMS(&String(smsText_ErrorCommand), gsm.SmsNumber);
-          return false;    
-        }            
+          gsm.SendSms(&String(smsText_ErrorCommand), gsm.SmsNumber);                    
         PlayTone(specerTone, 250);                                                  
         RequestGsmCode(gsm.SmsNumber, gsm.SmsText);
-        return true;      
       }
       else
       if (gsm.SmsText.startsWith("Control on") || gsm.SmsText.startsWith("control on"))       // если сообщение начинается на * то это gsm код
       {
         digitalWrite(SirenLED, LOW);                                                          // выключаем светодиод
         Set_InContrMod(0);                                                                    // устанавливаем на охрану без паузы                                                
-        gsm.SendSMS(&String(smsText_InContrMod), gsm.SmsNumber);
-        return true;      
+        gsm.SendSms(&String(smsText_InContrMod), gsm.SmsNumber);
       }
       else
       if (gsm.SmsText.startsWith("Control off") || gsm.SmsText.startsWith("control off"))     
       {
         digitalWrite(SirenLED, LOW);                                                          // выключаем светодиод
-        Set_NotInContrMod();                                                                 // устанавливаем на охрану без паузы                                                
-        gsm.SendSMS(&String(smsText_NotInContrMod), gsm.SmsNumber);
-        return true;      
+        Set_NotInContrMod();                                                                  // устанавливаем на охрану без паузы                                                
+        gsm.SendSms(&String(smsText_NotInContrMod), gsm.SmsNumber);
       }
       else
       if (gsm.SmsText.startsWith("Redirect on") || gsm.SmsText.startsWith("redirect on"))        
@@ -622,8 +620,7 @@ bool ExecSmsCommand()
         PlayTone(specerTone, 250);
         isRedirectSms = true;
         EEPROM.write(E_isRedirectSms, true);
-        gsm.SendSMS(&String(smsText_RedirectOn), gsm.SmsNumber);
-        return true;
+        gsm.SendSms(&String(smsText_RedirectOn), gsm.SmsNumber);
       }
       else
       if (gsm.SmsText.startsWith("Redirect off") || gsm.SmsText.startsWith("redirect off"))         
@@ -631,15 +628,13 @@ bool ExecSmsCommand()
         PlayTone(specerTone, 250);
         isRedirectSms = false;
         EEPROM.write(E_isRedirectSms, false);
-        gsm.SendSMS(&String(smsText_RedirectOff), gsm.SmsNumber);
-        return true;
+        gsm.SendSms(&String(smsText_RedirectOff), gsm.SmsNumber);
       }
       else
       if (gsm.SmsText.startsWith("Skimpy") || gsm.SmsText.startsWith("skimpy"))          
       {
         SkimpySiren();
-        gsm.SendSMS(&String(smsText_SkimpySiren), gsm.SmsNumber);
-        return false;
+        gsm.SendSms(&String(smsText_SkimpySiren), gsm.SmsNumber);
       }
       else
       if (gsm.SmsText.startsWith("Status") || gsm.SmsText.startsWith("status"))          
@@ -668,19 +663,19 @@ bool ExecSmsCommand()
         rez = "On controlling: "   + String(contr)    + "\n"
             + "Test mode: "        + String(test)     + "\n" 
             + "Redirect SMS: "     + String(redirSms) + "\n";
-        gsm.SendSMS(&rez, gsm.SmsNumber);
-        return false;        
+        gsm.SendSms(&rez, gsm.SmsNumber);
       }     
       else
       {
         PlayTone(specerTone, 250);      
-        gsm.SendSMS(&String(smsText_ErrorCommand), gsm.SmsNumber);
-        return false;
+        gsm.SendSms(&String(smsText_ErrorCommand), gsm.SmsNumber);
       }        
     }
     else if (isRedirectSms)                                                                    // если смс пришла не с зарегистрированых номеров и включен режим перенаправления всех смс
-      gsm.SendSMS(&String("N: " + gsm.SmsNumber + '\n' + gsm.SmsText), String(SMSNUMBER));     
+      gsm.SendSms(&String("N: " + gsm.SmsNumber + '\n' + gsm.SmsText), String(SMSNUMBER));     
+   
+    gsm.ClearSms();                                                                            // очищаем обнаруженное входящие Смс
   }         
-  return false;
+
 }
 

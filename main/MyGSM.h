@@ -12,16 +12,18 @@ class MyGSM
     String SmsNumber;
     String SmsText;
     String Read();
-    bool SendSMS(String *text, String phone);         // метод возвращает true если смс отправлен успешно
+    bool SendSms(String *text, String phone);         // метод возвращает true если смс отправлен успешно
     bool Call(String phone);
     void RejectCall();    
     bool RequestGsmCode(String code);                 // запрос gsm кода (*#)
-    void Refresh();    
+    void Refresh();
+    void ClearRing();
+    void ClearSms();
     
   private:
-    bool IsAvailable();                                     // ожидание готовности gsm модуля
+    bool IsAvailable();                               // ожидание готовности gsm модуля
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
-    String GetPhoneNumber(String str);
+    String GetRingNumber(String str);
     int _gsmLED;
     int _pinBOOT;                                     // нога BOOT или K на модеме       
 };

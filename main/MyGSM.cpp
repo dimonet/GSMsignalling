@@ -97,7 +97,7 @@ bool MyGSM::IsAvailable()
 }
 
 //отправка СМС
-bool MyGSM::SendSMS(String *text, String phone)       //процедура отправки СМС
+bool MyGSM::SendSms(String *text, String phone)       //процедура отправки СМС
 {
   if (!IsAvailable()) return false;                       // ждем готовности модема и если он не ответил за заданный таймаут то прырываем отправку смс 
   
@@ -152,12 +152,7 @@ void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigne
 void MyGSM::Refresh()
 {
   String currStr = "";     
-  byte strCount = 1;
-  NewRing = false;
-  RingNumber = "";
-  SmsNumber = "";
-  SmsText = "";
-  NewSms = false;
+  byte strCount = 1;  
   if (!Available()) return false;
  
   while (Available())
@@ -167,18 +162,18 @@ void MyGSM::Refresh()
     {
       if (strCount == 1)
       {
-        if (currStr.startsWith("RING"))                    // если входящий звонок
+        if (!NewRing && currStr.startsWith("RING"))        // если входящий звонок
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewRing = true;          
           strCount = 2;
         }
         else
-        if (currStr.startsWith("+CMT"))                    // если СМС
+        if (!NewSms && currStr.startsWith("+CMT"))         // если СМС
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewSms = true;
-          SmsNumber = GetPhoneNumber(currStr);                                                 
+          SmsNumber = GetRingNumber(currStr);                                                 
           strCount = 2;
         }         
       }
@@ -199,7 +194,7 @@ void MyGSM::Refresh()
       {
         if (NewRing)                                       // если входящий звонок
         {
-          RingNumber = GetPhoneNumber(currStr);                     
+          RingNumber = GetRingNumber(currStr);                     
           break;           
         }                 
       }        
@@ -215,16 +210,29 @@ void MyGSM::Refresh()
     
   if (NewSms)
   { 
-    serial.println("AT+CMGD=1,4");           // удаление всех старых смс
+    serial.println("AT+CMGD=1,4");                         // удаление всех старых смс
     delay(300);
   }    
 }
 
-String MyGSM::GetPhoneNumber(String str)
+String MyGSM::GetRingNumber(String str)
 {
   int beginStr = str.indexOf('\"');
   str = str.substring(beginStr + 1);
   int duration = str.indexOf('\"');
   return str.substring(0, duration - 1);
+}
+
+void MyGSM::ClearRing()
+{
+  NewRing = false;
+  RingNumber = "";  
+}
+
+void MyGSM::ClearSms()
+{
+  NewSms = false;
+  SmsNumber = "";
+  SmsText = "";  
 }
 ;
