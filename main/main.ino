@@ -253,8 +253,9 @@ void loop()
         return;     
       }
       else gsm.RejectCall();                                // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)      
-    }
     gsm.ClearRing();                                        // очищаем обнаруженный входящий звонок    
+    }
+    
   }                                                         // end NotInContrMod 
   else
   
