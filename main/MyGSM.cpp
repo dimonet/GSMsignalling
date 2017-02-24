@@ -238,7 +238,8 @@ void MyGSM::ClearSms()
 
 void MyGSM::Shutdown()
 {
-  BlinkLED(0, 250, 0);                                   // сигнализируем о поступлении команды на выключения
-  serial.println("AT+CPWROFF");                          // посылаем команду выключения gsm модема
+  digitalWrite(_pinBOOT, HIGH);                          // выключаем пинг который включает модем
+  serial.println("AT+CPWROFF");                          // посылаем команду выключения gsm модема  
+  delay(100);
 }
 ;
