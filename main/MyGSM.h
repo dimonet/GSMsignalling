@@ -19,6 +19,7 @@ class MyGSM
     void Refresh();
     void ClearRing();
     void ClearSms();
+    void Shutdown();                                  // выключения gsm модула (может использоваться при перезагрузке всего устройства)
     
   private:
     bool IsAvailable();                               // ожидание готовности gsm модуля

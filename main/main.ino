@@ -40,7 +40,7 @@
 
 #define GSMCODE_BALANCE         "*101#"                                               // GSM код для запроса баланца
 
-#define smsText_ErrorCommand    "Command: ERROR. Available only commands:\nBalance,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nReset,\nStatus,\ngsm code."  // смс команда не распознана
+#define smsText_ErrorCommand    "Command: ERROR. Available only commands:\nBalance,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nReboot,\nStatus,\ngsm code."  // смс команда не распознана
 #define smsText_TestModOn       "Command: Test mode has been turned on."              // выполнена команда для включения тестового режима для тестирования датчиков
 #define smsText_TestModOff      "Command: Test mode has been turned off."             // выполнена команда для выключения тестового режима для тестирования датчиков
 #define smsText_InContrMod      "Command: Control mode has been turned on."           // выполнена команда для установку на охрану
@@ -48,7 +48,7 @@
 #define smsText_RedirectOn      "Command: SMS redirection has been turned on."        // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
 #define smsText_RedirectOff     "Command: SMS redirection has been turned off."       // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
 #define smsText_SkimpySiren     "Command: Skimpy siren has been turned on."           // выполнена команда для коротковременного включения сирены
-#define smsText_WasReseted      "Command: Device was reset."                          // выполнена команда для коротковременного включения сирены
+#define smsText_WasRebooted      "Command: Device was Rebooted."                          // выполнена команда для коротковременного включения сирены
 
 // паузы
 #define  timeWaitInContr      25                           // Время паузы от нажатие кнопки до установки режима охраны
@@ -104,7 +104,7 @@
 #define E_mode           0                    // адресс для сохранения режимов работы 
 #define E_inTestMod      1                    // адресс для сохранения режима тестирования
 #define E_isRedirectSms  2                    // адресс для сохранения режима перенаправления всех смс
-#define E_wasReseted     3                    // адресс для сохранения режима перенаправления всех смс
+#define E_wasRebooted     3                    // адресс для сохранения режима перенаправления всех смс
 
 
 //// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ////
@@ -125,14 +125,14 @@ unsigned long prSmsPIR2 = 0;                     // время последне�
 unsigned long prLastPressBtn = 0;                // время последнего нажатие на кнопку (милисекунды)
 
 bool controlTensionCable = true;                 // включаем контроль растяжки
-bool wasReseted = false;                            // указываем была ли последний раз перезагрузка программным путем
+bool wasRebooted = false;                         // указываем была ли последний раз перезагрузка программным путем
 
 String str = "";
 
 MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
 PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
 
-void(* ResetFunc) (void) = 0;                           // объявляем функцию reset
+void(* RebootFunc) (void) = 0;                           // объявляем функцию Reboot
 
 void setup() 
 {
@@ -183,7 +183,7 @@ void setup()
 
   inTestMod = EEPROM.read(E_inTestMod);                 // читаем тестовый режим из еепром
   isRedirectSms = EEPROM.read(E_isRedirectSms);         // читаем режима перенаправления всех смс 
-  wasReseted = EEPROM.read(E_wasReseted);               // читаем был ли последний раз перезагрузка программным путем
+  wasRebooted = EEPROM.read(E_wasRebooted);               // читаем был ли последний раз перезагрузка программным путем
 }
 
 bool newClick = true;
@@ -193,11 +193,11 @@ void loop()
   PowerControl();                                                   // мониторим питание системы
   gsm.Refresh();                                                    // читаем сообщения от GSM модема   
 
-  if(wasReseted)
+  if(wasRebooted)
   {
-    gsm.SendSms(&String(smsText_WasReseted), String(SMSNUMBER));
-    wasReseted = false;
-    EEPROM.write(E_wasReseted, false);
+    gsm.SendSms(&String(smsText_WasRebooted), String(SMSNUMBER));
+    wasRebooted = false;
+    EEPROM.write(E_wasRebooted, false);
   }
   
   if (inTestMod && !isSiren)                                        // если включен режим тестирования и не сирена то мигаем светодиодом
@@ -651,11 +651,12 @@ void ExecSmsCommand()
         gsm.SendSms(&String(smsText_SkimpySiren), gsm.SmsNumber);
       }
       else
-      if (gsm.SmsText.startsWith("Reset") || gsm.SmsText.startsWith("reset"))          
+      if (gsm.SmsText.startsWith("Reboot") || gsm.SmsText.startsWith("reboot"))          
       {
         PlayTone(specerTone, 250);
-        EEPROM.write(E_wasReseted, true);                                                       // записываем статус что устройство перезагружается        
-        ResetFunc();                                                                            // вызываем reset
+        EEPROM.write(E_wasRebooted, true);                                                       // записываем статус что устройство перезагружается        
+        gsm.Shutdown();                                                                         // выключаем gsm модуль
+        RebootFunc();                                                                            // вызываем Reboot
       }
       else
       if (gsm.SmsText.startsWith("Status") || gsm.SmsText.startsWith("status"))          
