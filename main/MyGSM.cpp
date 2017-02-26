@@ -15,6 +15,7 @@ MyGSM::MyGSM(byte gsmLED, byte pinBOOT)
   _pinBOOT = pinBOOT;
   NewRing = false;
   NewSms = false;
+  NewUssd = false;
 }
 
 // Инициализация gsm модуля (включения, настройка)
@@ -97,12 +98,12 @@ bool MyGSM::IsAvailable()
 }
 
 //отправка СМС
-bool MyGSM::SendSms(String *text, String phone)       //процедура отправки СМС
+bool MyGSM::SendSms(String *text, String *phone)       //процедура отправки СМС
 {
   if (!IsAvailable()) return false;                       // ждем готовности модема и если он не ответил за заданный таймаут то прырываем отправку смс 
   
   // отправляем смс
-  serial.println("AT+CMGS=\"" + phone + "\"");
+  serial.println("AT+CMGS=\"" + *phone + "\"");
   delay(100);
   serial.print(*text); 
   delay(850);
@@ -160,14 +161,6 @@ void MyGSM::Refresh()
     char currSymb = serial.read();    
     if ('\r' == currSymb) 
     {
-      serial.println(currStr);
-      if (currStr.startsWith("+CUSD"))
-      {
-        BlinkLED(0, 250, 0);                               // сигнализируем об этом
-        NewUssd = true;
-        UssdText = /*currStr.substring(13, 21);*/GetString(currStr);        
-      }
-      else
       if (strCount == 1)
       {
         if (currStr.startsWith("RING"))                    // если входящий звонок
@@ -183,6 +176,14 @@ void MyGSM::Refresh()
           NewSms = true;
           SmsNumber = GetString(currStr);                                                 
           strCount = 2;
+        }
+        else
+        if (currStr.startsWith("+CUSD"))
+        {
+          BlinkLED(0, 250, 0);                               // сигнализируем об этом
+          NewUssd = true;
+          UssdText = GetString(currStr);
+          strCount = 2;          
         }         
       }
       else
@@ -226,7 +227,9 @@ String MyGSM::GetString(String str)
   int beginStr = str.indexOf('\"');
   str = str.substring(beginStr + 1);
   int duration = str.indexOf('\"');
-  return str.substring(0, duration - 1);
+  if (duration > 0)
+    return str.substring(0, duration - 1);
+  else return str.substring(0);
 }
 
 void MyGSM::ClearRing()
