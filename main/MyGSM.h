@@ -7,10 +7,12 @@ class MyGSM
     void Initialize();    
     bool Available();
     bool NewRing;
-    bool NewSms;    
+    bool NewSms;
+    bool NewUssd;
     String RingNumber;
     String SmsNumber;
     String SmsText;
+    String UssdText;
     String Read();
     bool SendSms(String *text, String phone);         // метод возвращает true если смс отправлен успешно
     bool Call(String phone);
@@ -19,12 +21,13 @@ class MyGSM
     void Refresh();
     void ClearRing();
     void ClearSms();
+    void ClearUssd();
     void Shutdown();                                  // выключения gsm модула (может использоваться при перезагрузке всего устройства)
     
   private:
     bool IsAvailable();                               // ожидание готовности gsm модуля
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
-    String GetRingNumber(String str);
+    String GetString(String str);
     int _gsmLED;
     int _pinBOOT;                                     // нога BOOT или K на модеме       
 };

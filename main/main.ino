@@ -223,9 +223,9 @@ void loop()
       // запрос баланса счета
       if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
       {
-        PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером         
-        RequestGsmCode(SMSNUMBER, GSMCODE_BALANCE);        
-      }                                                               // отправляем смс с балансом            
+        PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером                 
+        gsm.RequestGsmCode(GSMCODE_BALANCE);
+      }                                                                          
       else 
       // включение/отключения режима тестирования
       if (countPressBtn == countBtnInTestMod)                         // если кнопку нажали заданное количество для включение/отключения режима тестирования
@@ -254,7 +254,7 @@ void loop()
 
     if (gsm.NewRing)                                                  // если обнаружен входящий звонок
     {
-      if (gsm.RingNumber.indexOf(NUMBER1_InContr) > -1 ||             // если включен режим снята с охраны и найден зарегистрированный звонок то ставим на охрану
+      if (gsm.RingNumber.indexOf(NUMBER1_InContr) > -1 ||             // если найден зарегистрированный звонок то ставим на охрану
           gsm.RingNumber.indexOf(NUMBER2_InContr) > -1 ||
           gsm.RingNumber.indexOf(NUMBER3_InContr) > -1 ||
           gsm.RingNumber.indexOf(NUMBER4_InContr) > -1 
@@ -337,7 +337,12 @@ void loop()
        else gsm.RejectCall();                                // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)
        gsm.ClearRing();                                      // очищаем обнаруженный входящий звонок 
      }         
-  }                                                          // end InContrMod     
+  }                                                          // end InContrMod   
+  if (gsm.NewUssd)                                           // если доступный новый ответ на gsm команду
+  {
+    gsm.SendSms(&String(gsm.UssdText), String(SMSNUMBER));   // отправляем ответ на gsm команду
+    gsm.ClearUssd();                                         // сбрасываем ответ на gsm команду 
+  }
   if (!isSiren) ExecSmsCommand();                            // если не сирена проверяем доступна ли новая команда по смс и если да то выполняем ее
 }
 
@@ -537,7 +542,7 @@ void PowerControl()
   if (!inTestMod && powCtr.IsBattPowerPrevious() && !powCtr.IsBattPower())   // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования
     gsm.SendSms(&String(smsText_NetPower), String(SMSNUMBER));               // отправляем смс о возобновлении  сетевое питание 220v        
 }
-
+/*
 // запрос gsm кода (*#) и отсылаем результат через смс
 void RequestGsmCode(String smsNumber, String code)
 {
@@ -558,9 +563,9 @@ void RequestGsmCode(String smsNumber, String code)
   int beginStr = str.indexOf('\"');
   str = str.substring(beginStr + 1); 
   str = str.substring(0, str.indexOf("\","));
-  gsm.SendSms(&str, smsNumber); 
+  gsm.SendSms(&str, smsNumber);
 }
-
+*/
 // короткое включение сирены (для тестирования модуля сирены)
 void SkimpySiren()
 {
@@ -586,7 +591,7 @@ void ExecSmsCommand()
       if (gsm.SmsText == "Balance" || gsm.SmsText == "balance")                          // запрос баланса
       {
         PlayTone(specerTone, 250);                                             
-        RequestGsmCode(gsm.SmsNumber, GSMCODE_BALANCE);
+        gsm.RequestGsmCode(GSMCODE_BALANCE);
       }
       else
       if (gsm.SmsText == "Test on" || gsm.SmsText == "test on")                          // включения тестового режима для тестирования датчиков
@@ -611,8 +616,11 @@ void ExecSmsCommand()
         unsigned int endCommand = gsm.SmsText.indexOf('#');                                   // если команда не заканчивается на # то информируем по смс об ошибке
         if (endCommand == 65535)                                                                
           gsm.SendSms(&String(smsText_ErrorCommand), gsm.SmsNumber);                    
-        PlayTone(specerTone, 250);                                                  
-        RequestGsmCode(gsm.SmsNumber, gsm.SmsText);
+        else
+        {
+          PlayTone(specerTone, 250);                                                          
+          gsm.RequestGsmCode(gsm.SmsText);
+        }
       }
       else
       if (gsm.SmsText.startsWith("Control on") || gsm.SmsText.startsWith("control on"))       // если сообщение начинается на * то это gsm код

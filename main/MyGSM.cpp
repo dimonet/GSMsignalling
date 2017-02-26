@@ -87,7 +87,7 @@ bool MyGSM::IsAvailable()
     serial.println("AT+CPAS");                        // спрашиваем состояние модема
     if (serial.find("+CPAS: 0")) 
       {
-        delay(10);
+        delay(10);       
         return true;                                  // и если он в "готовности" выходим из цикла возвращая true - модуль "готов"
       }
     delay(10);
@@ -153,27 +153,35 @@ void MyGSM::Refresh()
 {
   String currStr = "";     
   byte strCount = 1;  
-  if (!Available()) return false;
+  /*if (!Available()) return false;*/
  
   while (Available())
   {
     char currSymb = serial.read();    
     if ('\r' == currSymb) 
     {
+      serial.println(currStr);
+      if (currStr.startsWith("+CUSD"))
+      {
+        BlinkLED(0, 250, 0);                               // сигнализируем об этом
+        NewUssd = true;
+        UssdText = /*currStr.substring(13, 21);*/GetString(currStr);        
+      }
+      else
       if (strCount == 1)
       {
-        if (!NewRing && currStr.startsWith("RING"))        // если входящий звонок
+        if (currStr.startsWith("RING"))                    // если входящий звонок
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewRing = true;          
           strCount = 2;
         }
         else
-        if (!NewSms && currStr.startsWith("+CMT"))         // если СМС
+        if (currStr.startsWith("+CMT"))                    // если СМС
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewSms = true;
-          SmsNumber = GetRingNumber(currStr);                                                 
+          SmsNumber = GetString(currStr);                                                 
           strCount = 2;
         }         
       }
@@ -185,8 +193,7 @@ void MyGSM::Refresh()
                
         if (NewSms)                                        // если СМС
         {
-          SmsText = currStr;                               
-          break;
+          SmsText = currStr;                                         
         }        
       }
       else
@@ -194,8 +201,7 @@ void MyGSM::Refresh()
       {
         if (NewRing)                                       // если входящий звонок
         {
-          RingNumber = GetRingNumber(currStr);                     
-          break;           
+          RingNumber = GetString(currStr);                               
         }                 
       }        
     currStr = "";    
@@ -215,7 +221,7 @@ void MyGSM::Refresh()
   }    
 }
 
-String MyGSM::GetRingNumber(String str)
+String MyGSM::GetString(String str)
 {
   int beginStr = str.indexOf('\"');
   str = str.substring(beginStr + 1);
@@ -234,6 +240,12 @@ void MyGSM::ClearSms()
   NewSms = false;
   SmsNumber = "";
   SmsText = "";  
+}
+
+void MyGSM::ClearUssd()
+{
+  NewUssd = false;  
+  UssdText = "";  
 }
 
 void MyGSM::Shutdown()
