@@ -190,12 +190,13 @@ void MyGSM::Refresh()
       if (strCount == 2) 
       {         
         if (NewRing)                                       // если входящий звонок
-         strCount = 3;           
-               
+          strCount = 3;           
+        else       
         if (NewSms)                                        // если СМС
         {
           SmsText = currStr;                                         
-        }        
+        }
+                
       }
       else
       if (strCount == 3) 
