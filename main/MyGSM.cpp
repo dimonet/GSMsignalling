@@ -121,10 +121,11 @@ bool MyGSM::SendSms(char * const text, String *phone)     //процедура �
   // отправляем смс
   serial.println("AT+CMGS=\"" + *phone + "\"");
   delay(100);
-  for(byte i = 0; i < strlen(*text); i++)
+ /* for(byte i = 0; i < strlen(*text); i++)
   {
     serial.print(text[i]);           
-  }
+  }*/
+  serial.print(*text);
   delay(850);
   serial.print((char)26);
   BlinkLED(0, 250, 0);                               // сигнализируем об этом  
