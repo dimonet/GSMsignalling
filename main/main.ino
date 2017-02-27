@@ -197,7 +197,7 @@ void loop()
   if(wasRebooted)
   {
     String str = GetStringFromFlash(smsText_WasRebooted);           // достаем с флеш памяти строку
-    gsm.SendSms(&str, &gsm.SmsNumber);
+    gsm.SendSms(&str, &String(SMSNUMBER));
     wasRebooted = false;
     EEPROM.write(E_wasRebooted, false);
   }
