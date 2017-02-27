@@ -15,7 +15,6 @@ class MyGSM
     String UssdText;
     String Read();
     bool SendSms(String *text, String *phone);         // метод возвращает true если смс отправлен успешно
-    bool SendSms(char *text, String *phone); 
     bool Call(String phone);
     void RejectCall();    
     bool RequestGsmCode(String code);                 // запрос gsm кода (*#)
