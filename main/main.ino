@@ -591,7 +591,7 @@ void SkimpySiren()
 String GetStringFromFlash(char* addr)
 {
   String buffstr;
-  int len = strlen_P(smsText_ErrorCommand);
+  int len = strlen_P(addr);
   char currSymb;
   for (byte i = 0; i < len; i++)
   {
