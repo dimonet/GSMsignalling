@@ -98,9 +98,9 @@ bool MyGSM::IsAvailable()
 }
 
 //отправка СМС
-bool MyGSM::SendSms(String *text, String *phone)       //процедура отправки СМС
+bool MyGSM::SendSms(String *text, String *phone)      //процедура отправки СМС
 {
-  if (!IsAvailable()) return false;                       // ждем готовности модема и если он не ответил за заданный таймаут то прырываем отправку смс 
+  if (!IsAvailable()) return false;                   // ждем готовности модема и если он не ответил за заданный таймаут то прырываем отправку смс 
   
   // отправляем смс
   serial.println("AT+CMGS=\"" + *phone + "\"");
@@ -114,13 +114,32 @@ bool MyGSM::SendSms(String *text, String *phone)       //процедура от
   //Serial.println("SMS send complete");
 }
 
+bool MyGSM::SendSms(char * const text, String *phone)     //процедура отправки СМС
+{
+  if (!IsAvailable()) return false;                       // ждем готовности модема и если он не ответил за заданный таймаут то прырываем отправку смс 
+  
+  // отправляем смс
+  serial.println("AT+CMGS=\"" + *phone + "\"");
+  delay(100);
+  for(byte i = 0; i < strlen(*text); i++)
+  {
+    serial.print(text[i]);           
+  }
+  delay(850);
+  serial.print((char)26);
+  BlinkLED(0, 250, 0);                               // сигнализируем об этом  
+ 
+  return true;                                       // метод возвращает true - смс отправлено успешно
+  //Serial.println("SMS send complete");
+}
+
 // звонок на заданый номер
 bool MyGSM::Call(String phone)
 {  
-  if (!IsAvailable()) return false;                        // ждем готовности модема и если он не ответил за заданный таймаут то прырываем выполнения звонка 
+  if (!IsAvailable()) return false;                  // ждем готовности модема и если он не ответил за заданный таймаут то прырываем выполнения звонка 
   
   serial.println("ATD+" + phone + ";");
-  BlinkLED(0, 250, 0);                                 // сигнализируем об этом 
+  BlinkLED(0, 250, 0);                               // сигнализируем об этом 
   return true;
 }
 
