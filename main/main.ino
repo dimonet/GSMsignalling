@@ -30,7 +30,6 @@
 //#define NUMBER3_SmsCommand    "***"                 // 3-й номер для управления через sms 
 //#define NUMBER4_SmsCommand    "***"                 // 4-й номер для управления через sms
 
-
 #define GSMCODE_BALANCE         "*101#"               // GSM код для запроса баланца
 
 // SMS
@@ -52,18 +51,6 @@ const char smsText_RedirectOff[]   PROGMEM = "Command: SMS redirection has been 
 const char smsText_SkimpySiren[]   PROGMEM = "Command: Skimpy siren has been turned on.";           // выполнена команда для коротковременного включения сирены
 const char smsText_WasRebooted[]   PROGMEM = "Command: Device was Rebooted.";                       // выполнена команда для коротковременного включения сирены
 
-/*
-
-#define smsText_ErrorCommand    "Command: ERROR. Available only commands:\nBalance,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nReboot,\nStatus,\ngsm code."  // смс команда не распознана
-#define smsText_TestModOn       "Command: Test mode has been turned on."              // выполнена команда для включения тестового режима для тестирования датчиков
-#define smsText_TestModOff      "Command: Test mode has been turned off."             // выполнена команда для выключения тестового режима для тестирования датчиков
-#define smsText_InContrMod      "Command: Control mode has been turned on."           // выполнена команда для установку на охрану
-#define smsText_NotInContrMod   "Command: Control mode has been turned off."          // выполнена команда для установку на охрану
-#define smsText_RedirectOn      "Command: SMS redirection has been turned on."        // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
-#define smsText_RedirectOff     "Command: SMS redirection has been turned off."       // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
-#define smsText_SkimpySiren     "Command: Skimpy siren has been turned on."           // выполнена команда для коротковременного включения сирены
-#define smsText_WasRebooted      "Command: Device was Rebooted."                          // выполнена команда для коротковременного включения сирены
-*/
 // паузы
 #define  timeWaitInContr      25                           // Время паузы от нажатие кнопки до установки режима охраны
 #define  timeWaitInContrTest  7                            // Время паузы от нажатие кнопки до установки режима охраны в режиме тестирования
@@ -77,7 +64,7 @@ const char smsText_WasRebooted[]   PROGMEM = "Command: Device was Rebooted.";   
 #define  timeTestLeds         1200                         // время горение всех светодиодов во время включения устройства (тестирования светодиодов)
 
 
-#define SizeStrBuffer       140                          // резмер буфера для промежуточного хранения текстов сообщений вытянутых с флеш памяти
+#define SizeStrBuffer       160                            // резмер буфера для промежуточного хранения текстов сообщений вытянутых с флеш памяти
 
 // Количество нажатий на кнопку для включений режимова
 #define countBtnInTestMod   2                              // количество нажатий на кнопку для включение/отключения режима тестирования 
