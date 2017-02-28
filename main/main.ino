@@ -105,7 +105,7 @@ const char smsText_WasRebooted[]   PROGMEM = {"Command: Device was Rebooted."}; 
 #define E_mode           0                    // адресс для сохранения режимов работы 
 #define E_inTestMod      1                    // адресс для сохранения режима тестирования
 #define E_isRedirectSms  2                    // адресс для сохранения режима перенаправления всех смс
-#define E_wasRebooted     3                    // адресс для сохранения режима перенаправления всех смс
+#define E_wasRebooted    3                    // адресс для сохранения режима перенаправления всех смс
 
 
 //// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ////
@@ -226,7 +226,8 @@ void loop()
       if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
       {
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером                 
-        gsm.RequestGsmCode(GSMCODE_BALANCE);        
+        gsm.RequestGsmCode(GSMCODE_BALANCE);   
+        NumberGsmCode = SMSNUMBER;                                    // сохраняем номер на который необходимо будет отправить ответ     
       }                                                                          
       else 
       // включение/отключения режима тестирования
@@ -621,8 +622,8 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText.startsWith("*"))                                                   // Если сообщение начинается на * то это gsm код
       {
-        unsigned int endCommand = gsm.SmsText.indexOf('#');                              // если команда не заканчивается на # то информируем по смс об ошибке
-        if (endCommand == 65535)                                                                
+        int endCommand = gsm.SmsText.indexOf('#');                                       // если команда не заканчивается на # то информируем по смс об ошибке
+        if (endCommand == -1)                                                                
         {  
           String str = GetStringFromFlash(smsText_ErrorCommand);                         // достаем с флеш памяти строку
           gsm.SendSms(&str, &gsm.SmsNumber);                             

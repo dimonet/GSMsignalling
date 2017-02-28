@@ -225,12 +225,18 @@ void MyGSM::Refresh()
 
 String MyGSM::GetString(String str)
 {
+   String s;
   int beginStr = str.indexOf('\"');
-  str = str.substring(beginStr + 1);
-  int duration = str.indexOf('\"');
+  s = str.substring(beginStr + 1);
+  int duration = s.indexOf("\"");  
   if (duration > 0)
-    return str.substring(0, duration - 1);
-  else return str.substring(0);
+    s = s.substring(0, duration - 1);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
+  if (s.length() > 160)
+  {  
+    s = s.substring(0, 156);                               // обрезаем строку до 160 символов что б она поместилась в одну смс
+    s += "...";                                            // добавляем многоточие для указания, что текст не полный
+  }
+  return s;
 }
 
 void MyGSM::ClearRing()
