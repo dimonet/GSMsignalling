@@ -174,15 +174,15 @@ void MyGSM::Refresh()
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewSms = true;
-          SmsNumber = GetString(currStr);                                                 
+          SmsNumber = GetString(&currStr);                                                 
           strCount = 2;
         }
         else
         if (currStr.startsWith("+CUSD"))
         {
           BlinkLED(0, 250, 0);                               // сигнализируем об этом
-          NewUssd = true;
-          UssdText = GetString(currStr);
+          NewUssd = true;         
+          UssdText = GetString(&currStr);
           strCount = 2;          
         }         
       }
@@ -203,7 +203,7 @@ void MyGSM::Refresh()
       {
         if (NewRing)                                       // если входящий звонок
         {
-          RingNumber = GetString(currStr);                               
+          RingNumber = GetString(&currStr);                               
         }                 
       }        
     currStr = "";    
@@ -223,11 +223,11 @@ void MyGSM::Refresh()
   }    
 }
 
-String MyGSM::GetString(String str)
+String MyGSM::GetString(String *str)
 {
-   String s;
-  int beginStr = str.indexOf('\"');
-  s = str.substring(beginStr + 1);
+  String s;
+  int beginStr = str->indexOf('\"');
+  s = str->substring(beginStr + 1);
   int duration = s.indexOf("\"");  
   if (duration > 0)
     s = s.substring(0, duration - 1);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
