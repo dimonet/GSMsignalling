@@ -12,7 +12,7 @@
 
 //// НАСТРОЕЧНЫЕ КОНСТАНТЫ /////
 // номера телефонов
-#define TELLNUMBER         "380509151369"             // номен на который будем звонить
+String TELLNUMBER;//     =    "380509151369";            // номен на который будем звонить
 
 #define NUMBER1_NotInContr "380509151369"             // 1-й номер для снятие с охраны (Мой МТС)
 #define NUMBER2_NotInContr "380506228524"             // 2-й номер для снятие с охраны (Тони МТС)
@@ -107,6 +107,9 @@ const char smsText_WasRebooted[]   PROGMEM = {"Command: Device was Rebooted."}; 
 #define E_isRedirectSms  2                    // адресс для сохранения режима перенаправления всех смс
 #define E_wasRebooted    3                    // адресс для сохранения режима перенаправления всех смс
 
+#define numSize          13                   // количество символов в строке телефонного номера
+#define E_TELLNUMBER     100                  // адресс первого байта для сохранения основного номера
+
 
 //// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ////
 byte mode = NotInContrMod;                    // 1 - снята с охраны                                  
@@ -138,7 +141,7 @@ void(* RebootFunc) (void) = 0;                          // объявляем ф
 void setup() 
 {
   delay(1000);                                // !! чтобы нечего не повисало при включении
-  //debug.begin(9600);
+  debug.begin(9600);
   pinMode(SpecerPin, OUTPUT);
   pinMode(gsmLED, OUTPUT);
   pinMode(NotInContrLED, OUTPUT);
@@ -184,7 +187,8 @@ void setup()
 
   inTestMod = EEPROM.read(E_inTestMod);                 // читаем тестовый режим из еепром
   isRedirectSms = EEPROM.read(E_isRedirectSms);         // читаем режима перенаправления всех смс 
-  wasRebooted = EEPROM.read(E_wasRebooted);               // читаем был ли последний раз перезагрузка программным путем
+  wasRebooted = EEPROM.read(E_wasRebooted);             // читаем был ли последний раз перезагрузка программным путем
+  TELLNUMBER = NumberRead(E_TELLNUMBER);
 }
 
 bool newClick = true;
@@ -222,14 +226,6 @@ void loop()
     }       
     if (countPressBtn != 0 && (GetElapsed(prLastPressBtn) > timeAfterPressBtn))
     {       
-      // запрос баланса счета
-      if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
-      {
-        PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером                 
-        gsm.RequestGsmCode(GSMCODE_BALANCE);   
-        NumberGsmCode = SMSNUMBER;                                    // сохраняем номер на который необходимо будет отправить ответ     
-      }                                                                          
-      else 
       // включение/отключения режима тестирования
       if (countPressBtn == countBtnInTestMod)                         // если кнопку нажали заданное количество для включение/отключения режима тестирования
       {
@@ -238,6 +234,14 @@ void loop()
         digitalWrite(SirenLED, LOW);                                  // выключаем светодиод
         EEPROM.write(E_inTestMod, inTestMod);                         // пишим режим тестирование датчиков в еепром
       }
+      else
+      // запрос баланса счета
+      if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
+      {
+        PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером                 
+        gsm.RequestGsmCode(GSMCODE_BALANCE);   
+        NumberGsmCode = SMSNUMBER;                                    // сохраняем номер на который необходимо будет отправить ответ     
+      }                                                                                
       else
       // кратковременное включение сирены (для тестирования модуля сирены)
       if (countPressBtn == countBtnSkimpySiren)                      
@@ -712,7 +716,18 @@ void ExecSmsCommand()
             + "Test mode: "        + String((inTestMod)          ? "on" : "off") + "\n" 
             + "Redirect SMS: "     + String((isRedirectSms)      ? "on" : "off") + "\n";
         gsm.SendSms(&rez, &gsm.SmsNumber);
-      }     
+      }
+      else
+      if (gsm.SmsText.startsWith("TELLNUMBER") || gsm.SmsText.startsWith("Tellnumber") || gsm.SmsText.startsWith("tellnumber"))
+      {
+        PlayTone(specerTone, 250);              
+        TELLNUMBER = GetString(&gsm.SmsText);
+        NumberWrite(E_TELLNUMBER, &TELLNUMBER);       
+        String s= NumberRead(E_TELLNUMBER);
+        gsm.SendSms(&s, &String("+380509151369"));
+        //String str = GetStringFromFlash(smsText_ErrorCommand);                                 // достаем с флеш памяти строку   
+        //gsm.SendSms(&str, &gsm.SmsNumber);     
+      }
       else
       {
         PlayTone(specerTone, 250);              
@@ -727,3 +742,26 @@ void ExecSmsCommand()
   }
 }
 
+void NumberWrite(byte e_addr, String *number)
+{
+  char charStr[numSize+1];
+  number->toCharArray(charStr, numSize+1);
+  EEPROM.put(e_addr, charStr);  
+}
+
+String NumberRead(byte e_add)
+{
+ char charread[numSize+1];
+ EEPROM.get(E_TELLNUMBER, charread);
+ String str(charread);
+ return str;
+}
+
+String GetString(String *str)
+{
+  String s;
+  int beginStr = str->indexOf('\"');
+  s = str->substring(beginStr + 1);
+  int duration = s.indexOf("\"");  
+  return s.substring(0, duration - 1);  
+}
