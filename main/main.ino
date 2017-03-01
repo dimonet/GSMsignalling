@@ -12,8 +12,7 @@
 
 //// НАСТРОЕЧНЫЕ КОНСТАНТЫ /////
 // номера телефонов
-#define TELLNUMBER "380509151369"                     // номен на который будем звонить
-#define SMSNUMBER  "+380509151369"                    // номер на который будем отправлять SMS
+#define TELLNUMBER         "380509151369"             // номен на который будем звонить
 
 #define NUMBER1_NotInContr "380509151369"             // 1-й номер для снятие с охраны (Мой МТС)
 #define NUMBER2_NotInContr "380506228524"             // 2-й номер для снятие с охраны (Тони МТС)
@@ -22,13 +21,14 @@
 
 #define NUMBER1_InContr    "380969405835"             // 1-й номер для установки на охраны (Мой Киевстар)
 #define NUMBER2_InContr    "***"                      // 2-й номер для установки на охраны
-//#define NUMBER3_InContr    "***"                    // 3-й номер для установки на охраны
-//#define NUMBER4_InContr    "***"                    // 4-й номер для установки на охраны
+#define NUMBER3_InContr    "***"                    // 3-й номер для установки на охраны
+#define NUMBER4_InContr    "***"                    // 4-й номер для установки на охраны
 
+#define SMSNUMBER             "+380509151369"         // номер на который будем отправлять SMS
 #define NUMBER1_SmsCommand    "+380509151369"         // 1-й номер для управления через sms (Мой МТС)
 #define NUMBER2_SmsCommand    "+380969405835"         // 2-й номер для управления через sms (Мой Киевстар)
 #define NUMBER3_SmsCommand    "+380506228524"                 // 3-й номер для управления через sms 
-//#define NUMBER4_SmsCommand    "***"                 // 4-й номер для управления через sms
+#define NUMBER4_SmsCommand    "***"                 // 4-й номер для управления через sms
 
 #define GSMCODE_BALANCE         "*101#"               // GSM код для запроса баланца
 
@@ -258,9 +258,9 @@ void loop()
     if (gsm.NewRing)                                                  // если обнаружен входящий звонок
     {
       if (gsm.RingNumber.indexOf(NUMBER1_InContr) > -1 ||             // если найден зарегистрированный звонок то ставим на охрану
-          gsm.RingNumber.indexOf(NUMBER2_InContr) > -1 //||
-          //gsm.RingNumber.indexOf(NUMBER3_InContr) > -1 ||
-          //gsm.RingNumber.indexOf(NUMBER4_InContr) > -1 
+          gsm.RingNumber.indexOf(NUMBER2_InContr) > -1 ||
+          gsm.RingNumber.indexOf(NUMBER3_InContr) > -1 ||
+          gsm.RingNumber.indexOf(NUMBER4_InContr) > -1 
          )      
       {               
         digitalWrite(SirenLED, LOW);                        // на время выключаем мигание светодиода сирены если включен режим тестирования
@@ -609,8 +609,8 @@ void ExecSmsCommand()
   {
     if ( gsm.SmsNumber.indexOf(NUMBER1_SmsCommand) > -1 ||              
          gsm.SmsNumber.indexOf(NUMBER2_SmsCommand) > -1 ||
-         gsm.SmsNumber.indexOf(NUMBER3_SmsCommand) > -1// ||
-        // gsm.SmsNumber.indexOf(NUMBER4_SmsCommand) > -1                                                                                      
+         gsm.SmsNumber.indexOf(NUMBER3_SmsCommand) > -1 ||
+         gsm.SmsNumber.indexOf(NUMBER4_SmsCommand) > -1                                                                                      
        )
     {       
       if (gsm.SmsText == "Balance" || gsm.SmsText == "balance")                          // запрос баланса
