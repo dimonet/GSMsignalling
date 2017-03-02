@@ -75,8 +75,8 @@ String MyGSM::Read()
     currSymb = serial.read();
     str += String(currSymb); 
     delay(1);                 
-  }  
-  return str;
+  }
+  return GetString(&str);
 }
 
 // ожидание готовности gsm модуля

@@ -12,23 +12,21 @@
 
 //// НАСТРОЕЧНЫЕ КОНСТАНТЫ /////
 // номера телефонов
-String TELLNUMBER;//     =    "380509151369";            // номен на который будем звонить
+//#define TELLNUMBER         "380509151369"             // номен на который будем звонить
 
-#define NUMBER1_NotInContr "380509151369"             // 1-й номер для снятие с охраны (Мой МТС)
-#define NUMBER2_NotInContr "380506228524"             // 2-й номер для снятие с охраны (Тони МТС)
-#define NUMBER3_NotInContr "***"                      // 3-й номер для снятие с охраны
-#define NUMBER4_NotInContr "***"                      // 4-й номер для снятие с охраны
+//#define NUMBER1_NotInContr "380509151369"             // 1-й номер для снятие с охраны (Мой МТС)
+//#define NUMBER2_NotInContr "380506228524"             // 2-й номер для снятие с охраны (Тони МТС)
+//#define NUMBER3_NotInContr "***"                      // 3-й номер для снятие с охраны
+//#define NUMBER4_NotInContr "***"                      // 4-й номер для снятие с охраны
 
-#define NUMBER1_InContr    "380969405835"             // 1-й номер для установки на охраны (Мой Киевстар)
-#define NUMBER2_InContr    "***"                      // 2-й номер для установки на охраны
-#define NUMBER3_InContr    "***"                    // 3-й номер для установки на охраны
-#define NUMBER4_InContr    "***"                    // 4-й номер для установки на охраны
+//#define NUMBER1_InContr    "380969405835"             // 1-й номер для установки на охраны (Мой Киевстар)
+//#define NUMBER2_InContr    "***"                      // 2-й номер для установки на охраны
 
-#define SMSNUMBER             "+380509151369"         // номер на который будем отправлять SMS
-#define NUMBER1_SmsCommand    "+380509151369"         // 1-й номер для управления через sms (Мой МТС)
-#define NUMBER2_SmsCommand    "+380969405835"         // 2-й номер для управления через sms (Мой Киевстар)
-#define NUMBER3_SmsCommand    "+380506228524"                 // 3-й номер для управления через sms 
-#define NUMBER4_SmsCommand    "***"                 // 4-й номер для управления через sms
+//#define SMSNUMBER             "+380509151369"         // номер на который будем отправлять SMS
+//#define NUMBER1_SmsCommand    "+380509151369"         // 1-й номер для управления через sms (Мой МТС)
+//#define NUMBER2_SmsCommand    "+380969405835"         // 2-й номер для управления через sms (Мой Киевстар)
+//#define NUMBER3_SmsCommand    "+380506228524"         // 3-й номер для управления через sms 
+//#define NUMBER4_SmsCommand    "***"                   // 4-й номер для управления через sms
 
 #define GSMCODE_BALANCE         "*101#"               // GSM код для запроса баланца
 
@@ -107,8 +105,24 @@ const char smsText_WasRebooted[]   PROGMEM = {"Command: Device was Rebooted."}; 
 #define E_isRedirectSms  2                    // адресс для сохранения режима перенаправления всех смс
 #define E_wasRebooted    3                    // адресс для сохранения режима перенаправления всех смс
 
-#define numSize          13                   // количество символов в строке телефонного номера
-#define E_TELLNUMBER     100                  // адресс первого байта для сохранения основного номера
+#define numSize            13                   // количество символов в строке телефонного номера
+
+//#define E_TELLNUMBER       100                  // адресс первого байта для хранения номера для оповещение о тревоге звонком
+//#define E_SMSNUMBER        115                  // номер для оповещение о тревоге смс сообщением
+
+#define E_NUM1_NotInContr  130                  // 1-й номер для снятие с охраны
+#define E_NUM2_NotInContr  145                  // 2-й номер для снятие с охраны
+#define E_NUM3_NotInContr  160                  // 3-й номер для снятие с охраны
+#define E_NUM4_NotInContr  175                  // 4-й номер для снятие с охраны
+
+#define E_NUM1_InContr     190                  // 1-й номер для установки на охрану
+#define E_NUM2_InContr     205                  // 2-й номер для установки на охрану
+//#define E_NUM3_InContr     220                  // 3-й номер для установки на охрану
+
+#define E_NUM1_SmsCommand  235                  // 1-й номер для управления через sms
+#define E_NUM2_SmsCommand  250                  // 2-й номер для управления через sms
+//#define E_NUM3_SmsCommand  330                  // 3-й номер для управления через sms
+
 
 
 //// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ////
@@ -187,8 +201,7 @@ void setup()
 
   inTestMod = EEPROM.read(E_inTestMod);                 // читаем тестовый режим из еепром
   isRedirectSms = EEPROM.read(E_isRedirectSms);         // читаем режима перенаправления всех смс 
-  wasRebooted = EEPROM.read(E_wasRebooted);             // читаем был ли последний раз перезагрузка программным путем
-  TELLNUMBER = NumberRead(E_TELLNUMBER);
+  wasRebooted = EEPROM.read(E_wasRebooted);             // читаем был ли последний раз перезагрузка программным путем  
 }
 
 bool newClick = true;
@@ -201,7 +214,8 @@ void loop()
   if(wasRebooted)
   {
     String str = GetStringFromFlash(smsText_WasRebooted);           // достаем с флеш памяти строку
-    gsm.SendSms(&str, &String(SMSNUMBER));
+    String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
+    gsm.SendSms(&str, &NUM1_SmsCommand);
     wasRebooted = false;
     EEPROM.write(E_wasRebooted, false);
   }
@@ -239,8 +253,8 @@ void loop()
       if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
       {
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером                 
-        gsm.RequestGsmCode(GSMCODE_BALANCE);   
-        NumberGsmCode = SMSNUMBER;                                    // сохраняем номер на который необходимо будет отправить ответ     
+        gsm.RequestGsmCode(GSMCODE_BALANCE);           
+        NumberGsmCode = NumberRead(E_NUM1_SmsCommand);                      // сохраняем номер на который необходимо будет отправить ответ     
       }                                                                                
       else
       // кратковременное включение сирены (для тестирования модуля сирены)
@@ -261,10 +275,9 @@ void loop()
 
     if (gsm.NewRing)                                                  // если обнаружен входящий звонок
     {
-      if (gsm.RingNumber.indexOf(NUMBER1_InContr) > -1 ||             // если найден зарегистрированный звонок то ставим на охрану
-          gsm.RingNumber.indexOf(NUMBER2_InContr) > -1 ||
-          gsm.RingNumber.indexOf(NUMBER3_InContr) > -1 ||
-          gsm.RingNumber.indexOf(NUMBER4_InContr) > -1 
+      if (gsm.RingNumber.indexOf(NumberRead(E_NUM1_InContr)) > -1 ||  // если найден зарегистрированный звонок то ставим на охрану
+          gsm.RingNumber.indexOf(NumberRead(E_NUM2_InContr)) > -1// ||
+         // gsm.RingNumber.indexOf(NumberRead(E_NUM3_InContr)) > -1       
          )      
       {               
         digitalWrite(SirenLED, LOW);                        // на время выключаем мигание светодиода сирены если включен режим тестирования
@@ -305,7 +318,8 @@ void loop()
         && ((GetElapsed(prSmsPIR1) > timeSmsPIR1) or prSmsPIR1 == 0))              // и выдержена пауза после последнего смс
       {
         String str = GetStringFromFlash(smsText_PIR1);                             // достаем с флеш памяти строку
-        if(gsm.SendSms(&str, &String(SMSNUMBER)))
+        String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
+        if(gsm.SendSms(&str, &String(NUM1_SmsCommand)))
           prSmsPIR1 = millis();               
       }
       
@@ -313,31 +327,33 @@ void loop()
         && ((GetElapsed(prSmsPIR2) > timeSmsPIR2) or prSmsPIR2 == 0))              // и выдержена пауза после последнего смс
       {  
         String str = GetStringFromFlash(smsText_PIR2);                             // достаем с флеш памяти строку
-        if(gsm.SendSms(&str, &String(SMSNUMBER)))
+        String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
+        if(gsm.SendSms(&str, &String(NUM1_SmsCommand)))
           prSmsPIR2 = millis();               
       }
 
       if (sTensionCable && !inTestMod)                                             // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
       {  
         String str = GetStringFromFlash(smsText_TensionCable);                     // достаем с флеш памяти строку
-        gsm.SendSms(&str, &String(SMSNUMBER));                    
+        String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
+        gsm.SendSms(&str, &String(NUM1_SmsCommand));                    
       }
       
       if ((GetElapsed(prCall) > timeCall) or prCall == 0)                          // проверяем сколько прошло времени после последнего звонка (выдерживаем паузц между звонками)
       {
-        if(gsm.Call(String(TELLNUMBER)))                                           // отзваниваемся
-          prCall = millis();                                                       // если отзвон осуществлен то запоминаем время последнего отзвона
+        if(gsm.Call(NumberRead(E_NUM1_InContr)))                                   // отзваниваемся
+        prCall = millis();                                                       // если отзвон осуществлен то запоминаем время последнего отзвона
       }
             
       if (sTensionCable) controlTensionCable = false;                              // отключаем контроль растяжки что б сирена не работала постоянно после разрыва растяжки
     }
 
      if (gsm.NewRing)                                                              // если обнаружен входящий звонок
-     {
-       if (gsm.RingNumber.indexOf(NUMBER1_NotInContr) > -1 ||                      // если включен режим охраны и найден зарегистрированный звонок то снимаем с охраны
-           gsm.RingNumber.indexOf(NUMBER2_NotInContr) > -1 || 
-           gsm.RingNumber.indexOf(NUMBER3_NotInContr) > -1 ||
-           gsm.RingNumber.indexOf(NUMBER4_NotInContr) > -1 
+     {      
+       if (gsm.RingNumber.indexOf(NumberRead(E_NUM1_NotInContr)) > -1 ||                         // если включен режим охраны и найден зарегистрированный звонок то снимаем с охраны
+           gsm.RingNumber.indexOf(NumberRead(E_NUM2_NotInContr)) > -1 || 
+           gsm.RingNumber.indexOf(NumberRead(E_NUM3_NotInContr)) > -1 ||
+           gsm.RingNumber.indexOf(NumberRead(E_NUM4_NotInContr)) > -1 
           )               
        {                    
          delay(2500);                                        // небольшая пауза перед збросом звонка
@@ -550,16 +566,18 @@ void PowerControl()
   if (!inTestMod && !powCtr.IsBattPowerPrevious() && powCtr.IsBattPower())          // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v) и если не включен режим тестирования
   {
     String str = GetStringFromFlash(smsText_BattPower);                             // достаем с флеш памяти строку   
-    gsm.SendSms(&str, &String(SMSNUMBER));                                          // отправляем смс о переходе на резервное питание         
+    String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
+    gsm.SendSms(&str, &String(NUM1_SmsCommand));                                          // отправляем смс о переходе на резервное питание         
   } 
   if (!inTestMod && powCtr.IsBattPowerPrevious() && !powCtr.IsBattPower())          // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования
   {
     String str = GetStringFromFlash(smsText_NetPower);                              // достаем с флеш памяти строку
-    gsm.SendSms(&str, &String(SMSNUMBER));                                          // отправляем смс о возобновлении  сетевое питание 220v        
+    String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
+    gsm.SendSms(&str, &String(NUM1_SmsCommand));                                          // отправляем смс о возобновлении  сетевое питание 220v        
   }
 }
 
-/*// запрос gsm кода (*#) и отсылаем результат через смс
+// запрос gsm кода (*#) и отсылаем результат через смс
 void RequestGsmCode(String smsNumber, String code)
 {
   digitalWrite(SirenLED, LOW);                                  // выключаем светодиод  
@@ -581,7 +599,7 @@ void RequestGsmCode(String smsNumber, String code)
   str = str.substring(0, str.indexOf("\","));
   gsm.SendSms(&str, &smsNumber);
 }
-*/
+
 // короткое включение сирены (для тестирования модуля сирены)
 void SkimpySiren()
 {
@@ -606,21 +624,57 @@ String GetStringFromFlash(char* addr)
   return buffstr;
 }
 
+void NumberWrite(byte e_addr, String *number, String *SmsNumber)
+{
+  char charStr[numSize+1];
+  number->toCharArray(charStr, numSize+1);
+  EEPROM.put(e_addr, charStr);  
+    
+  String num = NumberRead(e_addr);
+  gsm.SendSms(&num, SmsNumber);  
+}
+
+String NumberRead(byte e_add)
+{
+ char charread[numSize+1];
+ EEPROM.get(e_add, charread);
+ String str(charread);
+ return str;
+}
+
+String GetString(String *str)
+{
+  String s;
+  int beginStr = str->indexOf('\"');
+  s = str->substring(beginStr + 1);
+  int duration = s.indexOf("\"");  
+  return s.substring(0, duration - 1);  
+}
+
 // читаем смс и если доступна новая команда по смс то выполняем ее
 void ExecSmsCommand()
 { 
   if (gsm.NewSms)
   {
-    if ( gsm.SmsNumber.indexOf(NUMBER1_SmsCommand) > -1 ||              
-         gsm.SmsNumber.indexOf(NUMBER2_SmsCommand) > -1 ||
-         gsm.SmsNumber.indexOf(NUMBER3_SmsCommand) > -1 ||
-         gsm.SmsNumber.indexOf(NUMBER4_SmsCommand) > -1                                                                                      
+    String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
+    String NUM2_SmsCommand = NumberRead(E_NUM2_SmsCommand);
+    //String NUM3_SmsCommand = NumberRead(E_NUM3_SmsCommand);   
+    if ((gsm.SmsNumber.indexOf(NUM1_SmsCommand) > -1 ||                                  // если обнаружено зарегистрированый номер
+         gsm.SmsNumber.indexOf(NUM2_SmsCommand) > -1 // ||
+        // gsm.SmsNumber.indexOf(NUM3_SmsCommand) > -1
+        ) 
+        ||
+        (!NUM1_SmsCommand.startsWith("+3")  &&                                                  // если нет зарегистрированных номеров (при первом включении необходимо зарегистрировать номера)
+         !NUM2_SmsCommand.startsWith("+3") //&&
+         //!NUM3_SmsCommand.startsWith("+3")
+         )
        )
     {       
       if (gsm.SmsText == "Balance" || gsm.SmsText == "balance")                          // запрос баланса
       {
         PlayTone(specerTone, 250);                                             
-        gsm.RequestGsmCode(GSMCODE_BALANCE);
+        //gsm.RequestGsmCode(GSMCODE_BALANCE);
+        RequestGsmCode(gsm.SmsNumber, GSMCODE_BALANCE);
         NumberGsmCode = gsm.SmsNumber;                                                   // сохраняем номер на который необходимо будет отправить ответ
       }
       else
@@ -635,7 +689,8 @@ void ExecSmsCommand()
         else
         {
           PlayTone(specerTone, 250);                                                          
-          gsm.RequestGsmCode(gsm.SmsText);
+          //gsm.RequestGsmCode(gsm.SmsText);
+          RequestGsmCode(gsm.SmsNumber, gsm.SmsText);
           NumberGsmCode = gsm.SmsNumber;                                                 // сохраняем номер на который необходимо будет отправить ответ
         }
       }
@@ -717,17 +772,97 @@ void ExecSmsCommand()
             + "Redirect SMS: "     + String((isRedirectSms)      ? "on" : "off") + "\n";
         gsm.SendSms(&rez, &gsm.SmsNumber);
       }
-      else
+      
+      // установка номера для оповещение о тревоге звонком
+      /*else
       if (gsm.SmsText.startsWith("TELLNUMBER") || gsm.SmsText.startsWith("Tellnumber") || gsm.SmsText.startsWith("tellnumber"))
       {
         PlayTone(specerTone, 250);              
-        TELLNUMBER = GetString(&gsm.SmsText);
-        NumberWrite(E_TELLNUMBER, &TELLNUMBER);       
-        String s= NumberRead(E_TELLNUMBER);
-        gsm.SendSms(&s, &String("+380509151369"));
-        //String str = GetStringFromFlash(smsText_ErrorCommand);                                 // достаем с флеш памяти строку   
-        //gsm.SendSms(&str, &gsm.SmsNumber);     
+        String num = GetString(&gsm.SmsText);
+        NumberWrite(E_TELLNUMBER, &num, &gsm.SmsNumber);         
       }
+      // установка номера для оповещение о тревоге смс сообщением
+      else
+      if (gsm.SmsText.startsWith("SMSNUMBER") || gsm.SmsText.startsWith("Smsnumber") || gsm.SmsText.startsWith("smsnumber"))
+      {
+        PlayTone(specerTone, 250);              
+        String num = GetString(&gsm.SmsText);
+        NumberWrite(E_SMSNUMBER, &num, &gsm.SmsNumber);         
+      }*/
+      // установка номеров для снятие с охраны
+      else
+      if (gsm.SmsText.startsWith("NUM1_NotInContr") || gsm.SmsText.startsWith("Num1_notincontr") || gsm.SmsText.startsWith("num1_notincontr"))
+      {
+        PlayTone(specerTone, 250);              
+        String num = GetString(&gsm.SmsText);
+        NumberWrite(E_NUM1_NotInContr, &num, &gsm.SmsNumber);
+      }
+      else
+      if (gsm.SmsText.startsWith("NUM2_NotInContr") || gsm.SmsText.startsWith("Num2_notincontr") || gsm.SmsText.startsWith("num2_notincontr"))
+      {
+        PlayTone(specerTone, 250);              
+        String num = GetString(&gsm.SmsText);
+        NumberWrite(E_NUM2_NotInContr, &num, &gsm.SmsNumber);
+      }
+      else
+      if (gsm.SmsText.startsWith("NUM3_NotInContr") || gsm.SmsText.startsWith("Num3_notincontr") || gsm.SmsText.startsWith("num3_notincontr"))
+      {
+        PlayTone(specerTone, 250);              
+        String num = GetString(&gsm.SmsText);
+        NumberWrite(E_NUM3_NotInContr, &num, &gsm.SmsNumber);
+      }
+      else
+      if (gsm.SmsText.startsWith("NUM4_NotInContr") || gsm.SmsText.startsWith("Num4_notincontr") || gsm.SmsText.startsWith("num4_notincontr"))
+      {
+        PlayTone(specerTone, 250);              
+        String num = GetString(&gsm.SmsText);
+        NumberWrite(E_NUM1_NotInContr, &num, &gsm.SmsNumber);
+      }
+      // установка номеров для установки на охрану
+      else      
+      if (gsm.SmsText.startsWith("NUM1_InContr") || gsm.SmsText.startsWith("Num1_incontr") || gsm.SmsText.startsWith("num1_incontr"))
+      {
+        PlayTone(specerTone, 250);              
+        String num = GetString(&gsm.SmsText);
+        NumberWrite(E_NUM1_InContr, &num, &gsm.SmsNumber);
+      }
+      else
+      if (gsm.SmsText.startsWith("NUM2_InContr") || gsm.SmsText.startsWith("Num2_incontr") || gsm.SmsText.startsWith("num2_incontr"))
+      {
+        PlayTone(specerTone, 250);              
+        String num = GetString(&gsm.SmsText);
+        NumberWrite(E_NUM2_InContr, &num, &gsm.SmsNumber);
+      }
+      /*else
+      if (gsm.SmsText.startsWith("NUM3_InContr") || gsm.SmsText.startsWith("Num3_incontr") || gsm.SmsText.startsWith("num3_incontr"))
+      {
+        PlayTone(specerTone, 250);              
+        String num = GetString(&gsm.SmsText);
+        NumberWrite(E_NUM3_InContr, &num, &gsm.SmsNumber);
+      }*/
+      // установка номеров для управления по смс
+      else      
+      if (gsm.SmsText.startsWith("NUM1_SmsCommand") || gsm.SmsText.startsWith("Num1_smscommand") || gsm.SmsText.startsWith("num1_smscommand"))
+      {
+        PlayTone(specerTone, 250);              
+        String num = GetString(&gsm.SmsText);
+        NumberWrite(E_NUM1_SmsCommand, &num, &gsm.SmsNumber);
+      }
+      else      
+      if (gsm.SmsText.startsWith("NUM2_SmsCommand") || gsm.SmsText.startsWith("Num2_smscommand") || gsm.SmsText.startsWith("num1_smscommand"))
+      {
+        PlayTone(specerTone, 250);              
+        String num = GetString(&gsm.SmsText);
+        NumberWrite(E_NUM2_SmsCommand, &num, &gsm.SmsNumber);
+      }
+      /*else      
+      if (gsm.SmsText.startsWith("NUM3_SmsCommand") || gsm.SmsText.startsWith("Num3_smscommand") || gsm.SmsText.startsWith("num3_smscommand"))
+      {
+        PlayTone(specerTone, 250);              
+        String num = GetString(&gsm.SmsText);
+        NumberWrite(E_NUM3_SmsCommand, &num, &gsm.SmsNumber);        
+      }*/
+      //смс команда не распознана
       else
       {
         PlayTone(specerTone, 250);              
@@ -736,32 +871,13 @@ void ExecSmsCommand()
       }       
     }
     else if (isRedirectSms)                                                                    // если смс пришла не с зарегистрированых номеров и включен режим перенаправления всех смс
-      gsm.SendSms(&String("N: " + gsm.SmsNumber + '\n' + gsm.SmsText), &String(SMSNUMBER));     
+    {
+      String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
+      gsm.SendSms(&String("N: " + gsm.SmsNumber + '\n' + gsm.SmsText), &String(NUM1_SmsCommand));     
+    }
    
     gsm.ClearSms();                                                                            // очищаем обнаруженное входящие Смс
   }
 }
 
-void NumberWrite(byte e_addr, String *number)
-{
-  char charStr[numSize+1];
-  number->toCharArray(charStr, numSize+1);
-  EEPROM.put(e_addr, charStr);  
-}
 
-String NumberRead(byte e_add)
-{
- char charread[numSize+1];
- EEPROM.get(E_TELLNUMBER, charread);
- String str(charread);
- return str;
-}
-
-String GetString(String *str)
-{
-  String s;
-  int beginStr = str->indexOf('\"');
-  s = str->substring(beginStr + 1);
-  int duration = s.indexOf("\"");  
-  return s.substring(0, duration - 1);  
-}
