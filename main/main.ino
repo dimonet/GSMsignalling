@@ -594,9 +594,9 @@ void RequestGsmCode(String smsNumber, String code)
     else  BlinkLEDlow(NotInContrLED, 0, 500, 500);                 
 
   str = gsm.Read();
-  int beginStr = str.indexOf('\"');
+ /* int beginStr = str.indexOf('\"');
   str = str.substring(beginStr + 1); 
-  str = str.substring(0, str.indexOf("\","));
+  str = str.substring(0, str.indexOf("\","));*/
   gsm.SendSms(&str, &smsNumber);
 }
 
