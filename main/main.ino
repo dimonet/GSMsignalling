@@ -642,12 +642,13 @@ String NumberRead(byte e_add)
  return str;
 }
 
-String GetString(String str)
+String GetString(String *str)
 {
-  int beginStr = str.indexOf('\"');
-  str = str.substring(beginStr + 1);
-  int duration = str.indexOf("\"");  
-  return str.substring(0, duration - 1);  
+  String s;
+  int beginStr = str->indexOf('\"');
+  s = str->substring(beginStr + 1);
+  int duration = s.indexOf("\"");  
+  return s.substring(0, duration - 1);  
 }
 
 // читаем смс и если доступна новая команда по смс то выполняем ее
@@ -777,7 +778,7 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith("TELLNUMBER") || gsm.SmsText.startsWith("Tellnumber") || gsm.SmsText.startsWith("tellnumber"))
       {
         PlayTone(specerTone, 250);              
-        String num = GetString(gsm.SmsText);
+        String num = GetString(&gsm.SmsText);
         NumberWrite(E_TELLNUMBER, &num, &gsm.SmsNumber);         
       }
       // установка номера для оповещение о тревоге смс сообщением
@@ -785,7 +786,7 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith("SMSNUMBER") || gsm.SmsText.startsWith("Smsnumber") || gsm.SmsText.startsWith("smsnumber"))
       {
         PlayTone(specerTone, 250);              
-        String num = GetString(gsm.SmsText);
+        String num = GetString(&gsm.SmsText);
         NumberWrite(E_SMSNUMBER, &num, &gsm.SmsNumber);         
       }*/
       // установка номеров для снятие с охраны
@@ -793,28 +794,28 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith("NUM1_NotInContr") || gsm.SmsText.startsWith("Num1_notincontr") || gsm.SmsText.startsWith("num1_notincontr"))
       {
         PlayTone(specerTone, 250);              
-        String num = GetString(gsm.SmsText);
+        String num = GetString(&gsm.SmsText);
         NumberWrite(E_NUM1_NotInContr, &num, &gsm.SmsNumber);
       }
       else
       if (gsm.SmsText.startsWith("NUM2_NotInContr") || gsm.SmsText.startsWith("Num2_notincontr") || gsm.SmsText.startsWith("num2_notincontr"))
       {
         PlayTone(specerTone, 250);              
-        String num = GetString(gsm.SmsText);
+        String num = GetString(&gsm.SmsText);
         NumberWrite(E_NUM2_NotInContr, &num, &gsm.SmsNumber);
       }
       else
       if (gsm.SmsText.startsWith("NUM3_NotInContr") || gsm.SmsText.startsWith("Num3_notincontr") || gsm.SmsText.startsWith("num3_notincontr"))
       {
         PlayTone(specerTone, 250);              
-        String num = GetString(gsm.SmsText);
+        String num = GetString(&gsm.SmsText);
         NumberWrite(E_NUM3_NotInContr, &num, &gsm.SmsNumber);
       }
       else
       if (gsm.SmsText.startsWith("NUM4_NotInContr") || gsm.SmsText.startsWith("Num4_notincontr") || gsm.SmsText.startsWith("num4_notincontr"))
       {
         PlayTone(specerTone, 250);              
-        String num = GetString(gsm.SmsText);
+        String num = GetString(&gsm.SmsText);
         NumberWrite(E_NUM1_NotInContr, &num, &gsm.SmsNumber);
       }
       // установка номеров для установки на охрану
@@ -822,21 +823,21 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith("NUM1_InContr") || gsm.SmsText.startsWith("Num1_incontr") || gsm.SmsText.startsWith("num1_incontr"))
       {
         PlayTone(specerTone, 250);              
-        String num = GetString(gsm.SmsText);
+        String num = GetString(&gsm.SmsText);
         NumberWrite(E_NUM1_InContr, &num, &gsm.SmsNumber);
       }
       else
       if (gsm.SmsText.startsWith("NUM2_InContr") || gsm.SmsText.startsWith("Num2_incontr") || gsm.SmsText.startsWith("num2_incontr"))
       {
         PlayTone(specerTone, 250);              
-        String num = GetString(gsm.SmsText);
+        String num = GetString(&gsm.SmsText);
         NumberWrite(E_NUM2_InContr, &num, &gsm.SmsNumber);
       }
       /*else
       if (gsm.SmsText.startsWith("NUM3_InContr") || gsm.SmsText.startsWith("Num3_incontr") || gsm.SmsText.startsWith("num3_incontr"))
       {
         PlayTone(specerTone, 250);              
-        String num = GetString(gsm.SmsText);
+        String num = GetString(&gsm.SmsText);
         NumberWrite(E_NUM3_InContr, &num, &gsm.SmsNumber);
       }*/
       // установка номеров для управления по смс
@@ -844,21 +845,21 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith("NUM1_SmsCommand") || gsm.SmsText.startsWith("Num1_smscommand") || gsm.SmsText.startsWith("num1_smscommand"))
       {
         PlayTone(specerTone, 250);              
-        String num = GetString(gsm.SmsText);
+        String num = GetString(&gsm.SmsText);
         NumberWrite(E_NUM1_SmsCommand, &num, &gsm.SmsNumber);
       }
       else      
       if (gsm.SmsText.startsWith("NUM2_SmsCommand") || gsm.SmsText.startsWith("Num2_smscommand") || gsm.SmsText.startsWith("num1_smscommand"))
       {
         PlayTone(specerTone, 250);              
-        String num = GetString(gsm.SmsText);
+        String num = GetString(&gsm.SmsText);
         NumberWrite(E_NUM2_SmsCommand, &num, &gsm.SmsNumber);
       }
       /*else      
       if (gsm.SmsText.startsWith("NUM3_SmsCommand") || gsm.SmsText.startsWith("Num3_smscommand") || gsm.SmsText.startsWith("num3_smscommand"))
       {
         PlayTone(specerTone, 250);              
-        String num = GetString(gsm.SmsText);
+        String num = GetString(&gsm.SmsText);
         NumberWrite(E_NUM3_SmsCommand, &num, &gsm.SmsNumber);        
       }*/
       //смс команда не распознана

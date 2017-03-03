@@ -76,7 +76,7 @@ String MyGSM::Read()
     str += String(currSymb); 
     delay(1);                 
   }
-  return str;
+  return GetString(&str);
 }
 
 // ожидание готовности gsm модуля
@@ -174,7 +174,7 @@ void MyGSM::Refresh()
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewSms = true;
-          SmsNumber = GetString(currStr);                                                 
+          SmsNumber = GetString(&currStr);                                                 
           strCount = 2;
         }
         else
@@ -182,7 +182,7 @@ void MyGSM::Refresh()
         {
           BlinkLED(0, 250, 0);                               // сигнализируем об этом
           NewUssd = true;         
-          UssdText = GetString(currStr);                    
+          UssdText = GetString(&currStr);                    
         }         
       }
       else
@@ -202,7 +202,7 @@ void MyGSM::Refresh()
       {
         if (NewRing)                                       // если входящий звонок
         {
-          RingNumber = GetString(currStr);                               
+          RingNumber = GetString(&currStr);                               
         }                 
       }        
     currStr = "";    
@@ -222,19 +222,20 @@ void MyGSM::Refresh()
   }    
 }
 
-String MyGSM::GetString(String str)
-{ 
-  int beginStr = str.indexOf('\"');
-  str = str.substring(beginStr + 1);
-  int duration = str.indexOf("\"");  
+String MyGSM::GetString(String *str)
+{
+  String s;
+  int beginStr = str->indexOf('\"');
+  s = str->substring(beginStr + 1);
+  int duration = s.indexOf("\"");  
   if (duration > 0)
-    str = str.substring(0, duration - 1);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
-  if (str.length() > 160)
+    s = s.substring(0, duration - 1);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
+  if (s.length() > 160)
   {  
-    str = str.substring(0, 156);                               // обрезаем строку до 160 символов что б она поместилась в одну смс
-    str += "...";                                            // добавляем многоточие для указания, что текст не полный
+    s = s.substring(0, 156);                               // обрезаем строку до 160 символов что б она поместилась в одну смс
+    s += "...";                                            // добавляем многоточие для указания, что текст не полный
   }
-  return str;
+  return s;
 }
 
 void MyGSM::ClearRing()
