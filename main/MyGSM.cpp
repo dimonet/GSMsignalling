@@ -7,7 +7,7 @@
 #define serial Serial                           // если аппаратный в UNO
 //#define serial Serial1                        // если аппаратный в леонардо
 
-#define GSM_TIMEOUT 30000                       // врем ожидание готовности модема (милсек)  
+#define GSM_TIMEOUT 60000                       // врем ожидание готовности модема (милсек)  
 
 MyGSM::MyGSM(byte gsmLED, byte pinBOOT)
 {
@@ -76,7 +76,7 @@ String MyGSM::Read()
     str += String(currSymb); 
     delay(1);                 
   }
-  return GetString(&str);
+  return str;
 }
 
 // ожидание готовности gsm модуля
@@ -174,7 +174,7 @@ void MyGSM::Refresh()
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewSms = true;
-          SmsNumber = GetString(&currStr);                                                 
+          SmsNumber = GetString(currStr);                                                 
           strCount = 2;
         }
         else
@@ -182,8 +182,7 @@ void MyGSM::Refresh()
         {
           BlinkLED(0, 250, 0);                               // сигнализируем об этом
           NewUssd = true;         
-          UssdText = GetString(&currStr);
-          strCount = 2;          
+          UssdText = GetString(currStr);                    
         }         
       }
       else
@@ -203,7 +202,7 @@ void MyGSM::Refresh()
       {
         if (NewRing)                                       // если входящий звонок
         {
-          RingNumber = GetString(&currStr);                               
+          RingNumber = GetString(currStr);                               
         }                 
       }        
     currStr = "";    
@@ -212,7 +211,7 @@ void MyGSM::Refresh()
     {
       if (currSymb == '\"') currStr += "\\" + String(currSymb);
       else currStr += String(currSymb);      
-      delay(1);
+      delay(5);
     }
   }
     
@@ -223,20 +222,19 @@ void MyGSM::Refresh()
   }    
 }
 
-String MyGSM::GetString(String *str)
-{
-  String s;
-  int beginStr = str->indexOf('\"');
-  s = str->substring(beginStr + 1);
-  int duration = s.indexOf("\"");  
+String MyGSM::GetString(String str)
+{ 
+  int beginStr = str.indexOf('\"');
+  str = str.substring(beginStr + 1);
+  int duration = str.indexOf("\"");  
   if (duration > 0)
-    s = s.substring(0, duration-1);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
-  if (s.length() > 160)
+    str = str.substring(0, duration - 1);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
+  if (str.length() > 160)
   {  
-    s = s.substring(0, 156);                               // обрезаем строку до 160 символов что б она поместилась в одну смс
-    s += "...";                                            // добавляем многоточие для указания, что текст не полный
+    str = str.substring(0, 156);                               // обрезаем строку до 160 символов что б она поместилась в одну смс
+    str += "...";                                            // добавляем многоточие для указания, что текст не полный
   }
-  return s;
+  return str;
 }
 
 void MyGSM::ClearRing()
