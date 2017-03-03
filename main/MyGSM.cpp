@@ -7,7 +7,7 @@
 #define serial Serial                           // если аппаратный в UNO
 //#define serial Serial1                        // если аппаратный в леонардо
 
-#define GSM_TIMEOUT 60000                       // врем ожидание готовности модема (милсек)  
+#define GSM_TIMEOUT 30000                       // врем ожидание готовности модема (милсек)  
 
 MyGSM::MyGSM(byte gsmLED, byte pinBOOT)
 {
@@ -212,7 +212,7 @@ void MyGSM::Refresh()
     {
       if (currSymb == '\"') currStr += "\\" + String(currSymb);
       else currStr += String(currSymb);      
-      delay(10);
+      delay(1);
     }
   }
     
@@ -230,7 +230,7 @@ String MyGSM::GetString(String *str)
   s = str->substring(beginStr + 1);
   int duration = s.indexOf("\"");  
   if (duration > 0)
-    s = s.substring(0, duration - 1);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
+    s = s.substring(0, duration);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
   if (s.length() > 160)
   {  
     s = s.substring(0, 156);                               // обрезаем строку до 160 символов что б она поместилась в одну смс
