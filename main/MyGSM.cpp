@@ -224,7 +224,7 @@ void MyGSM::Refresh()
 
 String MyGSM::GetString(String *str)
 {
-  String s;
+  String s = "";
   int beginStr = str->indexOf('\"');
   s = str->substring(beginStr + 1);
   int duration = s.indexOf("\"");  

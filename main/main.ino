@@ -613,7 +613,7 @@ void SkimpySiren()
 
 String GetStringFromFlash(char* addr)
 {
-  String buffstr;
+  String buffstr = "";
   int len = strlen_P(addr);
   char currSymb;
   for (byte i = 0; i < len; i++)
@@ -644,7 +644,7 @@ String NumberRead(byte e_add)
 
 String GetString(String *str)
 {
-  String s;
+  String s = "";
   int beginStr = str->indexOf('\"');
   s = str->substring(beginStr + 1);
   int duration = s.indexOf("\"");  
