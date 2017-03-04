@@ -103,7 +103,7 @@ bool MyGSM::SendSms(String *text, String *phone)      //процедура от�
   if (!IsAvailable()) return false;                   // ждем готовности модема и если он не ответил за заданный таймаут то прырываем отправку смс 
   
   // отправляем смс
-  serial.println("AT+CMGS=\"" + *phone + "\"");
+  serial.println("AT+CMGS=\"" + *phone + "\""); 
   delay(100);
   serial.print(*text); 
   delay(850);
@@ -118,7 +118,7 @@ bool MyGSM::SendSms(String *text, String *phone)      //процедура от�
 bool MyGSM::Call(String phone)
 {  
   if (!IsAvailable()) return false;                  // ждем готовности модема и если он не ответил за заданный таймаут то прырываем выполнения звонка 
-  
+  phone = phone.substring(1);                        // отрезаем плюс в начале так как для звонка формат номера без плюса
   serial.println("ATD+" + phone + ";");
   BlinkLED(0, 250, 0);                               // сигнализируем об этом 
   return true;
@@ -153,29 +153,28 @@ void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigne
 void MyGSM::Refresh()
 {
   String currStr = "";     
-  byte strCount = 1;  
-  /*if (!Available()) return false;*/
- 
+  byte strCount = 0;  
+  
   while (Available())
   {
     char currSymb = serial.read();    
     if ('\r' == currSymb) 
     {
-      if (strCount == 1)
+      if (strCount == 0)
       {
         if (currStr.startsWith("RING"))                    // если входящий звонок
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewRing = true;          
-          strCount = 2;
+          strCount = 1;
         }
         else
         if (currStr.startsWith("+CMT"))                    // если СМС
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewSms = true;
-          SmsNumber = GetString(&currStr);                                                 
-          strCount = 2;
+          SmsNumber = GetString(&currStr);                                                           
+          strCount = 1;
         }
         else
         if (currStr.startsWith("+CUSD"))
@@ -186,10 +185,10 @@ void MyGSM::Refresh()
         }         
       }
       else
-      if (strCount == 2) 
+      if (strCount == 1) 
       {         
         if (NewRing)                                       // если входящий звонок
-          strCount = 3;           
+          strCount = 2;           
         else       
         if (NewSms)                                        // если СМС
         {
@@ -198,7 +197,7 @@ void MyGSM::Refresh()
                 
       }
       else
-      if (strCount == 3) 
+      if (strCount == 2) 
       {
         if (NewRing)                                       // если входящий звонок
         {
@@ -207,10 +206,10 @@ void MyGSM::Refresh()
       }        
     currStr = "";    
     } 
-    else if ('\n' != currSymb) 
+    else if ('\n' != currSymb ) 
     {
       if (currSymb == '\"') currStr += "\\" + String(currSymb);
-      else currStr += String(currSymb);      
+      else currStr += String(currSymb);           
       delay(5);
     }
   }
@@ -232,7 +231,7 @@ String MyGSM::GetString(String *str)
     s = s.substring(0, duration - 1);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
   if (s.length() > 160)
   {  
-    s = s.substring(0, 156);                               // обрезаем строку до 160 символов что б она поместилась в одну смс
+    s = s.substring(0, 156);                               // обрезаем строку до 156 символов что б она поместилась в одну смс
     s += "...";                                            // добавляем многоточие для указания, что текст не полный
   }
   return s;
