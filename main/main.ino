@@ -26,7 +26,7 @@
 //#define NUMBER3_SmsCommand    "+380506228524"         // 3-й номер для управления через sms 
 //#define NUMBER4_SmsCommand    "***"                   // 4-й номер для управления через sms
 
-#define GSMCODE_BALANCE         "*101#"               // GSM код для запроса баланца
+const char GSMCODE_BALANCE[]       PROGMEM = {"*101#"};                                               // GSM код для запроса баланца
 
 // SMS
 const char smsText_TensionCable[]  PROGMEM = {"ALARM: TensionCable sensor."};                         // текст смс для растяжки
@@ -251,6 +251,7 @@ void loop()
       if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
       {
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером                 
+        String gsmcode = GetStringFromFlash(GSMCODE_BALANCE);         // достаем с флеш памяти gsm код для запроса баланса
         gsm.RequestGsmCode(GSMCODE_BALANCE);           
         NumberGsmCode = NumberRead(E_NUM1_SmsCommand);                      // сохраняем номер на который необходимо будет отправить ответ     
       }                                                                                
