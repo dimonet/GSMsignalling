@@ -625,12 +625,12 @@ void ExecSmsCommand()
       {        
         digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод
         PlayTone(specerTone, 250); 
-        if (gsm.SmsText.indexOf("on") > -1)
+        if (gsm.SmsText.indexOf(" on") > -1)
         {
           inTestMod = true;
           msg = GetStringFromFlash(smsText_TestModOn);                                   // достаем с флеш памяти строку
         }
-        else if (gsm.SmsText.indexOf("off") > -1)
+        else if (gsm.SmsText.indexOf(" off") > -1)
         {
           inTestMod = false;
           msg = GetStringFromFlash(smsText_TestModOff);                                  // достаем с флеш памяти строку
@@ -642,12 +642,12 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith("Control") || gsm.SmsText.startsWith("control"))        // если сообщение начинается на * то это gsm код
       {        
         digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод
-        if (gsm.SmsText.indexOf("on") > -1)
+        if (gsm.SmsText.indexOf(" on") > -1)
         {
           Set_InContrMod(0);                                                             // устанавливаем на охрану без паузы                                                
           msg = GetStringFromFlash(smsText_InContrMod);                                  // достаем с флеш памяти строку
         }
-        else if (gsm.SmsText.indexOf("off") > -1)
+        else if (gsm.SmsText.indexOf(" off") > -1)
         {
           Set_NotInContrMod();
           msg = GetStringFromFlash(smsText_NotInContrMod);
@@ -658,12 +658,12 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith("Redirect") || gsm.SmsText.startsWith("redirect"))        
       {
         PlayTone(specerTone, 250);
-        if (gsm.SmsText.indexOf("on") > -1)
+        if (gsm.SmsText.indexOf(" on") > -1)
         {
           isRedirectSms = true;
           msg = GetStringFromFlash(smsText_RedirectOn);                                    // достаем с флеш памяти строку
         }
-        else if (gsm.SmsText.indexOf("off") > -1) 
+        else if (gsm.SmsText.indexOf(" off") > -1) 
         {
           isRedirectSms = false;
           msg = GetStringFromFlash(smsText_RedirectOff);
