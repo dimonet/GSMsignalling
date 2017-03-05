@@ -10,21 +10,18 @@
 
 //// НАСТРОЕЧНЫЕ КОНСТАНТЫ /////
 // номера телефонов
-//#define TELLNUMBER         "380509151369"             // номен на который будем звонить
 
-//#define NUMBER1_NotInContr "380509151369"             // 1-й номер для снятие с охраны (Мой МТС)
+//#define NUMBER1_NotInContr "380509151369"             // 1-й номер для снятие с охраны и на который будем звонить (Мой МТС)
 //#define NUMBER2_NotInContr "380506228524"             // 2-й номер для снятие с охраны (Тони МТС)
 //#define NUMBER3_NotInContr "***"                      // 3-й номер для снятие с охраны
-//#define NUMBER4_NotInContr "***"                      // 4-й номер для снятие с охраны
 
 //#define NUMBER1_InContr    "380969405835"             // 1-й номер для установки на охраны (Мой Киевстар)
 //#define NUMBER2_InContr    "***"                      // 2-й номер для установки на охраны
 
-//#define SMSNUMBER             "+380509151369"         // номер на который будем отправлять SMS
-//#define NUMBER1_SmsCommand    "+380509151369"         // 1-й номер для управления через sms (Мой МТС)
+//#define NUMBER1_SmsCommand    "+380509151369"         // 1-й номер для управления через sms и на который будем отправлять SMS (Мой МТС)
 //#define NUMBER2_SmsCommand    "+380969405835"         // 2-й номер для управления через sms (Мой Киевстар)
 //#define NUMBER3_SmsCommand    "+380506228524"         // 3-й номер для управления через sms 
-//#define NUMBER4_SmsCommand    "***"                   // 4-й номер для управления через sms
+
 
 const char GSMCODE_BALANCE[]       PROGMEM = {"*101#"};                                               // GSM код для запроса баланца
 
@@ -61,11 +58,11 @@ const char smsText_WasRebooted[]   PROGMEM = {"Command: Device was Rebooted."}; 
 
 
 // Количество нажатий на кнопку для включений режимова
-/*
+
 #define countBtnInTestMod   2                              // количество нажатий на кнопку для включение/отключения режима тестирования 
 #define countBtnBalance     3                              // количество нажатий на кнопку для запроса баланса счета
 #define countBtnSkimpySiren 4                              // количество нажатий на кнопку для кратковременного включения сирены
-*/
+
 //// КОНСТАНТЫ ПИТЯНИЯ ////
 #define netVcc      10.0                      // значения питяния от сети (вольт)
 
@@ -233,7 +230,7 @@ void loop()
     if (countPressBtn != 0 && (GetElapsed(prLastPressBtn) > timeAfterPressBtn))
     { 
       // включение/отключения режима тестирования
-      if (countPressBtn == 2)                                         // если кнопку нажали заданное количество для включение/отключения режима тестирования
+      if (countPressBtn == countBtnInTestMod)                         // если кнопку нажали заданное количество для включение/отключения режима тестирования
       {
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером  
         inTestMod = !inTestMod;                                       // включаем/выключаем режим тестирование датчиков        
@@ -242,7 +239,7 @@ void loop()
       }
       else
       // запрос баланса счета
-      if (countPressBtn == 3)                                         // если кнопку нажали заданное количество для запроса баланса счета
+      if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
       {
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером                 
         String gsmcode = GetStringFromFlash(GSMCODE_BALANCE);         // достаем с флеш памяти gsm код для запроса баланса
@@ -251,7 +248,7 @@ void loop()
       }                                                                                
       else
       // кратковременное включение сирены (для тестирования модуля сирены)
-      if (countPressBtn == 4)                      
+      if (countPressBtn == countBtnSkimpySiren)                      
       {
         PlayTone(specerTone, 250);                                    
         SkimpySiren();

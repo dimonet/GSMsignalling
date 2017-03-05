@@ -8,6 +8,7 @@
 //#define serial Serial1                        // если аппаратный в леонардо
 
 #define GSM_TIMEOUT 60000                       // врем ожидание готовности модема (милсек)  
+#define SMS_LIMIT   160                         // максимальное куличество символов в смс (большео лимита все символы обрезается)
 
 MyGSM::MyGSM(byte gsmLED, byte pinBOOT)
 {
@@ -66,19 +67,6 @@ bool MyGSM::Available()
   return serial.available();
 }
 
-String MyGSM::Read()
-{
-  String str = "";  
-  char currSymb;
-  while (Available())
-  {
-    currSymb = serial.read();
-    str += String(currSymb); 
-    delay(1);                 
-  }
-  return str;
-}
-
 // ожидание готовности gsm модуля
 bool MyGSM::IsAvailable()
 {
@@ -133,7 +121,7 @@ void MyGSM::RejectCall()
 // запрос gsm кода (*#) 
 bool MyGSM::RequestGsmCode(String code)
 {    
-  Read();
+  while (serial.available()) serial.read();
   serial.println("ATD" + code);
   //serial.println("AT+CUSD=1,\"" + code + "\"");
   return true; 
@@ -192,6 +180,11 @@ void MyGSM::Refresh()
         else       
         if (NewSms)                                        // если СМС
         {
+          if (currStr.length() > SMS_LIMIT)
+          {  
+            currStr = currStr.substring(0, SMS_LIMIT - 4);     // обрезаем строку до 156 символов что б она поместилась в одну смс
+            currStr += "...";                              // добавляем многоточие для указания, что текст не полный
+          }
           SmsText = currStr;                                         
         }
                 
@@ -229,9 +222,9 @@ String MyGSM::GetString(String *str)
   int duration = s.indexOf("\"");  
   if (duration > 0)
     s = s.substring(0, duration - 1);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
-  if (s.length() > 160)
+  if (s.length() > SMS_LIMIT)
   {  
-    s = s.substring(0, 156);                               // обрезаем строку до 156 символов что б она поместилась в одну смс
+    s = s.substring(0, SMS_LIMIT - 4);                               // обрезаем строку до 156 символов что б она поместилась в одну смс
     s += "...";                                            // добавляем многоточие для указания, что текст не полный
   }
   return s;
