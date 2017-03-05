@@ -161,7 +161,7 @@ void MyGSM::Refresh()
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом 
           NewSms = true;
-          SmsNumber = GetString(&currStr);                                                           
+          SetString(&currStr, &SmsNumber);                                                           
           strCount = 1;
         }
         else
@@ -169,7 +169,7 @@ void MyGSM::Refresh()
         {
           BlinkLED(0, 250, 0);                             // сигнализируем об этом
           NewUssd = true;         
-          UssdText = GetString(&currStr);                    
+          SetString(&currStr, &UssdText);                    
         }         
       }
       else
@@ -189,7 +189,7 @@ void MyGSM::Refresh()
       {
         if (NewRing)                                       // если входящий звонок
         {
-          RingNumber = GetString(&currStr);                               
+         SetString(&currStr, &RingNumber);                               
         }                 
       }        
     currStr = "";    
@@ -209,20 +209,18 @@ void MyGSM::Refresh()
   }    
 }
 
-String MyGSM::GetString(String *str)
+void MyGSM::SetString(String *source, String *target)
 {
-  String s = "";
-  int beginStr = str->indexOf('\"');
-  s = str->substring(beginStr + 1);
-  int duration = s.indexOf("\"");  
+  int beginStr = source->indexOf('\"');
+  *target = source->substring(beginStr + 1);
+  int duration = target->indexOf("\"");  
   if (duration > 0)
-    s = s.substring(0, duration - 1);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
-  if (s.length() > SMS_LIMIT)
+    *target = target->substring(0, duration - 1);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
+  if (target->length() > SMS_LIMIT)
   {  
-    s = s.substring(0, SMS_LIMIT - 4);                               // обрезаем строку до 156 символов что б она поместилась в одну смс
-    s += "...";                                            // добавляем многоточие для указания, что текст не полный
-  }
-  return s;
+    *target = target->substring(0, SMS_LIMIT - 4);                               // обрезаем строку до 156 символов что б она поместилась в одну смс
+    *target += "...";                                            // добавляем многоточие для указания, что текст не полный
+  } 
 }
 
 void MyGSM::ClearRing()

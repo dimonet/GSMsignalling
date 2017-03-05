@@ -27,7 +27,7 @@ class MyGSM
   private:
     bool IsAvailable();                               // ожидание готовности gsm модуля
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
-    String GetString(String *str);
+    void SetString(String *source, String *target);
     int _gsmLED;
     int _pinBOOT;                                     // нога BOOT или K на модеме       
 };
