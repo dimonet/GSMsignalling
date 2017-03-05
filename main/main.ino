@@ -1,5 +1,6 @@
 /// GSM сигналка c установкой по кнопке
 /// датчиком на прерывателях и движения
+/// ВНИМАНИЕ: для корретной работы sms необходимо установить размеры буферов вместо 64 на SERIAL_TX_BUFFER_SIZE 24 и SERIAL_RX_BUFFER_SIZE 180 в файле hardware\arduino\avr\cores\arduino\HardwareSerial.h
 
 #include <EEPROM.h>
 #include "MyGSM.h"
@@ -58,7 +59,6 @@ const char smsText_WasRebooted[]   PROGMEM = {"Command: Device was Rebooted."}; 
 
 
 // Количество нажатий на кнопку для включений режимова
-
 #define countBtnInTestMod   2                              // количество нажатий на кнопку для включение/отключения режима тестирования 
 #define countBtnBalance     3                              // количество нажатий на кнопку для запроса баланса счета
 #define countBtnSkimpySiren 4                              // количество нажатий на кнопку для кратковременного включения сирены
@@ -165,7 +165,7 @@ void setup()
   
   // блок тестирования спикера и всех светодиодов
   PlayTone(specerTone, 100);                          
-  /*delay(500);
+  delay(500);
   digitalWrite(gsmLED, HIGH);
   digitalWrite(NotInContrLED, HIGH);
   digitalWrite(InContrLED, HIGH);
@@ -177,7 +177,7 @@ void setup()
   digitalWrite(InContrLED, LOW);
   digitalWrite(SirenLED, LOW);
   digitalWrite(BattPowerLED, LOW);
-  */
+  
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
   digitalWrite(BattPowerLED, powCtr.IsBattPower());     // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
   
