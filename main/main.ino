@@ -201,10 +201,8 @@ void loop()
   gsm.Refresh();                                                    // читаем сообщения от GSM модема   
 
   if(wasRebooted)
-  {
-    String str = GetStringFromFlash(smsText_WasRebooted);           // достаем с флеш памяти строку
-    String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
-    gsm.SendSms(&str, &NUM1_SmsCommand);
+  {    
+    gsm.SendSms(&GetStringFromFlash(smsText_WasRebooted), &NumberRead(E_NUM1_SmsCommand));
     wasRebooted = false;
     EEPROM.write(E_wasRebooted, false);
   }
@@ -216,7 +214,7 @@ void loop()
   }
 
   ////// NOT IN CONTROL MODE ///////  
-  if (mode == NotInContrMod)                                           // если режим не на охране
+  if (mode == NotInContrMod)                                        // если режим не на охране
   {
     if (digitalRead(Button) == HIGH) newClick = true;
     if (digitalRead(Button) == LOW && newClick)
@@ -306,32 +304,26 @@ void loop()
       if (sPIR1 && !inTestMod                                                      // отправляем СМС если сработал датчик движения и не включен режим тестирование 
         && ((GetElapsed(prSmsPIR1) > timeSmsPIR1) or prSmsPIR1 == 0))              // и выдержена пауза после последнего смс
       {
-        String str = GetStringFromFlash(smsText_PIR1);                             // достаем с флеш памяти строку
-        String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
-        if(gsm.SendSms(&str, &String(NUM1_SmsCommand)))
+        if(gsm.SendSms(&GetStringFromFlash(smsText_PIR1), &NumberRead(E_NUM1_SmsCommand)))
           prSmsPIR1 = millis();               
       }
       
       if (sPIR2 && !inTestMod                                                      // отправляем СМС если сработал датчик движения и не включен режим тестирование  
         && ((GetElapsed(prSmsPIR2) > timeSmsPIR2) or prSmsPIR2 == 0))              // и выдержена пауза после последнего смс
       {  
-        String str = GetStringFromFlash(smsText_PIR2);                             // достаем с флеш памяти строку
-        String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
-        if(gsm.SendSms(&str, &String(NUM1_SmsCommand)))
+        if(gsm.SendSms(&GetStringFromFlash(smsText_PIR2), &NumberRead(E_NUM1_SmsCommand)))
           prSmsPIR2 = millis();               
       }
 
       if (sTensionCable && !inTestMod)                                             // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
-      {  
-        String str = GetStringFromFlash(smsText_TensionCable);                     // достаем с флеш памяти строку
-        String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
-        gsm.SendSms(&str, &String(NUM1_SmsCommand));                    
+      {         
+        gsm.SendSms(&GetStringFromFlash(smsText_TensionCable), &NumberRead(E_NUM1_SmsCommand));                    
       }
       
       if ((GetElapsed(prCall) > timeCall) or prCall == 0)                          // проверяем сколько прошло времени после последнего звонка (выдерживаем паузц между звонками)
       {
         if(gsm.Call(NumberRead(E_NUM1_InContr)))                                   // отзваниваемся
-        prCall = millis();                                                       // если отзвон осуществлен то запоминаем время последнего отзвона
+        prCall = millis();                                                         // если отзвон осуществлен то запоминаем время последнего отзвона
       }
             
       if (sTensionCable) controlTensionCable = false;                              // отключаем контроль растяжки что б сирена не работала постоянно после разрыва растяжки
@@ -353,9 +345,8 @@ void loop()
      }         
   }                                                          // end InContrMod   
   if (gsm.NewUssd)                                           // если доступный новый ответ на gsm команду
-  {
-    String NumberGsmCode = NumberRead(E_NumberGsmCode);
-    gsm.SendSms(&gsm.UssdText, &NumberGsmCode);              // отправляем ответ на gsm команду
+  {    
+    gsm.SendSms(&gsm.UssdText, &NumberRead(E_NumberGsmCode));// отправляем ответ на gsm команду
     gsm.ClearUssd();                                         // сбрасываем ответ на gsm команду 
   }
   if (!isSiren) ExecSmsCommand();                            // если не сирена проверяем доступна ли новая команда по смс и если да то выполняем ее
@@ -551,18 +542,12 @@ void PowerControl()
   powCtr.Refresh();    
   digitalWrite(BattPowerLED, powCtr.IsBattPower());
         
-  if (!inTestMod && !powCtr.IsBattPowerPrevious() && powCtr.IsBattPower())          // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v) и если не включен режим тестирования
-  {
-    String str = GetStringFromFlash(smsText_BattPower);                             // достаем с флеш памяти строку   
-    String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
-    gsm.SendSms(&str, &String(NUM1_SmsCommand));                                          // отправляем смс о переходе на резервное питание         
-  } 
-  if (!inTestMod && powCtr.IsBattPowerPrevious() && !powCtr.IsBattPower())          // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования
-  {
-    String str = GetStringFromFlash(smsText_NetPower);                              // достаем с флеш памяти строку
-    String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
-    gsm.SendSms(&str, &String(NUM1_SmsCommand));                                          // отправляем смс о возобновлении  сетевое питание 220v        
-  }
+  if (!inTestMod && !powCtr.IsBattPowerPrevious() && powCtr.IsBattPower())                // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v) и если не включен режим тестирования
+    gsm.SendSms(&GetStringFromFlash(smsText_BattPower), &NumberRead(E_NUM1_SmsCommand));  // отправляем смс о переходе на резервное питание         
+   
+  if (!inTestMod && powCtr.IsBattPowerPrevious() && !powCtr.IsBattPower())                // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования  
+    gsm.SendSms(&GetStringFromFlash(smsText_NetPower), &NumberRead(E_NUM1_SmsCommand));                                          // отправляем смс о возобновлении  сетевое питание 220v        
+  
 }
 
 // короткое включение сирены (для тестирования модуля сирены)
@@ -609,18 +594,15 @@ void ExecSmsCommand()
 { 
   if (gsm.NewSms)
   {
-    String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
-    String NUM2_SmsCommand = NumberRead(E_NUM2_SmsCommand);
-    String NUM3_SmsCommand = NumberRead(E_NUM3_SmsCommand);   
     String msg = "";
-    if ((gsm.SmsNumber.indexOf(NUM1_SmsCommand) > -1 ||                                  // если обнаружено зарегистрированый номер
-         gsm.SmsNumber.indexOf(NUM2_SmsCommand) > -1 ||
-         gsm.SmsNumber.indexOf(NUM3_SmsCommand) > -1
+    if ((gsm.SmsNumber.indexOf(NumberRead(E_NUM1_SmsCommand)) > -1 ||                                  // если обнаружено зарегистрированый номер
+         gsm.SmsNumber.indexOf(NumberRead(E_NUM2_SmsCommand)) > -1 ||
+         gsm.SmsNumber.indexOf(NumberRead(E_NUM3_SmsCommand)) > -1
         ) 
         ||
-        (NUM1_SmsCommand.startsWith("***")  &&                                            // если нет зарегистрированных номеров (при первом включении необходимо зарегистрировать номера)
-         NUM2_SmsCommand.startsWith("***")  &&
-         NUM3_SmsCommand.startsWith("***")
+        (NumberRead(E_NUM1_SmsCommand).startsWith("***")  &&                                            // если нет зарегистрированных номеров (при первом включении необходимо зарегистрировать номера)
+         NumberRead(E_NUM2_SmsCommand).startsWith("***")  &&
+         NumberRead(E_NUM3_SmsCommand).startsWith("***")
          )
        )
     {                   
@@ -652,7 +634,8 @@ void ExecSmsCommand()
         {
           inTestMod = false;
           msg = GetStringFromFlash(smsText_TestModOff);                                  // достаем с флеш памяти строку
-        }   
+        }
+        else msg = GetStringFromFlash(smsText_ErrorCommand);   
         EEPROM.write(E_inTestMod, inTestMod);                                            // пишим режим тестирование датчиков в еепром                                                  
       }     
       else
@@ -668,7 +651,8 @@ void ExecSmsCommand()
         {
           Set_NotInContrMod();
           msg = GetStringFromFlash(smsText_NotInContrMod);
-        }        
+        }
+        else msg = GetStringFromFlash(smsText_ErrorCommand);
       }     
       else
       if (gsm.SmsText.startsWith("Redirect") || gsm.SmsText.startsWith("redirect"))        
@@ -684,6 +668,7 @@ void ExecSmsCommand()
           isRedirectSms = false;
           msg = GetStringFromFlash(smsText_RedirectOff);
         }
+        else msg = GetStringFromFlash(smsText_ErrorCommand);
         EEPROM.write(E_isRedirectSms, isRedirectSms);        
       }
       else
@@ -800,13 +785,12 @@ void ExecSmsCommand()
       else
       {
         PlayTone(specerTone, 250);              
-        msg = GetStringFromFlash(smsText_ErrorCommand);                                 // достаем с флеш памяти строку           
+        msg = GetStringFromFlash(smsText_ErrorCommand);                                        // достаем с флеш памяти строку           
       }       
     }
     else if (isRedirectSms)                                                                    // если смс пришла не с зарегистрированых номеров и включен режим перенаправления всех смс
     {
-      String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
-      gsm.SendSms(&String(/*"N: " + gsm.SmsNumber + '\n' + */gsm.SmsText), &String(NUM1_SmsCommand));     
+      gsm.SendSms(&String(/*"N: " + gsm.SmsNumber + '\n' + */gsm.SmsText), &NumberRead(E_NUM1_SmsCommand));     
     }
     if (msg.length() > 0) gsm.SendSms(&msg, &gsm.SmsNumber);
     gsm.ClearSms();                                                                            // очищаем обнаруженное входящие Смс
