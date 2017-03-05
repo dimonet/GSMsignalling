@@ -180,12 +180,7 @@ void MyGSM::Refresh()
         else       
         if (NewSms)                                        // если СМС
         {
-          if (currStr.length() > SMS_LIMIT)
-          {  
-            currStr = currStr.substring(0, SMS_LIMIT - 4);     // обрезаем строку до 156 символов что б она поместилась в одну смс
-            currStr += "...";                              // добавляем многоточие для указания, что текст не полный
-          }
-          SmsText = currStr;                                         
+          SmsText = currStr;                                        
         }
                 
       }

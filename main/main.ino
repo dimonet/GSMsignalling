@@ -165,7 +165,7 @@ void setup()
   
   // блок тестирования спикера и всех светодиодов
   PlayTone(specerTone, 100);                          
-  delay(500);
+  /*delay(500);
   digitalWrite(gsmLED, HIGH);
   digitalWrite(NotInContrLED, HIGH);
   digitalWrite(InContrLED, HIGH);
@@ -177,7 +177,7 @@ void setup()
   digitalWrite(InContrLED, LOW);
   digitalWrite(SirenLED, LOW);
   digitalWrite(BattPowerLED, LOW);
-  
+  */
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
   digitalWrite(BattPowerLED, powCtr.IsBattPower());     // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
   
@@ -806,7 +806,7 @@ void ExecSmsCommand()
     else if (isRedirectSms)                                                                    // если смс пришла не с зарегистрированых номеров и включен режим перенаправления всех смс
     {
       String NUM1_SmsCommand = NumberRead(E_NUM1_SmsCommand);
-      gsm.SendSms(&String("N: " + gsm.SmsNumber + '\n' + gsm.SmsText), &String(NUM1_SmsCommand));     
+      gsm.SendSms(&String(/*"N: " + gsm.SmsNumber + '\n' + */gsm.SmsText), &String(NUM1_SmsCommand));     
     }
     if (msg.length() > 0) gsm.SendSms(&msg, &gsm.SmsNumber);
     gsm.ClearSms();                                                                            // очищаем обнаруженное входящие Смс
