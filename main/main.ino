@@ -43,7 +43,7 @@ const char smsText_NotInContrMod[] PROGMEM = {"Command: Control mode has been tu
 const char smsText_RedirectOn[]    PROGMEM = {"Command: SMS redirection has been turned on."};        // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
 const char smsText_RedirectOff[]   PROGMEM = {"Command: SMS redirection has been turned off."};       // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
 const char smsText_SkimpySiren[]   PROGMEM = {"Command: Skimpy siren has been turned on."};           // выполнена команда для коротковременного включения сирены
-const char smsText_WasRebooted[]   PROGMEM = {"Command: Device was Rebooted."};                       // выполнена команда для коротковременного включения сирены
+const char smsText_WasRebooted[]   PROGMEM = {"Command: Device was rebooted."};                       // выполнена команда для коротковременного включения сирены
 
 // паузы
 #define  timeWaitInContr      25                           // Время паузы от нажатие кнопки до установки режима охраны
