@@ -14,9 +14,9 @@ MyGSM::MyGSM(byte gsmLED, byte pinBOOT)
 {
   _gsmLED = gsmLED;
   _pinBOOT = pinBOOT;
-  NewRing = false;
-  NewSms = false;
-  NewUssd = false;
+  ClearRing();
+  ClearSms();
+  ClearUssd();  
 }
 
 // Инициализация gsm модуля (включения, настройка)
@@ -165,9 +165,9 @@ void MyGSM::Refresh()
           strCount = 1;
         }
         else
-        if (currStr.startsWith("+CUSD"))
+        if (currStr.startsWith("+CUSD"))                   // если ответ от gsm команды
         {
-          BlinkLED(0, 250, 0);                               // сигнализируем об этом
+          BlinkLED(0, 250, 0);                             // сигнализируем об этом
           NewUssd = true;         
           UssdText = GetString(&currStr);                    
         }         
@@ -206,7 +206,7 @@ void MyGSM::Refresh()
       delay(5);
     }
   }
-    
+      
   if (NewSms)
   { 
     serial.println("AT+CMGD=1,4");                         // удаление всех старых смс
