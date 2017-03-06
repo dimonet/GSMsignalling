@@ -211,9 +211,9 @@ void MyGSM::Refresh()
 
 void MyGSM::SetString(String *source, String *target)
 {
-  unsigned int beginStr = source->indexOf('\"');
+  byte beginStr = source->indexOf('\"');
   *target = source->substring(beginStr + 1);
-  unsigned int duration = target->indexOf('\"');  
+  byte duration = target->indexOf('\"');  
   if (duration > 0)
     *target = target->substring(0, duration - 1);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
   if (target->length() > SMS_LIMIT)

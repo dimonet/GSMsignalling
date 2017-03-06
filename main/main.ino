@@ -7,7 +7,7 @@
 #include "PowerControl.h"
 #include <avr/pgmspace.h>
 
-#define debug Serial
+//#define debug Serial
 
 //// НАСТРОЕЧНЫЕ КОНСТАНТЫ /////
 // номера телефонов
@@ -144,7 +144,7 @@ void(* RebootFunc) (void) = 0;                          // объявляем ф
 void setup() 
 {
   delay(1000);                                // !! чтобы нечего не повисало при включении
-  debug.begin(9600);
+  //debug.begin(9600);
   pinMode(SpecerPin, OUTPUT);
   pinMode(gsmLED, OUTPUT);
   pinMode(NotInContrLED, OUTPUT);
