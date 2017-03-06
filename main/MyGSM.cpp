@@ -8,7 +8,7 @@
 //#define serial Serial1                        // если аппаратный в леонардо
 
 #define GSM_TIMEOUT 60000                       // врем ожидание готовности модема (милсек)  
-#define SMS_LIMIT   160                         // максимальное куличество символов в смс (большео лимита все символы обрезается)
+#define SMS_LIMIT   150                         // максимальное куличество символов в смс (большео лимита все символы обрезается)
 
 MyGSM::MyGSM(byte gsmLED, byte pinBOOT)
 {
@@ -211,9 +211,9 @@ void MyGSM::Refresh()
 
 void MyGSM::SetString(String *source, String *target)
 {
-  int beginStr = source->indexOf('\"');
+  unsigned int beginStr = source->indexOf('\"');
   *target = source->substring(beginStr + 1);
-  int duration = target->indexOf("\"");  
+  unsigned int duration = target->indexOf('\"');  
   if (duration > 0)
     *target = target->substring(0, duration - 1);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
   if (target->length() > SMS_LIMIT)

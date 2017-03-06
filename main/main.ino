@@ -1,6 +1,6 @@
 /// GSM сигналка c установкой по кнопке
 /// датчиком на прерывателях и движения
-/// ВНИМАНИЕ: для корретной работы sms необходимо установить размеры буферов вместо 64 на SERIAL_TX_BUFFER_SIZE 24 и SERIAL_RX_BUFFER_SIZE 180 в файле hardware\arduino\avr\cores\arduino\HardwareSerial.h
+/// ВНИМАНИЕ: для корретной работы sms необходимо установить размеры буферов вместо 64 на SERIAL_TX_BUFFER_SIZE 24 и SERIAL_RX_BUFFER_SIZE 170 в файле hardware\arduino\avr\cores\arduino\HardwareSerial.h
 
 #include <EEPROM.h>
 #include "MyGSM.h"
