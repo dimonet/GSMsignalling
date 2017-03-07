@@ -103,11 +103,11 @@ bool MyGSM::SendSms(String *text, String *phone)      //процедура от�
 }
 
 // звонок на заданый номер
-bool MyGSM::Call(String phone)
+bool MyGSM::Call(String *phone)
 {  
   if (!IsAvailable()) return false;                  // ждем готовности модема и если он не ответил за заданный таймаут то прырываем выполнения звонка 
-  phone = phone.substring(1);                        // отрезаем плюс в начале так как для звонка формат номера без плюса
-  serial.println("ATD+" + phone + ";");
+  *phone = phone->substring(1);                      // отрезаем плюс в начале так как для звонка формат номера без плюса
+  serial.println("ATD+" + *phone + ";");
   BlinkLED(0, 250, 0);                               // сигнализируем об этом 
   return true;
 }
@@ -119,11 +119,12 @@ void MyGSM::RejectCall()
 }
 
 // запрос gsm кода (*#) 
-bool MyGSM::RequestGsmCode(String code)
+bool MyGSM::RequestGsmCode(String *code)
 {    
   while (serial.available()) serial.read();
-  serial.println("ATD" + code);
-  //serial.println("AT+CUSD=1,\"" + code + "\"");
+  BlinkLED(0, 250, 0);
+  serial.println("ATD" + *code);
+  //serial.println("AT+CUSD=1,\"" + *code + "\"");
   return true; 
 }
 
