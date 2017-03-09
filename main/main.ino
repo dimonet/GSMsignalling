@@ -103,6 +103,8 @@ const char sms_WrongGsmCommand[] PROGMEM = {"Command: Wrong GSM command."};     
 
 #define numSize            13                   // количество символов в строке телефонного номера
 
+#define E_ButtonGSMcode    70                   // GSM код для запроса баланца
+
 #define E_NumberGsmCode    85                   // для промежуточного хранения номера телефона, от которого получено gsm код и которому необходимо отправить ответ (баланс и т.д.)
 
 #define E_NUM1_NotInContr  100                  // 1-й номер для снятие с охраны
@@ -115,7 +117,7 @@ const char sms_WrongGsmCommand[] PROGMEM = {"Command: Wrong GSM command."};     
 #define E_NUM1_SmsCommand  175                  // 1-й номер для управления через sms
 #define E_NUM2_SmsCommand  190                  // 2-й номер для управления через sms
 #define E_NUM3_SmsCommand  205                  // 3-й номер для управления через sms
-
+  
 
 
 //// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ////
@@ -240,7 +242,7 @@ void loop()
       if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
       {
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером                        
-        if(!gsm.RequestGsmCode(&GetStringFromFlash(GSMCODE_BALANCE)))
+        if(!gsm.RequestGsmCode(&NumberRead(E_ButtonGSMcode)))
           gsm.SendSms(&GetStringFromFlash(sms_WrongGsmCommand), &NumberRead(E_NUM1_SmsCommand));     // отправляем смс о возобновлении  сетевое питание 220v      ;
         else
         {
@@ -692,6 +694,18 @@ void ExecSmsCommand()
             + "Power: "            + String((powCtr.IsBattPower) ? "battery" : "network");       
       }           
       else 
+      if(gsm.SmsText.startsWith("ButtonGSMcode")|| gsm.SmsText.startsWith("Buttongsmcode") || gsm.SmsText.startsWith("buttongsmcode"))
+      {
+        PlayTone(specerTone, 250);
+        String text = gsm.SmsText;
+        int beginStr = text.indexOf('\'');
+        text = text.substring(beginStr + 1);
+        int duration = text.indexOf('\'');  
+        if (duration > 0) text = text.substring(0, duration);             
+        NumberWrite(E_ButtonGSMcode, &text);
+      }
+      
+      else
       if (gsm.SmsText.startsWith("NotInContr1") || gsm.SmsText.startsWith("Notincontr1") || gsm.SmsText.startsWith("notincontr1"))
       {
         PlayTone(specerTone, 250);              
