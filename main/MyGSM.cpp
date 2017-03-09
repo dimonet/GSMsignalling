@@ -121,6 +121,8 @@ void MyGSM::RejectCall()
 // запрос gsm кода (*#) 
 bool MyGSM::RequestGsmCode(String *code)
 {    
+  if (SmsText.startsWith("*") == -1 || SmsText.indexOf('#') == -1 || SmsText.indexOf('#') < SmsText.startsWith("*"))
+    return false;
   while (serial.available()) serial.read();
   BlinkLED(0, 250, 0);
   serial.println("ATD" + *code);
