@@ -690,7 +690,8 @@ void ExecSmsCommand()
         PlayTone(specerTone, 250);        
         msg = "On controlling: "   +           String((mode == InContrMod) ? "on" : "off") + "\n"
             + "Test mode: "        +                    String((inTestMod) ? "on" : "off") + "\n" 
-            + "Redirect SMS: "     + String((EEPROM.read(E_isRedirectSms)) ? "on" : "off") + "\n";       
+            + "Redirect SMS: "     + String((EEPROM.read(E_isRedirectSms)) ? "on" : "off") + "\n"
+            + "Power: "            + String((powCtr.IsBattPower()) ? "battery" : "network");       
       }           
       else 
       if (gsm.SmsText.startsWith("NotInContr1") || gsm.SmsText.startsWith("Notincontr1") || gsm.SmsText.startsWith("notincontr1"))
