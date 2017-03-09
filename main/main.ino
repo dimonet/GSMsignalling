@@ -161,9 +161,7 @@ void setup()
   pinMode(pinMeasureVcc, INPUT);              // нога чтения типа питания (БП или батарея)    
 
   digitalWrite(SirenGenerator, HIGH);         // выключаем сирену через релье
-  
-  digitalWrite(BattPowerLED, powCtr.IsBattPower());     // если питаимся от батареи включам соотвествующий LED
-  
+
   // блок тестирования спикера и всех светодиодов
   PlayTone(specerTone, 100);                          
   delay(500);
@@ -180,7 +178,7 @@ void setup()
   digitalWrite(BattPowerLED, LOW);
   
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
-  digitalWrite(BattPowerLED, powCtr.IsBattPower());     // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
+  digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
   
   gsm.Initialize();                                     // инициализация gsm модуля (включения, настройка) 
     
@@ -540,12 +538,12 @@ void BlinkLEDSpecer(byte pinLED,  unsigned int millisBefore,  unsigned int milli
 void PowerControl()
 {
   powCtr.Refresh();    
-  digitalWrite(BattPowerLED, powCtr.IsBattPower());
+  digitalWrite(BattPowerLED, powCtr.IsBattPower);
         
-  if (!inTestMod && !powCtr.IsBattPowerPrevious() && powCtr.IsBattPower())                // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v) и если не включен режим тестирования
+  if (!inTestMod && !powCtr.IsBattPowerPrevious && powCtr.IsBattPower)                    // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v) и если не включен режим тестирования
     gsm.SendSms(&GetStringFromFlash(smsText_BattPower), &NumberRead(E_NUM1_SmsCommand));  // отправляем смс о переходе на резервное питание         
    
-  if (!inTestMod && powCtr.IsBattPowerPrevious() && !powCtr.IsBattPower())                // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования  
+  if (!inTestMod && powCtr.IsBattPowerPrevious && !powCtr.IsBattPower)                    // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования  
     gsm.SendSms(&GetStringFromFlash(smsText_NetPower), &NumberRead(E_NUM1_SmsCommand));                                          // отправляем смс о возобновлении  сетевое питание 220v        
   
 }
@@ -691,7 +689,7 @@ void ExecSmsCommand()
         msg = "On controlling: "   +           String((mode == InContrMod) ? "on" : "off") + "\n"
             + "Test mode: "        +                    String((inTestMod) ? "on" : "off") + "\n" 
             + "Redirect SMS: "     + String((EEPROM.read(E_isRedirectSms)) ? "on" : "off") + "\n"
-            + "Power: "            + String((powCtr.IsBattPower()) ? "battery" : "network");       
+            + "Power: "            + String((powCtr.IsBattPower) ? "battery" : "network");       
       }           
       else 
       if (gsm.SmsText.startsWith("NotInContr1") || gsm.SmsText.startsWith("Notincontr1") || gsm.SmsText.startsWith("notincontr1"))

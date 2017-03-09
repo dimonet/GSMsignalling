@@ -16,12 +16,12 @@ PowerControl::PowerControl(byte netVcc, byte  battVcc, byte pinMeasureVcc)
 // Инициализация gsm модуля (включения, настройка)
 void PowerControl::Refresh()
 {
-  _isBattPowerPrevious = _isBattPower;
-  _vccValue = MeasureVccValue();  
-  if (_vccValue >= (_netVcc - _netVccDelta))
-      _isBattPower = false;
+  IsBattPowerPrevious = IsBattPower;
+  VccValue = MeasureVccValue();  
+  if (VccValue >= (_netVcc - _netVccDelta))
+      IsBattPower = false;
   else 
-      _isBattPower = true;  
+      IsBattPower = true;  
 }
 
 float PowerControl::MeasureVccValue()
@@ -29,23 +29,6 @@ float PowerControl::MeasureVccValue()
   float Vbat = (analogRead(_pinMeasureVcc) * 1.1) / 1024.0;
   return Vbat / (R2 / (R1 + R2));  
 }
-
-
-float PowerControl::VccValue()
-{
-  return _vccValue;
-}
-
-
-bool PowerControl::IsBattPower()
-{
-  return _isBattPower;  
-}
-
-
-bool PowerControl::IsBattPowerPrevious()
-{
-  return _isBattPowerPrevious;
-};
+;
 
 
