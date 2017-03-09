@@ -24,7 +24,7 @@
 //#define NUMBER3_SmsCommand    "+380506228524"         // 3-й номер для управления через sms 
 
 
-const char GSMCODE_BALANCE[]       PROGMEM = {"*101#"};                                               // GSM код для запроса баланца
+//const char GSMCODE_BALANCE[]       PROGMEM = {"*101#"};                                               // GSM код для запроса баланца
 
 // SMS
 const char sms_TensionCable[]  PROGMEM = {"ALARM: TensionCable sensor."};                         // текст смс для растяжки
@@ -35,7 +35,7 @@ const char sms_BattPower[]     PROGMEM = {"POWER: Backup Battery is used for pow
 const char sms_NetPower[]      PROGMEM = {"POWER: Network power has been restored."};             // текст смс для оповещения о том, что сетевое питание возобновлено
 
 
-const char sms_ErrorCommand[]    PROGMEM = {"Command: ERROR. Available only commands:\ngsm code,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nReboot,\nStatus,\nNotInContr,\nInContr,\nSmsCommand."};  // смс команда не распознана
+const char sms_ErrorCommand[]    PROGMEM = {"Command: ERROR. Available only commands:\ngsm code,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nReboot,\nStatus,\nButtonGSMcode,\nNotInContr,\nInContr,\nSmsCommand."};  // смс команда не распознана
 const char sms_TestModOn[]       PROGMEM = {"Command: Test mode has been turned on."};              // выполнена команда для включения тестового режима для тестирования датчиков
 const char sms_TestModOff[]      PROGMEM = {"Command: Test mode has been turned off."};             // выполнена команда для выключения тестового режима для тестирования датчиков
 const char sms_InContrMod[]      PROGMEM = {"Command: Control mode has been turned on."};           // выполнена команда для установку на охрану
@@ -45,6 +45,7 @@ const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection has been t
 const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren has been turned on."};           // выполнена команда для коротковременного включения сирены
 const char sms_WasRebooted[]     PROGMEM = {"Command: Device was rebooted."};                       // выполнена команда для коротковременного включения сирены
 const char sms_WrongGsmCommand[] PROGMEM = {"Command: Wrong GSM command."};                         // сообщение о неправельной gsm комманде
+const char sms_ButtonGSMcode[]   PROGMEM = {"Command: GSM command for button was changed to "};        // сообщение о неправельной gsm комманде
 
 // паузы
 #define  timeWaitInContr      25                           // время паузы от нажатие кнопки до установки режима охраны
@@ -242,7 +243,7 @@ void loop()
       if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
       {
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером                        
-        if(!gsm.RequestGsmCode(&NumberRead(E_ButtonGSMcode)))
+        if(!gsm.RequestGsmCode(&ReadFromEEPROM(E_ButtonGSMcode)))
           gsm.SendSms(&GetStringFromFlash(sms_WrongGsmCommand), &NumberRead(E_NUM1_SmsCommand));     // отправляем смс о возобновлении  сетевое питание 220v      ;
         else
         {
@@ -588,11 +589,17 @@ void NumberWrite(byte e_addr, String *number)
 
 String NumberRead(byte e_add)
 {
- char charread[numSize+1];
- EEPROM.get(e_add, charread);
- String num(charread);
+ String num = ReadFromEEPROM(e_add);
  if (num.startsWith("+")) return num;
  else return "***";
+}
+
+String ReadFromEEPROM(byte e_add)
+{
+ char charread[numSize+1];
+ EEPROM.get(e_add, charread);
+ String str(charread);
+ return str;
 }
 
 // читаем смс и если доступна новая команда по смс то выполняем ее
@@ -616,7 +623,7 @@ void ExecSmsCommand()
       {
         PlayTone(specerTone, 250); 
         if (!gsm.RequestGsmCode(&gsm.SmsText))                                                                
-          msg = GetStringFromFlash(sms_ErrorCommand);                                    // достаем с флеш памяти строку                                   
+          msg = GetStringFromFlash(sms_WrongGsmCommand);                                 // достаем с флеш памяти строку                                   
         else
           NumberWrite(E_NumberGsmCode, &gsm.SmsNumber);                                  // сохраняем номер на который необходимо будет отправить ответ                                      
       }
@@ -697,28 +704,28 @@ void ExecSmsCommand()
       if(gsm.SmsText.startsWith("ButtonGSMcode")|| gsm.SmsText.startsWith("Buttongsmcode") || gsm.SmsText.startsWith("buttongsmcode"))
       {
         PlayTone(specerTone, 250);
-        String text = gsm.SmsText;
-        int beginStr = text.indexOf('\'');
-        text = text.substring(beginStr + 1);
-        int duration = text.indexOf('\'');  
-        if (duration > 0) text = text.substring(0, duration);             
-        NumberWrite(E_ButtonGSMcode, &text);
+        int beginStr = gsm.SmsText.indexOf('\'');
+        gsm.SmsText = gsm.SmsText.substring(beginStr + 1);
+        int duration = gsm.SmsText.indexOf('\'');  
+        gsm.SmsText = gsm.SmsText.substring(0, duration);             
+        NumberWrite(E_ButtonGSMcode, &gsm.SmsText);
+                  
+        msg = GetStringFromFlash(sms_ButtonGSMcode) + "'" + ReadFromEEPROM(E_ButtonGSMcode) + "'";
       }
       
       else
       if (gsm.SmsText.startsWith("NotInContr1") || gsm.SmsText.startsWith("Notincontr1") || gsm.SmsText.startsWith("notincontr1"))
       {
-        PlayTone(specerTone, 250);              
-        String text = gsm.SmsText;
+        PlayTone(specerTone, 250);                      
         String nums[3];
         
         for(int i = 0; i < 3; i++)
         {
-          int beginStr = text.indexOf('\'');
-          text = text.substring(beginStr + 1);
-          int duration = text.indexOf('\'');  
-          nums[i] = text.substring(0, duration);      
-          text = text.substring(duration +1);            
+          int beginStr = gsm.SmsText.indexOf('\'');
+          gsm.SmsText = gsm.SmsText.substring(beginStr + 1);
+          int duration = gsm.SmsText.indexOf('\'');  
+          nums[i] = gsm.SmsText.substring(0, duration);      
+          gsm.SmsText = gsm.SmsText.substring(duration +1);            
         }        
         NumberWrite(E_NUM1_NotInContr , &nums[0]);        
         NumberWrite(E_NUM2_NotInContr, &nums[1]);  
@@ -730,17 +737,16 @@ void ExecSmsCommand()
       else     
       if (gsm.SmsText.startsWith("InContr1") || gsm.SmsText.startsWith("Incontr1") || gsm.SmsText.startsWith("incontr1"))
       {
-        PlayTone(specerTone, 250);              
-        String text = gsm.SmsText;
+        PlayTone(specerTone, 250);                     
         String nums[2];
         
         for(int i = 0; i < 2; i++)
         {
-          int beginStr = text.indexOf('\'');
-          text = text.substring(beginStr + 1);
-          int duration = text.indexOf('\'');  
-          nums[i] = text.substring(0, duration);      
-          text = text.substring(duration +1);             
+          int beginStr = gsm.SmsText.indexOf('\'');
+          gsm.SmsText = gsm.SmsText.substring(beginStr + 1);
+          int duration = gsm.SmsText.indexOf('\'');  
+          nums[i] = gsm.SmsText.substring(0, duration);      
+          gsm.SmsText = gsm.SmsText.substring(duration +1);             
         }              
         NumberWrite(E_NUM1_InContr, &nums[0]);  
         NumberWrite(E_NUM2_InContr, &nums[1]);
@@ -750,17 +756,16 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText.startsWith("SmsCommand1") || gsm.SmsText.startsWith("Smscommand1") || gsm.SmsText.startsWith("smscommand1"))
       {
-        PlayTone(specerTone, 250);              
-        String text = gsm.SmsText;
+        PlayTone(specerTone, 250);                     
         String nums[3];
         
         for(int i = 0; i < 3; i++)
         {
-          int beginStr = text.indexOf('\'');
-          text = text.substring(beginStr + 1);
-          int duration = text.indexOf('\'');  
-          nums[i] = text.substring(0, duration);      
-          text = text.substring(duration +1);         
+          int beginStr = gsm.SmsText.indexOf('\'');
+          gsm.SmsText = gsm.SmsText.substring(beginStr + 1);
+          int duration = gsm.SmsText.indexOf('\'');  
+          nums[i] = gsm.SmsText.substring(0, duration);      
+          gsm.SmsText = gsm.SmsText.substring(duration +1);         
         }        
         NumberWrite(E_NUM1_SmsCommand, &nums[0]);  
         NumberWrite(E_NUM2_SmsCommand, &nums[1]);
@@ -804,9 +809,9 @@ void ExecSmsCommand()
     {
       gsm.SendSms(&String(/*"N: " + gsm.SmsNumber + '\n' + */gsm.SmsText), &NumberRead(E_NUM1_SmsCommand));     
     }
-    if (msg.length() > 0) gsm.SendSms(&msg, &gsm.SmsNumber);
-    gsm.ClearSms();                                                                            // очищаем обнаруженное входящие Смс
+    if (msg.length() > 0) gsm.SendSms(&msg, &gsm.SmsNumber);                                                                              // очищаем обнаруженное входящие Смс
   }
+  gsm.ClearSms(); 
 }
 
 
