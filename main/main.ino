@@ -240,8 +240,13 @@ void loop()
       if (countPressBtn == countBtnBalance)                           // если кнопку нажали заданное количество для запроса баланса счета
       {
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером                        
-        gsm.RequestGsmCode(&GetStringFromFlash(GSMCODE_BALANCE));
-        gsm.ClearSms();                           
+        if(!gsm.RequestGsmCode(&GetStringFromFlash(GSMCODE_BALANCE)))
+          gsm.SendSms(&GetStringFromFlash(sms_WrongGsmCommand), &NumberRead(E_NUM1_SmsCommand));     // отправляем смс о возобновлении  сетевое питание 220v      ;
+        else
+        {
+          NumberWrite(E_NumberGsmCode, &NumberRead(E_NUM1_SmsCommand));                              // сохраняем номер на который необходимо будет отправить ответ 
+          gsm.ClearSms();                           
+        }
       }                                                                                
       else
       // кратковременное включение сирены (для тестирования модуля сирены)
