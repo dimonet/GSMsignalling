@@ -244,7 +244,7 @@ void loop()
       {
         PlayTone(specerTone, 250);                                    // сигнализируем об этом спикером                        
         if(!gsm.RequestGsmCode(&ReadFromEEPROM(E_ButtonGSMcode)))
-          gsm.SendSms(&GetStringFromFlash(sms_WrongGsmCommand), &NumberRead(E_NUM1_SmsCommand));     // отправляем смс о возобновлении  сетевое питание 220v      ;
+          gsm.SendSms(&GetStringFromFlash(sms_WrongGsmCommand), &NumberRead(E_NUM1_SmsCommand));
         else
         {
           NumberWrite(E_NumberGsmCode, &NumberRead(E_NUM1_SmsCommand));                              // сохраняем номер на который необходимо будет отправить ответ 

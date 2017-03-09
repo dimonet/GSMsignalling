@@ -120,8 +120,8 @@ void MyGSM::RejectCall()
 
 // запрос gsm кода (*#) 
 bool MyGSM::RequestGsmCode(String *code)
-{    
-  if (SmsText.startsWith("*") == -1 || SmsText.indexOf('#') == -1 || SmsText.indexOf('#') < SmsText.startsWith("*"))
+{
+  if (code->startsWith("*") == -1 || code->indexOf('#') == -1 || code->indexOf('#') < code->startsWith("*"))
     return false;
   while (serial.available()) serial.read();
   BlinkLED(0, 250, 0);
