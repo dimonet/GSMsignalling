@@ -747,8 +747,7 @@ void ExecSmsCommand()
       {
         PlayTone(specerTone, 250);                     
         String nums[2];
-        String str = gsm.SmsText; 
-        
+        String str = gsm.SmsText;         
         for(int i = 0; i < 2; i++)
         {
           int beginStr = str.indexOf('\'');
@@ -768,8 +767,7 @@ void ExecSmsCommand()
       {
         PlayTone(specerTone, 250);                     
         String nums[3];
-        String str = gsm.SmsText;
-        
+        String str = gsm.SmsText;        
         for(int i = 0; i < 3; i++)
         {
           int beginStr = str.indexOf('\'');
