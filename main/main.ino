@@ -553,8 +553,7 @@ void PowerControl()
     gsm.SendSms(&GetStringFromFlash(sms_BattPower), &NumberRead(E_NUM1_SmsCommand));  // отправляем смс о переходе на резервное питание         
    
   if (!inTestMod && powCtr.IsBattPowerPrevious && !powCtr.IsBattPower)                    // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования  
-    gsm.SendSms(&GetStringFromFlash(sms_NetPower), &NumberRead(E_NUM1_SmsCommand));                                          // отправляем смс о возобновлении  сетевое питание 220v        
-  
+    gsm.SendSms(&GetStringFromFlash(sms_NetPower), &NumberRead(E_NUM1_SmsCommand));                                          // отправляем смс о возобновлении  сетевое питание 220v 
 }
 
 // короткое включение сирены (для тестирования модуля сирены)
@@ -589,8 +588,10 @@ void NumberWrite(byte e_addr, String *number)
 
 String NumberRead(byte e_add)
 {
- String num = ReadFromEEPROM(e_add);
- if (num.startsWith("+")) return num;
+ char charread[numSize+1];
+ EEPROM.get(e_add, charread);
+ String str(charread);
+ if (str.startsWith("+")) return str;
  else return "***";
 }
 
