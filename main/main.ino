@@ -711,11 +711,12 @@ void ExecSmsCommand()
       if(gsm.SmsText.startsWith("balancegsmcode"))
       {
         PlayTone(specerTone, 250);
-        int beginStr = gsm.SmsText.indexOf('\'');
-        gsm.SmsText = gsm.SmsText.substring(beginStr + 1);
-        int duration = gsm.SmsText.indexOf('\'');  
-        gsm.SmsText = gsm.SmsText.substring(0, duration);             
-        WriteToEEPROM(E_BalanceGSMcode, &gsm.SmsText);
+        String str = gsm.SmsText;
+        int beginStr = str.indexOf('\'');
+        str = str.substring(beginStr + 1);
+        int duration = str.indexOf('\'');  
+        str = str.substring(0, duration);             
+        WriteToEEPROM(E_BalanceGSMcode, &str);
         String msg = GetStringFromFlash(sms_BalanceGSMcode) + "'" + ReadFromEEPROM(E_BalanceGSMcode) + "'";
         gsm.SendSms(&msg, &gsm.SmsNumber);          
       }     
@@ -724,21 +725,21 @@ void ExecSmsCommand()
       {
         PlayTone(specerTone, 250);                      
         String nums[3];
-        
+        String str = gsm.SmsText;;
         for(int i = 0; i < 3; i++)
         {
-          int beginStr = gsm.SmsText.indexOf('\'');
-          gsm.SmsText = gsm.SmsText.substring(beginStr + 1);
-          int duration = gsm.SmsText.indexOf('\'');  
-          nums[i] = gsm.SmsText.substring(0, duration);      
-          gsm.SmsText = gsm.SmsText.substring(duration +1);            
+          int beginStr = str.indexOf('\'');
+          str = str.substring(beginStr + 1);
+          int duration = str.indexOf('\'');  
+          nums[i] = str.substring(0, duration);      
+          str = str.substring(duration +1);            
         }        
         WriteToEEPROM(E_NUM1_NotInContr , &nums[0]);        
         WriteToEEPROM(E_NUM2_NotInContr, &nums[1]);  
         WriteToEEPROM(E_NUM3_NotInContr, &nums[2]);          
         String msg = "NotInContr1:\n'" + NumberRead(E_NUM1_NotInContr) + "'" + "\n"
-            + "NotInContr2:\n'" + NumberRead(E_NUM2_NotInContr) + "'" + "\n"
-            + "NotInContr3:\n'" + NumberRead(E_NUM3_NotInContr) + "'";
+                   + "NotInContr2:\n'" + NumberRead(E_NUM2_NotInContr) + "'" + "\n"
+                   + "NotInContr3:\n'" + NumberRead(E_NUM3_NotInContr) + "'";
         gsm.SendSms(&msg, &gsm.SmsNumber);    
       }
       else     
@@ -746,19 +747,20 @@ void ExecSmsCommand()
       {
         PlayTone(specerTone, 250);                     
         String nums[2];
+        String str = gsm.SmsText; 
         
         for(int i = 0; i < 2; i++)
         {
-          int beginStr = gsm.SmsText.indexOf('\'');
-          gsm.SmsText = gsm.SmsText.substring(beginStr + 1);
-          int duration = gsm.SmsText.indexOf('\'');  
-          nums[i] = gsm.SmsText.substring(0, duration);      
-          gsm.SmsText = gsm.SmsText.substring(duration +1);             
+          int beginStr = str.indexOf('\'');
+          str = str.substring(beginStr + 1);
+          int duration = str.indexOf('\'');  
+          nums[i] = str.substring(0, duration);      
+          str = str.substring(duration +1);             
         }              
         WriteToEEPROM(E_NUM1_InContr, &nums[0]);  
         WriteToEEPROM(E_NUM2_InContr, &nums[1]);
         String msg = "InContr1:\n'" + NumberRead(E_NUM1_InContr) + "'" + "\n"
-            + "InContr2:\n'" + NumberRead(E_NUM2_InContr) + "'";
+                   + "InContr2:\n'" + NumberRead(E_NUM2_InContr) + "'";
         gsm.SendSms(&msg, &gsm.SmsNumber);               
       }
       else
@@ -766,21 +768,22 @@ void ExecSmsCommand()
       {
         PlayTone(specerTone, 250);                     
         String nums[3];
+        String str = gsm.SmsText;
         
         for(int i = 0; i < 3; i++)
         {
-          int beginStr = gsm.SmsText.indexOf('\'');
-          gsm.SmsText = gsm.SmsText.substring(beginStr + 1);
-          int duration = gsm.SmsText.indexOf('\'');  
-          nums[i] = gsm.SmsText.substring(0, duration);      
-          gsm.SmsText = gsm.SmsText.substring(duration +1);         
+          int beginStr = str.indexOf('\'');
+          str = str.substring(beginStr + 1);
+          int duration = str.indexOf('\'');  
+          nums[i] = str.substring(0, duration);      
+          str = str.substring(duration +1);         
         }        
         WriteToEEPROM(E_NUM1_SmsCommand, &nums[0]);  
         WriteToEEPROM(E_NUM2_SmsCommand, &nums[1]);
         WriteToEEPROM(E_NUM3_SmsCommand, &nums[2]);        
         String msg = "SmsCommand1:\n'" + NumberRead(E_NUM1_SmsCommand) + "'" + "\n"
-            + "SmsCommand2:\n'" + NumberRead(E_NUM2_SmsCommand) + "'" + "\n"
-            + "SmsCommand3:\n'" + NumberRead(E_NUM3_SmsCommand) + "'";
+                   + "SmsCommand2:\n'" + NumberRead(E_NUM2_SmsCommand) + "'" + "\n"
+                   + "SmsCommand3:\n'" + NumberRead(E_NUM3_SmsCommand) + "'";
         gsm.SendSms(&msg, &gsm.SmsNumber);     
       }
       else      
@@ -788,8 +791,8 @@ void ExecSmsCommand()
       {
         PlayTone(specerTone, 250);        
         String msg = "NotInContr1:\n'" + NumberRead(E_NUM1_NotInContr) + "'" + "\n"
-            + "NotInContr2:\n'" + NumberRead(E_NUM2_NotInContr) + "'" + "\n"
-            + "NotInContr3:\n'" + NumberRead(E_NUM3_NotInContr) + "'";
+                   + "NotInContr2:\n'" + NumberRead(E_NUM2_NotInContr) + "'" + "\n"
+                   + "NotInContr3:\n'" + NumberRead(E_NUM3_NotInContr) + "'";
         gsm.SendSms(&msg, &gsm.SmsNumber);                    
       }
       else
@@ -797,7 +800,7 @@ void ExecSmsCommand()
       {
         PlayTone(specerTone, 250);       
         String msg = "InContr1:\n'" + NumberRead(E_NUM1_InContr) + "'" + "\n"
-            + "InContr2:\n'" + NumberRead(E_NUM2_InContr) + "'";    
+                   + "InContr2:\n'" + NumberRead(E_NUM2_InContr) + "'";    
         gsm.SendSms(&msg, &gsm.SmsNumber);
       }
       else
@@ -805,8 +808,8 @@ void ExecSmsCommand()
       {
         PlayTone(specerTone, 250);       
         String msg = "SmsCommand1:\n'" + NumberRead(E_NUM1_SmsCommand) + "'" + "\n"
-            + "SmsCommand2:\n'" + NumberRead(E_NUM2_SmsCommand) + "'" + "\n" 
-            + "SmsCommand3:\n'" + NumberRead(E_NUM3_SmsCommand) + "'";
+                   + "SmsCommand2:\n'" + NumberRead(E_NUM2_SmsCommand) + "'" + "\n" 
+                   + "SmsCommand3:\n'" + NumberRead(E_NUM3_SmsCommand) + "'";
         gsm.SendSms(&msg, &gsm.SmsNumber);
       }   
       //смс команда не распознана
