@@ -796,22 +796,21 @@ void ExecSmsCommand()
         msg = "SmsCommand1:\n'" + NumberRead(E_NUM1_SmsCommand) + "'" + "\n"
             + "SmsCommand2:\n'" + NumberRead(E_NUM2_SmsCommand) + "'" + "\n" 
             + "SmsCommand3:\n'" + NumberRead(E_NUM3_SmsCommand) + "'";        
-      }           
-      
+      }   
       //смс команда не распознана
       else
       {
         PlayTone(specerTone, 250);              
         msg = GetStringFromFlash(sms_ErrorCommand);                                        // достаем с флеш памяти строку           
       }       
-    }
+    if (msg.length() > 0) gsm.SendSms(&msg, &gsm.SmsNumber);                                                                              // очищаем обнаруженное входящие Смс
+    }    
     else if (EEPROM.read(E_isRedirectSms))                                                     // если смс пришла не с зарегистрированых номеров и включен режим перенаправления всех смс
     {
       gsm.SendSms(&String(/*"N: " + gsm.SmsNumber + '\n' + */gsm.SmsText), &NumberRead(E_NUM1_SmsCommand));     
-    }
-    if (msg.length() > 0) gsm.SendSms(&msg, &gsm.SmsNumber);                                                                              // очищаем обнаруженное входящие Смс
-  }
+    }    
   gsm.ClearSms(); 
+  }  
 }
 
 
