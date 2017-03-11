@@ -626,7 +626,7 @@ void ExecSmsCommand()
           gsm.SendSms(&GetStringFromFlash(sms_WrongGsmCommand), &gsm.SmsNumber);         
       }
       else
-      if (gsm.SmsText.startsWith("balance"))                                             // запрос баланса
+      if (gsm.SmsText == "balance")                                                      // запрос баланса
       {        
         digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод
         PlayTone(specerTone, 250); 
@@ -634,7 +634,7 @@ void ExecSmsCommand()
           WriteToEEPROM(E_NumberGsmCode, &gsm.SmsNumber);                                // сохраняем номер на который необходимо будет отправить ответ           
         else
         {
-          gsm.SendSms(&GetStringFromFlash(sms_WrongGsmCommand), &NumberRead(E_NUM1_SmsCommand));                                
+          gsm.SendSms(&GetStringFromFlash(sms_WrongGsmCommand), &gsm.SmsNumber);                                
         }
       }
       else
