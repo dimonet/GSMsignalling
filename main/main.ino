@@ -83,7 +83,8 @@ const char sms_BalanceGSMcode[]   PROGMEM = {"Command: GSM command for button wa
 
 //Power control 
 #define pinMeasureVcc A0                      // нога чтения типа питания (БП или батарея)
-
+#define pinMeasureVcc_stub A1                 // нога для заглушки чтения типа питания если резервное пинание не подключено (всегда network)
+ 
 //Sensores
 #define SH1 A2                                // нога на растяжку
 #define pinPIR1 4                             // нога датчика движения 1
@@ -160,6 +161,7 @@ void setup()
   pinMode(Button, INPUT_PULLUP);              // кнопка для установки режима охраны
   pinMode(SirenGenerator, OUTPUT);            // нога на сирену
   pinMode(pinMeasureVcc, INPUT);              // нога чтения типа питания (БП или батарея)    
+  pinMode(pinMeasureVcc_stub, OUTPUT);        // нога для заглушки определения типа питания если резервное пинание не подключено (всегда network)
 
   digitalWrite(SirenGenerator, HIGH);         // выключаем сирену через релье
 
@@ -178,6 +180,7 @@ void setup()
   digitalWrite(SirenLED, LOW);
   digitalWrite(BattPowerLED, LOW);
   
+  analogWrite(pinMeasureVcc_stub, 255);                 // запитываем ногу заглушку питание для заглушки определения типа питания если резервное пинание не подключено (всегда network)
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
   digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
   
