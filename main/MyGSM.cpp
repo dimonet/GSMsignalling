@@ -1,8 +1,7 @@
 #include "MyGSM.h"
 #include "Arduino.h"
 
-//#include <SoftwareSerial.h>                 // если программный
-//SoftwareSerial gsm(7, 8); // RX, TX
+//#include <SoftwareSerial.h>                   // если программный
 
 #define serial Serial                           // если аппаратный в UNO
 //#define serial Serial1                        // если аппаратный в леонардо

@@ -10,20 +10,6 @@
 //#define debug Serial
 
 //// НАСТРОЕЧНЫЕ КОНСТАНТЫ /////
-// номера телефонов
-
-//#define NUMBER1_NotInContr "380509151369"             // 1-й номер для снятие с охраны и на который будем звонить (Мой МТС)
-//#define NUMBER2_NotInContr "380506228524"             // 2-й номер для снятие с охраны (Тони МТС)
-//#define NUMBER3_NotInContr "***"                      // 3-й номер для снятие с охраны
-
-//#define NUMBER1_InContr    "380969405835"             // 1-й номер для установки на охраны (Мой Киевстар)
-//#define NUMBER2_InContr    "***"                      // 2-й номер для установки на охраны
-
-//#define NUMBER1_SmsCommand    "+380509151369"         // 1-й номер для управления через sms и на который будем отправлять SMS (Мой МТС)
-//#define NUMBER2_SmsCommand    "+380969405835"         // 2-й номер для управления через sms (Мой Киевстар)
-//#define NUMBER3_SmsCommand    "+380506228524"         // 3-й номер для управления через sms 
-
-// SMS
 const char sms_TensionCable[]  PROGMEM = {"ALARM: TensionCable sensor."};                         // текст смс для растяжки
 const char sms_PIR1[]          PROGMEM = {"ALARM: PIR1 sensor."};                                 // текст смс для датчика движения 1
 const char sms_PIR2[]          PROGMEM = {"ALARM: PIR2 sensor."};                                 // текст смс для датчика движения 2
