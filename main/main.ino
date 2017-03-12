@@ -198,8 +198,6 @@ void setup()
   digitalWrite(InContrLED, LOW);
   digitalWrite(SirenLED, LOW);
   digitalWrite(BattPowerLED, LOW);
-
-   
   
   analogWrite(pinMeasureVcc_stub, 255);                 // запитываем ногу заглушку питание для заглушки определения типа питания если резервное пинание не подключено (всегда network)
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
