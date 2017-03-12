@@ -164,7 +164,26 @@ void setup()
   pinMode(pinMeasureVcc_stub, OUTPUT);        // нога для заглушки определения типа питания если резервное пинание не подключено (всегда network)
 
   digitalWrite(SirenGenerator, HIGH);         // выключаем сирену через релье
-
+   
+  // блок сброса очистки EEPROM (сброс всех настроек)
+  if (digitalRead(Button) == LOW)
+  { 
+    byte count = 0;
+    while (count < 100)
+    {
+      if (digitalRead(Button) == HIGH) break;
+      count++;
+      delay(100);
+    }
+    if (count == 100)
+    {
+        PlayTone(specerTone, 1000);               
+        for (int i = 0 ; i < EEPROM.length() ; i++) 
+          EEPROM.write(i, 0);                           // стираем все данные с EEPROM
+        RebootFunc();                                   // перезагружаем устройство
+    }
+  }  
+ 
   // блок тестирования спикера и всех светодиодов
   PlayTone(specerTone, 100);                          
   delay(500);
@@ -179,6 +198,8 @@ void setup()
   digitalWrite(InContrLED, LOW);
   digitalWrite(SirenLED, LOW);
   digitalWrite(BattPowerLED, LOW);
+
+   
   
   analogWrite(pinMeasureVcc_stub, 255);                 // запитываем ногу заглушку питание для заглушки определения типа питания если резервное пинание не подключено (всегда network)
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
