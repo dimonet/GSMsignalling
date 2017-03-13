@@ -333,7 +333,7 @@ void loop()
       
       if ((GetElapsed(prCall) > timeCall) or prCall == 0)                          // проверяем сколько прошло времени после последнего звонка (выдерживаем паузц между звонками)
       {
-        if(gsm.Call(&NumberRead(E_NUM1_InContr)))                                   // отзваниваемся
+        if(gsm.Call(&NumberRead(E_NUM1_NotInContr)))                                   // отзваниваемся
           prCall = millis();                                                       // если отзвон осуществлен то запоминаем время последнего отзвона
       }
             
