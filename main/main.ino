@@ -18,17 +18,18 @@ const char sms_BattPower[]     PROGMEM = {"POWER: Backup Battery is used for pow
 const char sms_NetPower[]      PROGMEM = {"POWER: Network power has been restored."};             // текст смс для оповещения о том, что сетевое питание возобновлено
 
 
-const char sms_ErrorCommand[]    PROGMEM = {"Available commands:\nBalance,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nReboot,\nStatus,\nBalanceGSMcode,\nNotInContr,\nInContr,\nSmsCommand."};  // смс команда не распознана
-const char sms_TestModOn[]       PROGMEM = {"Command: Test mode has been turned on."};              // выполнена команда для включения тестового режима для тестирования датчиков
-const char sms_TestModOff[]      PROGMEM = {"Command: Test mode has been turned off."};             // выполнена команда для выключения тестового режима для тестирования датчиков
-const char sms_InContrMod[]      PROGMEM = {"Command: Control mode has been turned on."};           // выполнена команда для установку на охрану
-const char sms_NotInContrMod[]   PROGMEM = {"Command: Control mode has been turned off."};          // выполнена команда для установку на охрану
-const char sms_RedirectOn[]      PROGMEM = {"Command: SMS redirection has been turned on."};        // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
-const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection has been turned off."};       // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
-const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren has been turned on."};           // выполнена команда для коротковременного включения сирены
-const char sms_WasRebooted[]     PROGMEM = {"Command: Device was rebooted."};                       // выполнена команда для коротковременного включения сирены
-const char sms_WrongGsmCommand[] PROGMEM = {"Command: Wrong GSM command."};                         // сообщение о неправельной gsm комманде
-const char sms_BalanceGSMcode[]   PROGMEM = {"Command: GSM command for button was changed to "};     // сообщение о неправельной gsm комманде
+const char sms_ErrorCommand[]    PROGMEM = {"Available commands:\nSendSMS 'number' 'text',\nBalance,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nReboot,\nStatus,\nBalanceGSMcode 'GSMcode',\nNotInContr,\nInContr,\nSmsCommand."};  // смс команда не распознана
+const char sms_TestModOn[]       PROGMEM = {"Command: Test mode has been turned on."};                   // выполнена команда для включения тестового режима для тестирования датчиков
+const char sms_TestModOff[]      PROGMEM = {"Command: Test mode has been turned off."};                  // выполнена команда для выключения тестового режима для тестирования датчиков
+const char sms_InContrMod[]      PROGMEM = {"Command: Control mode has been turned on."};                // выполнена команда для установку на охрану
+const char sms_NotInContrMod[]   PROGMEM = {"Command: Control mode has been turned off."};               // выполнена команда для установку на охрану
+const char sms_RedirectOn[]      PROGMEM = {"Command: SMS redirection has been turned on."};             // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
+const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection has been turned off."};            // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
+const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren has been turned on."};                // выполнена команда для коротковременного включения сирены
+const char sms_WasRebooted[]     PROGMEM = {"Command: Device was rebooted."};                            // выполнена команда для коротковременного включения сирены
+const char sms_WrongGsmCommand[] PROGMEM = {"Command: Wrong GSM command."};                              // сообщение о неправельной gsm комманде
+const char sms_BalanceGSMcode[]  PROGMEM = {"Command: GSM command for getting balance was changed to "}; // выполнена команда для замены gsm команды для получения баланса
+const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};                                   // выполнена команда для отправки смс другому абоненту
 
 // паузы
 #define  timeWaitInContr      25                           // время паузы от нажатие кнопки до установки режима охраны
@@ -634,6 +635,28 @@ void ExecSmsCommand()
           gsm.SendSms(&GetStringFromFlash(sms_WrongGsmCommand), &gsm.SmsNumber);         
       }
       else
+      if (gsm.SmsText.startsWith("sendsms"))                                             // запрос на отправку смс другому абоненту
+      {
+        PlayTone(specerTone, 250); 
+        String nums[2];
+        String str = gsm.SmsText;;
+        for(int i = 0; i < 2; i++)
+        {
+          int beginStr = str.indexOf('\'');
+          str = str.substring(beginStr + 1);
+          int duration = str.indexOf('\'');  
+          nums[i] = str.substring(0, duration);      
+          str = str.substring(duration +1);            
+        }        
+        if(nums[0].length() > 0)                                                         // если поле номер получателя смс не пустое
+        {
+          if(gsm.SendSms(&nums[1], &nums[0]))                                            // то отправляем смс указанному абоненту
+            gsm.SendSms(&GetStringFromFlash(sms_SmsWasSent), &gsm.SmsNumber);            // и если сообщение оправлено то отправляем отчет об успешном выполнении комманды
+        }
+        else
+          gsm.SendSms(&GetStringFromFlash(sms_WrongGsmCommand), &gsm.SmsNumber);    
+      }
+      else      
       if (gsm.SmsText == "balance")                                                      // запрос баланса
       {        
         digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод
@@ -667,7 +690,7 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith("control on"))                                          // если сообщение начинается на * то это gsm код
       {        
         digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод
-        Set_InContrMod(false);                                                         // устанавливаем на охрану без паузы                                                
+        Set_InContrMod(false);                                                           // устанавливаем на охрану без паузы                                                
         gsm.SendSms(&GetStringFromFlash(sms_InContrMod), &gsm.SmsNumber);                                            
       }
       else 
@@ -827,7 +850,7 @@ void ExecSmsCommand()
     }    
     else if (EEPROM.read(E_isRedirectSms))                                                     // если смс пришла не с зарегистрированых номеров и включен режим перенаправления всех смс
     {
-      gsm.SendSms(&String(/*"N: " + gsm.SmsNumber + '\n' + */gsm.SmsText), &NumberRead(E_NUM1_SmsCommand));     
+      gsm.SendSms(&String(gsm.SmsText), &NumberRead(E_NUM1_SmsCommand));     
     }    
   gsm.ClearSms(); 
   }  
