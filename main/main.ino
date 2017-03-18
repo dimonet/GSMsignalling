@@ -19,18 +19,18 @@ const char sms_NetPower[]      PROGMEM = {"POWER: Network power has been restore
 
 
 const char sms_ErrorCommand[]    PROGMEM = {"Available commands:\nSendSMS,\nBalance,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nReboot,\nStatus,\nBalanceGSMcode,\nNotInContr,\nInContr,\nSmsCommand."};  // смс команда не распознана
-const char sms_TestModOn[]       PROGMEM = {"Command: Test mode has been turned on."};                       // выполнена команда для включения тестового режима для тестирования датчиков
-const char sms_TestModOff[]      PROGMEM = {"Command: Test mode has been turned off."};                      // выполнена команда для выключения тестового режима для тестирования датчиков
-const char sms_InContrMod[]      PROGMEM = {"Command: Control mode has been turned on."};                    // выполнена команда для установку на охрану
-const char sms_NotInContrMod[]   PROGMEM = {"Command: Control mode has been turned off."};                   // выполнена команда для установку на охрану
-const char sms_RedirectOn[]      PROGMEM = {"Command: SMS redirection has been turned on."};                 // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
-const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection has been turned off."};                // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
-const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren has been turned on."};                    // выполнена команда для коротковременного включения сирены
-const char sms_WasRebooted[]     PROGMEM = {"Command: Device was rebooted."};                                // выполнена команда для коротковременного включения сирены
-const char sms_WrongGsmCommand[] PROGMEM = {"Command: Wrong GSM command."};                                  // сообщение о неправельной gsm комманде
-const char sms_BalanceGSMcode[]  PROGMEM = {"Command: GSM command for getting balance was changed to "};     // выполнена команда для замены gsm команды для получения баланса
-const char sms_ErrorSendSms[]    PROGMEM = {"Command: It should be next format:\nSendSMS '+number' 'text'"}; // выполнена команда для отправки смс другому абоненту
-const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};                                       // выполнена команда для отправки смс другому абоненту
+const char sms_TestModOn[]       PROGMEM = {"Command: Test mode has been turned on."};                              // выполнена команда для включения тестового режима для тестирования датчиков
+const char sms_TestModOff[]      PROGMEM = {"Command: Test mode has been turned off."};                             // выполнена команда для выключения тестового режима для тестирования датчиков
+const char sms_InContrMod[]      PROGMEM = {"Command: Control mode has been turned on."};                           // выполнена команда для установку на охрану
+const char sms_NotInContrMod[]   PROGMEM = {"Command: Control mode has been turned off."};                          // выполнена команда для установку на охрану
+const char sms_RedirectOn[]      PROGMEM = {"Command: SMS redirection has been turned on."};                        // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
+const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection has been turned off."};                       // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
+const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren has been turned on."};                           // выполнена команда для коротковременного включения сирены
+const char sms_WasRebooted[]     PROGMEM = {"Command: Device was rebooted."};                                       // выполнена команда для коротковременного включения сирены
+const char sms_WrongGsmCommand[] PROGMEM = {"Command: Wrong GSM command."};                                         // сообщение о неправельной gsm комманде
+const char sms_BalanceGSMcode[]  PROGMEM = {"Command: GSM command for getting balance was changed to "};            // выполнена команда для замены gsm команды для получения баланса
+const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format of command should be next:\nSendSMS 'number' 'text'"}; // выполнена команда для отправки смс другому абоненту
+const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};                                              // выполнена команда для отправки смс другому абоненту
 
 // паузы
 #define  timeWaitInContr      25                           // время паузы от нажатие кнопки до установки режима охраны
@@ -626,6 +626,7 @@ void ExecSmsCommand()
        )
     { 
       gsm.SmsText.toLowerCase();                                                         // приводим весь текст команды к нижнему регистру что б было проще идентифицировать команду
+      gsm.SmsText.trim();                                                                // удаляем пробелы в начале и в конце комманды
       
       if (gsm.SmsText.startsWith("*"))                                                   // Если сообщение начинается на * то это gsm код
       {
@@ -639,23 +640,33 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith("sendsms"))                                             // запрос на отправку смс другому абоненту
       {
         PlayTone(specerTone, 250); 
-        String nums[2];
-        String str = gsm.SmsText;;
-        for(int i = 0; i < 2; i++)
+        String number = "";                                                              // переменная для хранения номера получателя
+        String text = "";                                                                // переменная для хранения текста перенаправляемого смс
+        String str = gsm.SmsText;
+        
+        int beginStr = str.indexOf('\'');                                                // достаем номер телефона кому перенаправляем смс
+        if (beginStr > 0)                                                                // если обнаружены параметры команды (номер, текст) то обрабатываем их и перенаправляем смс получателю
         {
-          int beginStr = str.indexOf('\'');
-          str = str.substring(beginStr + 1);
+          str = str.substring(beginStr + 1);                                             // достаем номер получателя
           int duration = str.indexOf('\'');  
-          nums[i] = str.substring(0, duration);      
-          str = str.substring(duration +1);            
-        }        
-        if(nums[0].startsWith("+"))                                                      // если номер указан и его формат правильный
+          number = str.substring(0, duration);      
+          str = str.substring(duration +1);
+          
+          beginStr = 0;                                                                  // достаем текст который будет перенаправляться
+          duration = 0;
+          beginStr = str.indexOf('\'');
+          str = str.substring(beginStr + 1);
+          duration = str.indexOf('\'');  
+          text = str.substring(0, duration);
+         }
+        number.trim();
+        if (number.length() > 0)                                                         // проверяем что номер получателя не пустой (смс текст не проверяем так как перенаправление пустого смс возможное)
         {
-          if(gsm.SendSms(&nums[1], &nums[0]))                                            // то отправляем смс указанному абоненту
-            gsm.SendSms(&GetStringFromFlash(sms_SmsWasSent), &gsm.SmsNumber);            // и если сообщение оправлено то отправляем отчет об успешном выполнении комманды
+          if(gsm.SendSms(&text, &number))                                                // перенаправляем смс указанному получателю
+            gsm.SendSms(&GetStringFromFlash(sms_SmsWasSent), &gsm.SmsNumber);            // и если сообщение перенаправлено успешно то отправляем отчет об успешном выполнении комманды          
         }
         else
-          gsm.SendSms(&GetStringFromFlash(sms_ErrorSendSms), &gsm.SmsNumber);            // если номер не указан то отправляем сообщение с ожидаемым форматом комманды 
+          gsm.SendSms(&GetStringFromFlash(sms_ErrorSendSms), &gsm.SmsNumber);            // если номер получателя не обнаружен (пустой) то отправляем сообщение с ожидаемым форматом комманды 
       }
       else      
       if (gsm.SmsText == "balance")                                                      // запрос баланса
@@ -733,10 +744,10 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith("status"))          
       {
         PlayTone(specerTone, 250);        
-        String msg = "On controlling: "   +           String((mode == InContrMod) ? "on" : "off") + "\n"
-            + "Test mode: "        +                    String((inTestMod) ? "on" : "off") + "\n" 
-            + "Redirect SMS: "     + String((EEPROM.read(E_isRedirectSms)) ? "on" : "off") + "\n"
-            + "Power: "            + String((powCtr.IsBattPower) ? "battery" : "network");
+        String msg = "On controlling: "   + String((mode == InContrMod) ? "on" : "off") + "\n"
+                   + "Test mode: "        + String((inTestMod) ? "on" : "off") + "\n" 
+                   + "Redirect SMS: "     + String((EEPROM.read(E_isRedirectSms)) ? "on" : "off") + "\n"
+                   + "Power: "            + String((powCtr.IsBattPower) ? "battery" : "network");
         gsm.SendSms(&msg, &gsm.SmsNumber);          
       }           
       else 
