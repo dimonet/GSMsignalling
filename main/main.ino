@@ -86,7 +86,7 @@ const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};          
 #define E_mode           0                    // адресс для сохранения режимов работы 
 #define E_inTestMod      1                    // адресс для сохранения режима тестирования
 #define E_isRedirectSms  2                    // адресс для сохранения режима перенаправления всех смс
-#define E_wasRebooted    3                    // адресс для сохранения режима перенаправления всех смс
+#define E_wasRebooted    3                    // адресс для сохранения факта перезагрузки устройства по смс команде
 
 #define numSize            13                   // количество символов в строке телефонного номера
 
@@ -108,24 +108,24 @@ const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};          
 
 
 //// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ////
-byte mode = NotInContrMod;                    // 1 - снята с охраны                                  
-                                              // 3 - установлено на охрану
-                                              // при добавлении не забываем посмотреть рездел //// КОНСТАНТЫ РЕЖИМОВ РАБОТЫ ////
+byte mode = NotInContrMod;                      // 1 - снята с охраны                                  
+                                                // 3 - установлено на охрану
+                                                // при добавлении не забываем посмотреть рездел //// КОНСТАНТЫ РЕЖИМОВ РАБОТЫ ////
                                                
 bool btnIsHolding = false;
-bool inTestMod = false;                       // режим тестирования датчиков (не срабатывает сирена и не отправляются СМС)
-bool isSiren = false;                         // режим сирены
+bool inTestMod = false;                         // режим тестирования датчиков (не срабатывает сирена и не отправляются СМС)
+bool isSiren = false;                           // режим сирены
 
-unsigned long prSiren = 0;                       // время включения сирены (милисекунды)
-unsigned long prCall = 0;                        // время последнего звонка тревоги (милисекунды)
-unsigned long prSmsPIR1 = 0;                     // время последнего СМС датчика движения 1 (милисекунды)
-unsigned long prSmsPIR2 = 0;                     // время последнего СМС датчика движения 2 (милисекунды)
-unsigned long prLastPressBtn = 0;                // время последнего нажатие на кнопку (милисекунды)
-unsigned long prTestBlinkLed = 0;                // время мерцания светодиода при включеном режима тестирования (милисекунды)
+unsigned long prSiren = 0;                      // время включения сирены (милисекунды)
+unsigned long prCall = 0;                       // время последнего звонка тревоги (милисекунды)
+unsigned long prSmsPIR1 = 0;                    // время последнего СМС датчика движения 1 (милисекунды)
+unsigned long prSmsPIR2 = 0;                    // время последнего СМС датчика движения 2 (милисекунды)
+unsigned long prLastPressBtn = 0;               // время последнего нажатие на кнопку (милисекунды)
+unsigned long prTestBlinkLed = 0;               // время мерцания светодиода при включеном режима тестирования (милисекунды)
 
-byte countPressBtn = 0;                          // счетчик нажатий на кнопку
-bool controlTensionCable = true;                 // включаем контроль растяжки
-bool wasRebooted = false;                        // указываем была ли последний раз перезагрузка программным путем
+byte countPressBtn = 0;                         // счетчик нажатий на кнопку
+bool controlTensionCable = true;                // включаем контроль растяжки
+bool wasRebooted = false;                       // указываем была ли последний раз перезагрузка программным путем
 
 MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
 PowerControl powCtr (netVcc, 0.1, pinMeasureVcc);       // контроль питания
@@ -168,6 +168,11 @@ void setup()
         PlayTone(specerTone, 1000);               
         for (int i = 0 ; i < EEPROM.length() ; i++) 
           EEPROM.write(i, 0);                           // стираем все данные с EEPROM
+        // установка дефолтных параметров
+        EEPROM.write(E_mode, NotInContrMod);            // устанавливаем по умолчанию режим не на охране
+        EEPROM.write(E_inTestMod, false);               // режим тестирования по умолчанию выключен
+        EEPROM.write(E_isRedirectSms, false);           // режим перенаправления всех смс по умолчанию выключен
+        EEPROM.write(E_wasRebooted, false);             // факт перезагрузки устройства по умолчанию выключено (устройство не перезагружалось)
         RebootFunc();                                   // перезагружаем устройство
     }
   }  
@@ -335,7 +340,7 @@ void loop()
       
       if ((GetElapsed(prCall) > timeCall) or prCall == 0)                          // проверяем сколько прошло времени после последнего звонка (выдерживаем паузц между звонками)
       {
-        if(gsm.Call(&NumberRead(E_NUM1_NotInContr)))                                   // отзваниваемся
+        if(gsm.Call(&NumberRead(E_NUM1_NotInContr)))                               // отзваниваемся
           prCall = millis();                                                       // если отзвон осуществлен то запоминаем время последнего отзвона
       }
             
