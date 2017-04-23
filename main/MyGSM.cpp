@@ -1,10 +1,7 @@
 #include "MyGSM.h"
 #include "Arduino.h"
 
-//#include <SoftwareSerial.h>                   // если программный
-
 #define serial Serial                           // если аппаратный в UNO
-//#define serial Serial1                        // если аппаратный в леонардо
 
 #define GSM_TIMEOUT 60000                       // врем ожидание готовности модема (милсек)  
 #define SMS_LIMIT   150                         // максимальное куличество символов в смс (большео лимита все символы обрезается)
@@ -45,8 +42,7 @@ void MyGSM::Initialize()
   serial.println("AT+CNMI=1,2,2,1,0");     // включает оповещение о новых сообщениях
   delay(200);
   serial.println("AT+CMGD=1,4");           // удаление всех старых смс
-  delay(500);
-  
+  delay(500); 
     
   while(1)                                 // ждем подключение модема к сети
   {                             
@@ -58,7 +54,8 @@ void MyGSM::Initialize()
       break;
     }    
     BlinkLED(0, 500, 0);                   // блымаем светодиодом  
-  }      
+  }
+//   debug.println("dddddddddd");      
 }
 
 bool MyGSM::Available()
@@ -85,15 +82,15 @@ bool MyGSM::IsAvailable()
 }
 
 //отправка СМС
-bool MyGSM::SendSms(String *text, String *phone)      //процедура отправки СМС
+bool MyGSM::SendSms(String *text, String *phone)      // процедура отправки СМС
 {
   if (!IsAvailable()) return false;                   // ждем готовности модема и если он не ответил за заданный таймаут то прырываем отправку смс 
   // отправляем смс
   serial.println("AT+CMGS=\"" + *phone + "\""); 
   delay(100);
   serial.print(*text); 
-  delay(850);
   serial.print((char)26);
+  delay(850);
   BlinkLED(0, 250, 0);                               // сигнализируем об этом   
   return true;                                       // метод возвращает true - смс отправлено успешно 
 }
@@ -115,14 +112,12 @@ void MyGSM::RejectCall()
 }
 
 // запрос gsm кода (*#) 
-bool MyGSM::RequestGsmCode(String *code)
+bool MyGSM::RequestUssd(String *code)
 {
-  if (code->startsWith("*") == -1 || code->indexOf('#') == -1 || code->indexOf('#') < code->startsWith("*"))
-    return false;
-  while (serial.available()) serial.read();
-  BlinkLED(0, 250, 0);
-  serial.println("ATD" + *code);
-  //serial.println("AT+CUSD=1,\"" + *code + "\"");
+  if (!IsAvailable()) return false;                   // ждем готовности модема и если он не ответил то прырываем запрос
+  delay(100);                                         // для некоторых gsm модулей (SIM800l) обязательно необходима пауза между получением смс и отправкой Ussd запроса
+  BlinkLED(0, 250, 0);  
+  serial.println("AT+CUSD=1,\"" + *code + "\"");
   return true; 
 }
 
@@ -144,7 +139,7 @@ void MyGSM::Refresh()
   
   while (Available())
   {
-    char currSymb = serial.read();    
+    char currSymb = serial.read();        
     if ('\r' == currSymb) 
     {
       if (strCount == 0)
@@ -217,8 +212,8 @@ void MyGSM::SetString(String *source, String *target)
     *target = target->substring(0, duration - 1);                      // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
   if (target->length() > SMS_LIMIT)
   {  
-    *target = target->substring(0, SMS_LIMIT - 4);                               // обрезаем строку до 156 символов что б она поместилась в одну смс
-    *target += "...";                                            // добавляем многоточие для указания, что текст не полный
+    *target = target->substring(0, SMS_LIMIT - 4);                     // обрезаем строку до 156 символов что б она поместилась в одну смс
+    *target += "...";                                                  // добавляем многоточие для указания, что текст не полный
   } 
 }
 
