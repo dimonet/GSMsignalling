@@ -114,6 +114,8 @@ void MyGSM::RejectCall()
 // запрос gsm кода (*#) 
 bool MyGSM::RequestUssd(String *code)
 {
+  if(code->substring(code->length()-1)!="#")
+    return false;
   if (!IsAvailable()) return false;                   // ждем готовности модема и если он не ответил то прырываем запрос
   delay(100);                                         // для некоторых gsm модулей (SIM800l) обязательно необходима пауза между получением смс и отправкой Ussd запроса
   BlinkLED(0, 250, 0);  

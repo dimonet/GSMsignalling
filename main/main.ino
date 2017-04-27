@@ -255,8 +255,10 @@ void loop()
       if (countPressBtn == countBtnBalance)                              // если кнопку нажали заданное количество для запроса баланса счета
       {
         PlayTone(specerTone, 250);                                       // сигнализируем об этом спикером                        
-        gsm.RequestUssd(&ReadFromEEPROM(E_BalanceUssd));
-        WriteToEEPROM(E_NumberAnsUssd, &NumberRead(E_NUM1_SmsCommand));  // сохраняем номер на который необходимо будет отправить ответ                   
+        if(gsm.RequestUssd(&ReadFromEEPROM(E_BalanceUssd)))
+          WriteToEEPROM(E_NumberAnsUssd, &NumberRead(E_NUM1_SmsCommand));// сохраняем номер на который необходимо будет отправить ответ                   
+        else
+          gsm.SendSms(&GetStringFromFlash(sms_WrongUssd), &NumberRead(E_NUM1_SmsCommand));               // если ответ пустой то отправляем сообщение об ошибки команды 
       }                                                                                
       else
       // кратковременное включение сирены (для тестирования модуля сирены)
@@ -359,12 +361,8 @@ void loop()
   }                                                                                // end InContrMod   
   
   if (gsm.NewUssd)                                                                 // если доступный новый ответ на gsm команду
-  {    
-    if (gsm.UssdText.length() > 0)                                                 // если получили не пустой ответ
-      gsm.SendSms(&gsm.UssdText, &NumberRead(E_NumberAnsUssd));                    // отправляем ответ на gsm команду
-    else
-      gsm.SendSms(&GetStringFromFlash(sms_WrongUssd), &NumberRead(E_NumberAnsUssd));  // если ответ пустой то отправляем сообщение об ошибки команды 
-    
+  {
+    gsm.SendSms(&gsm.UssdText, &NumberRead(E_NumberAnsUssd));                      // отправляем ответ на gsm команду
     gsm.ClearUssd();                                                               // сбрасываем ответ на gsm команду 
   }
   if (!isSiren) ExecSmsCommand();                                                  // если не сирена проверяем доступна ли новая команда по смс и если да то выполняем ее
@@ -636,8 +634,10 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith("*") || gsm.SmsText.startsWith("#"))                                                   // Если сообщение начинается на * то это gsm код
       {
         PlayTone(specerTone, 250); 
-        gsm.RequestUssd(&gsm.SmsText);                                                               
-        WriteToEEPROM(E_NumberAnsUssd, &gsm.SmsNumber);                                  // сохраняем номер на который необходимо будет отправить ответ                                                       
+        if (gsm.RequestUssd(&gsm.SmsText))                                                              
+          WriteToEEPROM(E_NumberAnsUssd, &gsm.SmsNumber);                                // сохраняем номер на который необходимо будет отправить ответ                                                       
+        else
+          gsm.SendSms(&GetStringFromFlash(sms_WrongUssd), &gsm.SmsNumber);               // если ответ пустой то отправляем сообщение об ошибки команды 
       }
       else
       if (gsm.SmsText.startsWith("sendsms"))                                             // запрос на отправку смс другому абоненту
@@ -676,8 +676,10 @@ void ExecSmsCommand()
       {        
         digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод
         PlayTone(specerTone, 250); 
-        gsm.RequestUssd(&ReadFromEEPROM(E_BalanceUssd));
-        WriteToEEPROM(E_NumberAnsUssd, &gsm.SmsNumber);                                // сохраняем номер на который необходимо будет отправить ответ                  
+        if(gsm.RequestUssd(&ReadFromEEPROM(E_BalanceUssd)))
+          WriteToEEPROM(E_NumberAnsUssd, &gsm.SmsNumber);                                // сохраняем номер на который необходимо будет отправить ответ                  
+        else
+          gsm.SendSms(&GetStringFromFlash(sms_WrongUssd), &gsm.SmsNumber);               // если ответ пустой то отправляем сообщение об ошибки команды 
       }
       else
       if (gsm.SmsText.startsWith("test on"))                                             // включения тестового режима для тестирования датчиков
