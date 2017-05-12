@@ -45,6 +45,7 @@ const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};          
 #define  timeAllLeds          1200                         // время горение всех светодиодов во время включения устройства (тестирования светодиодов)
 #define  timeTestBlinkLed     400                          // время мерцания светодиода при включеном режима тестирования
 #define  timeRejectCall       3000                         // время пауза перед збросом звонка
+#define  timeRefreshVcc       0                            // время паузы после последнего измерения питания (милисекунды)
 
 // Количество нажатий на кнопку для включений режимова
 #define countBtnInTestMod   2                              // количество нажатий на кнопку для включение/отключения режима тестирования 
@@ -122,6 +123,7 @@ unsigned long prSmsPIR1 = 0;                    // время последнег
 unsigned long prSmsPIR2 = 0;                    // время последнего СМС датчика движения 2 (милисекунды)
 unsigned long prLastPressBtn = 0;               // время последнего нажатие на кнопку (милисекунды)
 unsigned long prTestBlinkLed = 0;               // время мерцания светодиода при включеном режима тестирования (милисекунды)
+unsigned long prRefreshVcc = 0;                 // время последнего измирения питания (милисекунды)
 
 byte countPressBtn = 0;                         // счетчик нажатий на кнопку
 bool controlTensionCable = true;                // включаем контроль растяжки
@@ -211,7 +213,12 @@ bool newClick = true;
 
 void loop() 
 {       
-  PowerControl();                                                     // мониторим питание системы
+  if (GetElapsed(prRefreshVcc) > timeRefreshVcc)                      // проверяем сколько прошло времени после последнего измерения питания (секунды) (выдерживаем паузц между измерениями что б не загружать контроллер)
+  {   
+    PowerControl();                                                   // мониторим питание системы
+    prRefreshVcc = millis();
+  }   
+  
   gsm.Refresh();                                                      // читаем сообщения от GSM модема   
 
   if(wasRebooted)
