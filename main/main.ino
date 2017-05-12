@@ -337,9 +337,11 @@ void loop()
             prSmsPIR2 = millis();               
         }
 
-      if ((sTensionCable && controlTensionCable) && !inTestMod)                    // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
+      if (sTensionCable && controlTensionCable)                                    // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
       {         
-        gsm.SendSms(&GetStringFromFlash(sms_TensionCable), &NumberRead(E_NUM1_SmsCommand));                    
+        if (!inTestMod)
+          gsm.SendSms(&GetStringFromFlash(sms_TensionCable), &NumberRead(E_NUM1_SmsCommand)); 
+        controlTensionCable = false;                                               // отключаем контроль растяжки что б сирена не работала постоянно после разрыва растяжки                    
       }
       
       if ((GetElapsed(prCall) > timeCall) or prCall == 0)                          // проверяем сколько прошло времени после последнего звонка (выдерживаем паузц между звонками)
@@ -347,8 +349,6 @@ void loop()
         if(gsm.Call(&NumberRead(E_NUM1_NotInContr)))                               // отзваниваемся
           prCall = millis();                                                       // если отзвон осуществлен то запоминаем время последнего отзвона
       }
-            
-      if (sTensionCable) controlTensionCable = false;                              // отключаем контроль растяжки что б сирена не работала постоянно после разрыва растяжки
     }
 
      if (gsm.NewRing)                                                              // если обнаружен входящий звонок
