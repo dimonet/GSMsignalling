@@ -337,7 +337,7 @@ void loop()
             prSmsPIR2 = millis();               
         }
 
-      if (sTensionCable && !inTestMod)                                             // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
+      if ((sTensionCable && controlTensionCable) && !inTestMod)                    // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
       {         
         gsm.SendSms(&GetStringFromFlash(sms_TensionCable), &NumberRead(E_NUM1_SmsCommand));                    
       }
