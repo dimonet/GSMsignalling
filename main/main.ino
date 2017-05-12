@@ -351,20 +351,20 @@ void loop()
       }
     }
 
-     if (gsm.NewRing)                                                              // если обнаружен входящий звонок
-     {      
-       if (NumberRead(E_NUM1_NotInContr).indexOf(gsm.RingNumber) > -1 ||           // если найден зарегистрированный звонок то снимаем с охраны
-           NumberRead(E_NUM2_NotInContr).indexOf(gsm.RingNumber) > -1 || 
-           NumberRead(E_NUM3_NotInContr).indexOf(gsm.RingNumber) > -1          
-          )               
-       {                    
-         delay(timeRejectCall);                                                    // пауза перед збросом звонка
-         Set_NotInContrMod();                                                      // снимаем с охраны         
-         gsm.RejectCall();                                                         // сбрасываем вызов        
-       }
-       else gsm.RejectCall();                                                      // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)
-       gsm.ClearRing();                                                            // очищаем обнаруженный входящий звонок 
-     }         
+    if (gsm.NewRing)                                                              // если обнаружен входящий звонок
+    {      
+      if (NumberRead(E_NUM1_NotInContr).indexOf(gsm.RingNumber) > -1 ||           // если найден зарегистрированный звонок то снимаем с охраны
+          NumberRead(E_NUM2_NotInContr).indexOf(gsm.RingNumber) > -1 || 
+          NumberRead(E_NUM3_NotInContr).indexOf(gsm.RingNumber) > -1          
+         )               
+      {                    
+        delay(timeRejectCall);                                                    // пауза перед збросом звонка
+        Set_NotInContrMod();                                                      // снимаем с охраны         
+        gsm.RejectCall();                                                         // сбрасываем вызов        
+      }
+      else gsm.RejectCall();                                                      // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)
+      gsm.ClearRing();                                                            // очищаем обнаруженный входящий звонок 
+    }         
   }                                                                                // end InContrMod   
   
   if (gsm.NewUssd)                                                                 // если доступный новый ответ на gsm команду
