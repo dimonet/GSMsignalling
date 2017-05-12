@@ -119,8 +119,8 @@ bool isSiren = false;                           // режим сирены
 
 unsigned long prSiren = 0;                      // время включения сирены (милисекунды)
 unsigned long prCall = 0;                       // время последнего звонка тревоги (милисекунды)
-unsigned long prSmsPIR1 = 0;                    // время последнего СМС датчика движения 1 (милисекунды)
-unsigned long prSmsPIR2 = 0;                    // время последнего СМС датчика движения 2 (милисекунды)
+unsigned long prAlarmPIR1 = 0;                  // время последнего СМС датчика движения 1 (милисекунды)
+unsigned long prAlarmPIR2 = 0;                  // время последнего СМС датчика движения 2 (милисекунды)
 unsigned long prLastPressBtn = 0;               // время последнего нажатие на кнопку (милисекунды)
 unsigned long prTestBlinkLed = 0;               // время мерцания светодиода при включеном режима тестирования (милисекунды)
 unsigned long prRefreshVcc = 0;                 // время последнего измирения питания (милисекунды)
@@ -314,41 +314,38 @@ void loop()
       Set_NotInContrMod();
       return;                         
     }
-    
-    bool sTensionCable = SensorTriggered_TensionCable();              // проверяем датчики
-    bool sPIR1 = SensorTriggered_PIR1();
-    bool sPIR2 = SensorTriggered_PIR2();
-                                   
-    if ((sTensionCable && controlTensionCable) || sPIR1 || sPIR2)                  // если обрыв
+                                       
+    if (SensorTriggered_PIR1())
     {                                                                 
-      if (isSiren == false) StartSiren();                                          // включаем сирену
-            
-      if (sPIR1 && !inTestMod)                                                     // отправляем СМС если сработал датчик движения и не включен режим тестирование 
-        if ((GetElapsed(prSmsPIR1) > timeSmsPIR1) or prSmsPIR1 == 0)               // и выдержена пауза после последнего смс
-        {
-          if(gsm.SendSms(&GetStringFromFlash(sms_PIR1), &NumberRead(E_NUM1_SmsCommand)))
-            prSmsPIR1 = millis();               
-        }
-      
-      if (sPIR2 && !inTestMod)                                                     // отправляем СМС если сработал датчик движения и не включен режим тестирование  
-        if ((GetElapsed(prSmsPIR2) > timeSmsPIR2) or prSmsPIR2 == 0)               // и выдержена пауза после последнего смс
-        {  
-          if(gsm.SendSms(&GetStringFromFlash(sms_PIR2), &NumberRead(E_NUM1_SmsCommand)))
-            prSmsPIR2 = millis();               
-        }
-
-      if (sTensionCable && controlTensionCable)                                    // отправляем СМС если сработал обрыв растяжки и не включен режим тестирование
-      {         
+      if (isSiren == false) StartSiren();                                          // включаем сирену            
+      if ((GetElapsed(prAlarmPIR1) > timeSmsPIR1) || prAlarmPIR1 == 0)             // отправляем СМС если сработал датчик движения, выдержена пауза после последнего смс и не включен режим тестирование 
+      {  
         if (!inTestMod)
-          gsm.SendSms(&GetStringFromFlash(sms_TensionCable), &NumberRead(E_NUM1_SmsCommand)); 
-        controlTensionCable = false;                                               // отключаем контроль растяжки что б сирена не работала постоянно после разрыва растяжки                    
+          gsm.SendSms(&GetStringFromFlash(sms_PIR1), &NumberRead(E_NUM1_SmsCommand));
+        gsm.Call(&NumberRead(E_NUM1_NotInContr));
+        prAlarmPIR1 = millis();
       }
-      
-      if ((GetElapsed(prCall) > timeCall) or prCall == 0)                          // проверяем сколько прошло времени после последнего звонка (выдерживаем паузц между звонками)
-      {
-        if(gsm.Call(&NumberRead(E_NUM1_NotInContr)))                               // отзваниваемся
-          prCall = millis();                                                       // если отзвон осуществлен то запоминаем время последнего отзвона
+    }
+    
+    if (SensorTriggered_PIR2())
+    {
+      if (isSiren == false) StartSiren();                                          // включаем сирену
+      if ((GetElapsed(prAlarmPIR2) > timeSmsPIR2) || prAlarmPIR2 == 0)             // отправляем СМС если сработал датчик движения, выдержена пауза после последнего смс и не включен режим тестирование 
+      {  
+        if (!inTestMod)
+          gsm.SendSms(&GetStringFromFlash(sms_PIR2), &NumberRead(E_NUM1_SmsCommand));
+        gsm.Call(&NumberRead(E_NUM1_NotInContr));
+        prAlarmPIR2 = millis();
       }
+    }
+
+    if (SensorTriggered_TensionCable() && controlTensionCable) 
+    {      
+      if (isSiren == false) StartSiren();                                          // включаем сирену      
+      if (!inTestMod)    
+        gsm.SendSms(&GetStringFromFlash(sms_TensionCable), &NumberRead(E_NUM1_SmsCommand)); 
+      gsm.Call(&NumberRead(E_NUM1_NotInContr));      
+      controlTensionCable = false;
     }
 
     if (gsm.NewRing)                                                              // если обнаружен входящий звонок
@@ -395,8 +392,8 @@ bool Set_NotInContrMod()
   PlayTone(specerTone, 500);
   mode = NotInContrMod;                 // снимаем охранку
   StopSiren();                          //останавливаем сирену
-  prSmsPIR1 = 0;
-  prSmsPIR2 = 0;
+  prAlarmPIR1 = 0;
+  prAlarmPIR2 = 0;
   prCall = 0;
   EEPROM.write(E_mode, mode);           // пишим режим в еепром 
   return true;
@@ -438,8 +435,8 @@ bool Set_InContrMod(bool IsWaiting)
   // установка переменных в дефолтное состояние
   controlTensionCable = true;                           // включаем контроль растяжки
   prCall = 0;                                           // сбрвсываем переменные пауз для gsm
-  prSmsPIR1 = 0;
-  prSmsPIR2 = 0;
+  prAlarmPIR1 = 0;
+  prAlarmPIR2 = 0;
   
   //установка на охрану                                                       
   digitalWrite(NotInContrLED, LOW);
