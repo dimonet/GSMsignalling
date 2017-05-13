@@ -58,23 +58,24 @@ void MyGSM::Initialize()
 //   debug.println("dddddddddd");      
 }
 
-bool MyGSM::Available()
+bool MyGSM::IsAvailable()
 {
-  return serial.available();
+  serial.println("AT+CPAS");                        // спрашиваем состояние модема
+  if (serial.find("+CPAS: 0")) return true;         // возвращаем true - модуль в "готовности"
+  else return false;                                // иначе модуль занят и возвращаем false
 }
 
 // ожидание готовности gsm модуля
-bool MyGSM::IsAvailable()
+bool MyGSM::WaitingAvailable()
 {
   int i = 0;   
   while(i <= GSM_TIMEOUT)
   {  
-    serial.println("AT+CPAS");                        // спрашиваем состояние модема
-    if (serial.find("+CPAS: 0")) 
-      {
-        delay(10);       
-        return true;                                  // и если он в "готовности" выходим из цикла возвращая true - модуль "готов"
-      }
+    if (IsAvailable())                              // спрашиваем состояние gsm модуля и если он в "готовности" 
+    {
+      delay(10);       
+      return true;                                  // выходим из цикла возвращая true - модуль в "готовности"
+    }
     delay(10);
     i += 10;
   }
@@ -84,7 +85,7 @@ bool MyGSM::IsAvailable()
 //отправка СМС
 bool MyGSM::SendSms(String *text, String *phone)      // процедура отправки СМС
 {
-  if (!IsAvailable()) return false;                   // ждем готовности модема и если он не ответил за заданный таймаут то прырываем отправку смс 
+  if (!WaitingAvailable()) return false;              // ждем готовности модема и если он не ответил за заданный таймаут то прырываем отправку смс 
   // отправляем смс
   serial.println("AT+CMGS=\"" + *phone + "\""); 
   delay(100);
@@ -98,7 +99,7 @@ bool MyGSM::SendSms(String *text, String *phone)      // процедура от
 // звонок на заданый номер
 bool MyGSM::Call(String *phone)
 {  
-  if (!IsAvailable()) return false;                  // ждем готовности модема и если он не ответил за заданный таймаут то прырываем выполнения звонка 
+  if (!WaitingAvailable()) return false;             // ждем готовности модема и если он не ответил за заданный таймаут то прырываем выполнения звонка 
   *phone = phone->substring(1);                      // отрезаем плюс в начале так как для звонка формат номера без плюса
   serial.println("ATD+" + *phone + ";");
   BlinkLED(0, 250, 0);                               // сигнализируем об этом 
@@ -116,7 +117,7 @@ bool MyGSM::RequestUssd(String *code)
 {
   if(code->substring(code->length()-1)!="#")
     return false;
-  if (!IsAvailable()) return false;                   // ждем готовности модема и если он не ответил то прырываем запрос
+  if (!WaitingAvailable()) return false;              // ждем готовности модема и если он не ответил то прырываем запрос
   delay(100);                                         // для некоторых gsm модулей (SIM800l) обязательно необходима пауза между получением смс и отправкой Ussd запроса
   BlinkLED(0, 250, 0);  
   serial.println("AT+CUSD=1,\"" + *code + "\"");
@@ -139,7 +140,7 @@ void MyGSM::Refresh()
   String currStr = "";     
   byte strCount = 0;  
   
-  while (Available())
+  while (serial.available())
   {
     char currSymb = serial.read();        
     if ('\r' == currSymb) 
@@ -221,12 +222,14 @@ void MyGSM::SetString(String *source, String *target)
 
 void MyGSM::ClearRing()
 {
+  while (Serial.available()) Serial.read();                            // очистка буфера serial
   NewRing = false;
   RingNumber = "";  
 }
 
 void MyGSM::ClearSms()
 {
+  while (Serial.available()) Serial.read();                            // очистка буфера serial
   NewSms = false;
   SmsNumber = "";
   SmsText = "";  

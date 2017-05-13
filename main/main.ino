@@ -127,6 +127,12 @@ byte countPressBtn = 0;                         // счетчик нажатий
 bool controlTensionCable = true;                // включаем контроль растяжки
 bool wasRebooted = false;                       // указываем была ли последний раз перезагрузка программным путем
 
+// переменные для определения когда необходимо сигнализировать о срабатывании датчиков
+bool isAlarmTension = false;                    // true если сработал датчик растяжки 
+bool isAlarmPIR1 = false;                       // true если сработал 1-й датчик движения 
+bool isAlarmPIR2 = false;                       // true если сработал 2-й датчик движения 
+
+
 MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
 PowerControl powCtr (netVcc, 0.1, pinMeasureVcc);       // контроль питания
 
@@ -290,7 +296,7 @@ void loop()
       {               
         digitalWrite(SirenLED, LOW);                        // на время выключаем мигание светодиода сирены если включен режим тестирования
         delay(timeRejectCall);                              // пауза перед збросом звонка        
-        gsm.RejectCall();                                   // сбрасываем вызов        
+        gsm.RejectCall();                                   // сбрасываем вызов               
         Set_InContrMod(false);                              // устанавливаем на охрану без паузы              
       }
       else gsm.RejectCall();                                // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)      
@@ -312,40 +318,63 @@ void loop()
       Set_NotInContrMod();
       return;                         
     }
-                                       
-    if (SensorTriggered_PIR1())                                                       // проверяем состояние 1-го датчика движения
+
+    if (controlTensionCable && SensorTriggered_TensionCable())
+    {
+      if (isSiren == false) StartSiren();
+      isAlarmTension = true;
+      controlTensionCable = false;                                                            // выключаем контроль растяжки до следующей установки на охрану (что б смс и звонки совершались единоразово)
+    }
+    
+    if (SensorTriggered_PIR1())
+    {
+      if (isSiren == false) StartSiren();
+      if (GetElapsed(prAlarmPIR1) > timeSmsPIR1 || prAlarmPIR1 == 0)                        // если выдержена пауза после последнего звонка и отправки смс 
+        isAlarmPIR1 = true;
+    }
+
+    if (SensorTriggered_PIR2())
+    {
+      if (isSiren == false) StartSiren();
+      if (GetElapsed(prAlarmPIR2) > timeSmsPIR2 || prAlarmPIR2 == 0)                         // если выдержена пауза после последнего звонка и отправки смс
+        isAlarmPIR2 = true;
+    }
+        
+    if (isAlarmTension)                                                                       // проверяем состояние растяжки и если это первое обнаружение обрыва (controlTensionCable = true) то выполняем аналогичные действие
+    {                                                  
+      if (gsm.IsAvailable())
+      {
+        if (!inTestMod)    
+          gsm.SendSms(&GetStringFromFlash(sms_TensionCable), &NumberRead(E_NUM1_SmsCommand)); 
+        gsm.Call(&NumberRead(E_NUM1_NotInContr));      
+        isAlarmTension = false;
+      }                                                    
+    }
+    
+    if (isAlarmPIR1)                                                                          // проверяем состояние 1-го датчика движения
     {                                                                 
-      if (isSiren == false) StartSiren();                                             // включаем сирену            
-      if ((GetElapsed(prAlarmPIR1) > timeSmsPIR1) || prAlarmPIR1 == 0)                // если выдержена пауза после последнего смс 
+      if (gsm.IsAvailable())              
       {  
         if (!inTestMod)  
-          gsm.SendSms(&GetStringFromFlash(sms_PIR1), &NumberRead(E_NUM1_SmsCommand)); // если не включен режим тестирование отправляем смс
-        gsm.Call(&NumberRead(E_NUM1_NotInContr));                                     // сигнализируем звонком о сработке датчика движения
+          gsm.SendSms(&GetStringFromFlash(sms_PIR1), &NumberRead(E_NUM1_SmsCommand));         // если не включен режим тестирование отправляем смс
+        gsm.Call(&NumberRead(E_NUM1_NotInContr));                                             // сигнализируем звонком о сработке датчика движения
         prAlarmPIR1 = millis();
+        isAlarmPIR1 = false;
       }
     }
     
-    if (SensorTriggered_PIR2())                                                       // проверяем состояние 2-го датчика движения
-    {
-      if (isSiren == false) StartSiren();                                             // делаем аналогичные действия, как и с 1-м датчиком движения
-      if ((GetElapsed(prAlarmPIR2) > timeSmsPIR2) || prAlarmPIR2 == 0)              
+    if (isAlarmPIR2)                                                                          // проверяем состояние 2-го датчика движения
+    {      
+      if (gsm.IsAvailable())
       {  
         if (!inTestMod)
           gsm.SendSms(&GetStringFromFlash(sms_PIR2), &NumberRead(E_NUM1_SmsCommand));
         gsm.Call(&NumberRead(E_NUM1_NotInContr));
         prAlarmPIR2 = millis();
+        isAlarmPIR2 = false;
       }
     }
-
-    if (SensorTriggered_TensionCable() && controlTensionCable)                        // проверяем состояние растяжки и если это первое обнаружение обрыва (controlTensionCable = true) то выполняем аналогичные действие
-    {      
-      if (isSiren == false) StartSiren();                                                   
-      if (!inTestMod)    
-        gsm.SendSms(&GetStringFromFlash(sms_TensionCable), &NumberRead(E_NUM1_SmsCommand)); 
-      gsm.Call(&NumberRead(E_NUM1_NotInContr));      
-      controlTensionCable = false;                                                    // выключаем контроль растяжки до следующей установки на охрану (что б смс и звонки совершались единоразово)
-    }
-
+    
     if (gsm.NewRing)                                                                  // если обнаружен входящий звонок
     {      
       if (NumberRead(E_NUM1_NotInContr).indexOf(gsm.RingNumber) > -1 ||               // если найден зарегистрированный звонок то снимаем с охраны
@@ -391,6 +420,9 @@ bool Set_NotInContrMod()                                // метод для с�
   StopSiren();                                          // выключаем сирену
   prAlarmPIR1 = 0;                                      // сбрасываем счетчики временных пауз в ноль
   prAlarmPIR2 = 0;
+  isAlarmTension = false;
+  isAlarmPIR1 = false;
+  isAlarmPIR2 = false; 
   EEPROM.write(E_mode, mode);                           // пишим режим в еепром, что б при следующем включении устройства, оно оставалось в данном режиме
   return true;
 }
@@ -432,6 +464,9 @@ bool Set_InContrMod(bool IsWaiting)                     // метод для у�
   controlTensionCable = true;                           // включаем контроль растяжки
   prAlarmPIR1 = 0;
   prAlarmPIR2 = 0;
+  isAlarmTension = false;
+  isAlarmPIR1 = false;
+  isAlarmPIR2 = false; 
   
   //установка на охрану                                                       
   digitalWrite(NotInContrLED, LOW);
