@@ -837,6 +837,8 @@ void ExecSmsCommand()
         str = str.substring(beginStr + 1);
         int duration = str.indexOf('\'');  
         str = str.substring(0, duration);             
+        if (beginStr <= 0 || duration <= 0 || str.length() == 0)
+          str = '0'; 
         EEPROM.write(E_delaySiren, str.toInt());
         String msg = GetStringFromFlash(sms_DelaySiren) + String(EEPROM.read(E_delaySiren)) + " sec.";
         SendSms(&msg, &gsm.SmsNumber);                                                   // отправляем смс о завершении выполнения даной смс команды (какой Ussd запрос был установлен для получения баланса)      
@@ -850,6 +852,8 @@ void ExecSmsCommand()
         str = str.substring(beginStr + 1);
         int duration = str.indexOf('\'');  
         str = str.substring(0, duration);             
+        if (beginStr <= 0 || duration <= 0 || str.length() == 0)
+          str = ""; 
         WriteToEEPROM(E_BalanceUssd, &str);
         String msg = GetStringFromFlash(sms_BalanceUssd) + "'" + ReadFromEEPROM(E_BalanceUssd) + "'";
         SendSms(&msg, &gsm.SmsNumber);                                                   // отправляем смс о завершении выполнения даной смс команды (какой Ussd запрос был установлен для получения баланса)         
