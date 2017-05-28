@@ -824,7 +824,8 @@ void ExecSmsCommand()
         String msg = "On controlling: "   + String((mode == InContrMod) ? "on" : "off") + "\n"
                    + "Test mode: "        + String((inTestMod) ? "on" : "off") + "\n" 
                    + "Redirect SMS: "     + String((EEPROM.read(E_isRedirectSms)) ? "on" : "off") + "\n"
-                   + "Power: "            + String((powCtr.IsBattPower) ? "battery" : "network");
+                   + "Power: "            + String((powCtr.IsBattPower) ? "battery" : "network") + "\n"
+                   + "DelaySiren: "       + String(EEPROM.read(E_delaySiren)) + " sec";
         SendSms(&msg, &gsm.SmsNumber);          
       }           
       else
