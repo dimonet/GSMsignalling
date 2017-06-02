@@ -18,7 +18,7 @@ const char sms_BattPower[]       PROGMEM = {"POWER: Backup Battery is used for p
 const char sms_NetPower[]        PROGMEM = {"POWER: Network power has been restored."};                             // текст смс для оповещения о том, что сетевое питание возобновлено
 
 
-const char sms_ErrorCommand[]    PROGMEM = {"SendSMS,\nBalance,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nReboot,\nStatus,\nDelaySiren,\nBalanceUSSD,\nNotInContr,\nInContr,\nSmsCommand."};  // смс команда не распознана
+const char sms_ErrorCommand[]    PROGMEM = {"SendSMS,\nBalance,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nReboot,\nStatus,\nDelaySiren,\nBalanceUSSD,\nSensors,\nNotInContr,\nInContr,\nSmsCommand."};  // смс команда не распознана
 const char sms_TestModOn[]       PROGMEM = {"Command: Test mode has been turned on."};                              // выполнена команда для включения тестового режима для тестирования датчиков
 const char sms_TestModOff[]      PROGMEM = {"Command: Test mode has been turned off."};                             // выполнена команда для выключения тестового режима для тестирования датчиков
 const char sms_InContrMod[]      PROGMEM = {"Command: Control mode has been turned on."};                           // выполнена команда для установку на охрану
@@ -31,7 +31,7 @@ const char sms_WrongUssd[]       PROGMEM = {"Command: Wrong USSD code."};       
 const char sms_BalanceUssd[]     PROGMEM = {"Command: USSD code for getting balance was changed to "};              // выполнена команда для замены gsm команды для получения баланса
 const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format of command should be next:\nSendSMS 'number' 'text'"}; // выполнена команда для отправки смс другому абоненту
 const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};                                              // выполнена команда для отправки смс другому абоненту
-const char sms_DelaySiren[]      PROGMEM = {"Command: Delay for siren was changed to "};                           // выполнена команда для изменения паузы между срабатыванием датчиков и включение сирены
+const char sms_DelaySiren[]      PROGMEM = {"Command: Delay of siren was changed to "};                             // выполнена команда для изменения паузы между срабатыванием датчиков и включение сирены
 
 // паузы
 #define  timeWaitInContr      25                           // время паузы от нажатие кнопки до установки режима охраны
@@ -89,6 +89,10 @@ const char sms_DelaySiren[]      PROGMEM = {"Command: Delay for siren was change
 #define E_isRedirectSms  2                      // адресс для сохранения режима перенаправления всех смс
 #define E_wasRebooted    3                      // адресс для сохранения факта перезагрузки устройства по смс команде
 #define E_delaySiren     4                      // адресс для сохранения длины паузы между срабатыванием датяиков и включением сирены (в сикундах)
+
+#define E_IsPIR1Enabled  10                     // адресс для сохранения включение/отключения режима 
+#define E_IsPIR2Enabled  11                     // адресс для сохранения длины паузы между срабатыванием датяиков и включением сирены (в сикундах)
+#define E_TensionCable   12
 
 #define numSize            13                   // количество символов в строке телефонного номера
 
@@ -183,7 +187,10 @@ void setup()
         EEPROM.write(E_inTestMod, false);               // режим тестирования по умолчанию выключен
         EEPROM.write(E_isRedirectSms, false);           // режим перенаправления всех смс по умолчанию выключен
         EEPROM.write(E_wasRebooted, false);             // факт перезагрузки устройства по умолчанию выключено (устройство не перезагружалось)
-        EEPROM.write(E_delaySiren, 0);                  // пауза между сработкой датчиков и включением сирены отключена (0 секунд)    
+        EEPROM.write(E_delaySiren, 0);                  // пауза между сработкой датчиков и включением сирены отключена (0 секунд) 
+        EEPROM.write(E_IsPIR1Enabled, true);            
+        EEPROM.write(E_IsPIR2Enabled, true);            
+        EEPROM.write(E_TensionCable, true);            
         RebootFunc();                                   // перезагружаем устройство
     }
   }  
@@ -324,7 +331,7 @@ void loop()
       return;                         
     }
 
-    if (controlTensionCable && SensorTriggered_TensionCable())
+    if (EEPROM.read(E_TensionCable) && controlTensionCable && SensorTriggered_TensionCable())
     {
       reqSirena = true;
       if (prReqSirena == 1) prReqSirena = millis();
@@ -332,7 +339,7 @@ void loop()
       controlTensionCable = false;                                                            // выключаем контроль растяжки до следующей установки на охрану (что б смс и звонки совершались единоразово)
     }
     
-    if (SensorTriggered_PIR1())
+    if (EEPROM.read(E_IsPIR1Enabled) && SensorTriggered_PIR1())
     {       
       reqSirena = true;
       if (prReqSirena == 1) prReqSirena = millis();
@@ -340,7 +347,7 @@ void loop()
         isAlarmPIR1 = true;
     }
 
-    if (SensorTriggered_PIR2())
+    if (EEPROM.read(E_IsPIR2Enabled) && SensorTriggered_PIR2())
     {      
       reqSirena = true;
       if (prReqSirena == 1) prReqSirena = millis();
@@ -922,7 +929,33 @@ void ExecSmsCommand()
                    + "SmsCommand3:\n'" + NumberRead(E_NUM3_SmsCommand) + "'";
         SendSms(&msg, &gsm.SmsNumber);     
       }
-      else      
+      else
+      if (gsm.SmsText.startsWith("pir1"))
+      {
+        PlayTone(specerTone, 250);                     
+        bool nums[3];
+        String str = gsm.SmsText;        
+        for(int i = 0; i < 3; i++)
+        {
+          int beginStr = str.indexOf('\'');
+          str = str.substring(beginStr + 1);
+          int duration = str.indexOf('\'');  
+          if (str.substring(0, duration) == "off")
+            nums[i] = false;      
+          else if (str.substring(0, duration) == "on")
+            nums[i] = true; 
+          str = str.substring(duration +1);         
+        }        
+        EEPROM.write(E_IsPIR1Enabled, &nums[0]);
+        EEPROM.write(E_IsPIR2Enabled, &nums[1]);
+        EEPROM.write(E_TensionCable,  &nums[2]);               
+       /* String msg = "Sensors:"
+                   +  "PIR1: '"         + String((EEPROM.read(E_IsPIR1Enabled)) ? "on" : "off") + "'" + "\n"
+                   +  "PIR2: '"         + String((EEPROM.read(E_IsPIR2Enabled)) ? "on" : "off") + "'" + "\n"
+                   +  "TensionCable: '" + String((EEPROM.read(E_TensionCable)) ? "on" : "off")  + "'";
+        SendSms(&msg, &gsm.SmsNumber);  */   
+      }
+      else            
       if (gsm.SmsText.startsWith("notincontr"))                                         // если обнаружена смс команда для запроса списка зарегистрированных телефонов для снятие с охраны
       {
         PlayTone(specerTone, 250);        
@@ -947,7 +980,20 @@ void ExecSmsCommand()
                    + "SmsCommand2:\n'" + NumberRead(E_NUM2_SmsCommand) + "'" + "\n" 
                    + "SmsCommand3:\n'" + NumberRead(E_NUM3_SmsCommand) + "'";
         SendSms(&msg, &gsm.SmsNumber);
-      }      
+      }
+      else
+      if (gsm.SmsText.startsWith("sensor"))
+      {
+        PlayTone(specerTone, 250);
+        String msg = "Sensors:"
+                     +  "PIR1: \'"         + String((EEPROM.read(E_IsPIR1Enabled)) ? "on" : "off") + "'" + "\n"
+                     +  "PIR2: \'"         + String((EEPROM.read(E_IsPIR2Enabled)) ? "on" : "off") + "'" + "\n"
+                     +  "TensionCable: \'" + String((EEPROM.read(E_TensionCable)) ? "on" : "off")  + "'" ;
+        SendSms(&msg, &gsm.SmsNumber);  
+
+        
+        SendSms(&msg, &gsm.SmsNumber);  
+      }
       else                                                                              // если смс команда не распознана
       {
         PlayTone(specerTone, 250);              
