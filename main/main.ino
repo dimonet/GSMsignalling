@@ -92,7 +92,7 @@ const char sms_DelaySiren[]      PROGMEM = {"Command: Delay of siren was changed
 
 #define E_IsPIR1Enabled  10                     // адресс для сохранения включение/отключения режима 
 #define E_IsPIR2Enabled  11                     // адресс для сохранения длины паузы между срабатыванием датяиков и включением сирены (в сикундах)
-#define E_TensionCable   12
+#define E_TensionEnabled 12
 
 #define numSize            13                   // количество символов в строке телефонного номера
 
@@ -149,7 +149,7 @@ void(* RebootFunc) (void) = 0;                          // объявляем ф
 void setup() 
 {
   delay(1000);                                // !! чтобы нечего не повисало при включении
-  //debug.begin(9600);
+ // debug.begin(9600);
   pinMode(SpecerPin, OUTPUT);
   pinMode(gsmLED, OUTPUT);
   pinMode(NotInContrLED, OUTPUT);
@@ -190,7 +190,7 @@ void setup()
         EEPROM.write(E_delaySiren, 0);                  // пауза между сработкой датчиков и включением сирены отключена (0 секунд) 
         EEPROM.write(E_IsPIR1Enabled, true);            
         EEPROM.write(E_IsPIR2Enabled, true);            
-        EEPROM.write(E_TensionCable, true);            
+        EEPROM.write(E_TensionEnabled, true);            
         RebootFunc();                                   // перезагружаем устройство
     }
   }  
@@ -331,7 +331,7 @@ void loop()
       return;                         
     }
 
-    if (EEPROM.read(E_TensionCable) && controlTensionCable && SensorTriggered_TensionCable())
+    if (EEPROM.read(E_TensionEnabled) && controlTensionCable && SensorTriggered_TensionCable())
     {
       reqSirena = true;
       if (prReqSirena == 1) prReqSirena = millis();
@@ -591,7 +591,7 @@ bool SensorTriggered_PIR1()                                             // ме�
 }
 
 bool SensorTriggered_PIR2()                                             // метод проверки состояния датчик движения 2
-{
+{ 
   if (digitalRead(pinPIR2) == HIGH) return true;
   else return false;
 }
@@ -871,7 +871,7 @@ void ExecSmsCommand()
         PlayTone(specerTone, 250);                      
         String nums[3];
         String str = gsm.SmsText;;
-        for(int i = 0; i < 3; i++)
+        for(byte i = 0; i < 3; i++)
         {
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
@@ -893,7 +893,7 @@ void ExecSmsCommand()
         PlayTone(specerTone, 250);                     
         String nums[2];
         String str = gsm.SmsText;         
-        for(int i = 0; i < 2; i++)
+        for(byte i = 0; i < 2; i++)
         {
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
@@ -913,7 +913,7 @@ void ExecSmsCommand()
         PlayTone(specerTone, 250);                     
         String nums[3];
         String str = gsm.SmsText;        
-        for(int i = 0; i < 3; i++)
+        for(byte i = 0; i < 3; i++)
         {
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
@@ -935,7 +935,7 @@ void ExecSmsCommand()
         PlayTone(specerTone, 250);                     
         bool nums[3];
         String str = gsm.SmsText;        
-        for(int i = 0; i < 3; i++)
+        for(byte i = 0; i < 3; i++)
         {
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
@@ -946,14 +946,13 @@ void ExecSmsCommand()
             nums[i] = true; 
           str = str.substring(duration +1);         
         }        
-        EEPROM.write(E_IsPIR1Enabled, &nums[0]);
-        EEPROM.write(E_IsPIR2Enabled, &nums[1]);
-        EEPROM.write(E_TensionCable,  &nums[2]);               
-       /* String msg = "Sensors:"
-                   +  "PIR1: '"         + String((EEPROM.read(E_IsPIR1Enabled)) ? "on" : "off") + "'" + "\n"
-                   +  "PIR2: '"         + String((EEPROM.read(E_IsPIR2Enabled)) ? "on" : "off") + "'" + "\n"
-                   +  "TensionCable: '" + String((EEPROM.read(E_TensionCable)) ? "on" : "off")  + "'";
-        SendSms(&msg, &gsm.SmsNumber);  */   
+        EEPROM.write(E_IsPIR1Enabled, nums[0]);
+        EEPROM.write(E_IsPIR2Enabled, nums[1]);
+        EEPROM.write(E_TensionEnabled, nums[2]);               
+        String msg = "PIR1: \'"         + String((EEPROM.read(E_IsPIR1Enabled)) ? "on" : "off") + "'" + "\n"
+                  +  "PIR2: \'"         + String((EEPROM.read(E_IsPIR2Enabled)) ? "on" : "off") + "'" + "\n"
+                  +  "TensionCable: \'" + String((EEPROM.read(E_TensionEnabled)) ? "on" : "off")  + "'" ;
+        SendSms(&msg, &gsm.SmsNumber);   
       }
       else            
       if (gsm.SmsText.startsWith("notincontr"))                                         // если обнаружена смс команда для запроса списка зарегистрированных телефонов для снятие с охраны
@@ -985,14 +984,10 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith("sensor"))
       {
         PlayTone(specerTone, 250);
-        String msg = "Sensors:"
-                     +  "PIR1: \'"         + String((EEPROM.read(E_IsPIR1Enabled)) ? "on" : "off") + "'" + "\n"
-                     +  "PIR2: \'"         + String((EEPROM.read(E_IsPIR2Enabled)) ? "on" : "off") + "'" + "\n"
-                     +  "TensionCable: \'" + String((EEPROM.read(E_TensionCable)) ? "on" : "off")  + "'" ;
-        SendSms(&msg, &gsm.SmsNumber);  
-
-        
-        SendSms(&msg, &gsm.SmsNumber);  
+        String msg = "PIR1: \'"         + String((EEPROM.read(E_IsPIR1Enabled)) ? "on" : "off") + "'" + "\n"
+                  +  "PIR2: \'"         + String((EEPROM.read(E_IsPIR2Enabled)) ? "on" : "off") + "'" + "\n"
+                  +  "TensionCable: \'" + String((EEPROM.read(E_TensionEnabled)) ? "on" : "off")  + "'" ;
+        SendSms(&msg, &gsm.SmsNumber);
       }
       else                                                                              // если смс команда не распознана
       {
