@@ -54,8 +54,7 @@ void MyGSM::Initialize()
       break;
     }    
     BlinkLED(0, 500, 0);                   // блымаем светодиодом  
-  }
-//   debug.println("dddddddddd");      
+  }    
 }
 
 bool MyGSM::IsAvailable()

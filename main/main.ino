@@ -18,7 +18,7 @@ const char sms_BattPower[]       PROGMEM = {"POWER: Backup Battery is used for p
 const char sms_NetPower[]        PROGMEM = {"POWER: Network power has been restored."};                             // текст смс для оповещения о том, что сетевое питание возобновлено
 
 
-const char sms_ErrorCommand[]    PROGMEM = {"SendSMS,\nBalance,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nReboot,\nStatus,\nDelaySiren,\nBalanceUSSD,\nSensors,\nNotInContr,\nInContr,\nSmsCommand."};  // смс команда не распознана
+const char sms_ErrorCommand[]    PROGMEM = {"SendSMS,\nBalance,\nTest on/off,\nRedirect on/off,\nControl on/off,\nSkimpy,\nStatus,\nDelaySiren,\nBalanceUSSD,\nSensors,\nNotInContr,\nInContr,\nSmsCommand."};  // смс команда не распознана
 const char sms_TestModOn[]       PROGMEM = {"Command: Test mode has been turned on."};                              // выполнена команда для включения тестового режима для тестирования датчиков
 const char sms_TestModOff[]      PROGMEM = {"Command: Test mode has been turned off."};                             // выполнена команда для выключения тестового режима для тестирования датчиков
 const char sms_InContrMod[]      PROGMEM = {"Command: Control mode has been turned on."};                           // выполнена команда для установку на охрану
@@ -26,7 +26,6 @@ const char sms_NotInContrMod[]   PROGMEM = {"Command: Control mode has been turn
 const char sms_RedirectOn[]      PROGMEM = {"Command: SMS redirection has been turned on."};                        // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
 const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection has been turned off."};                       // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
 const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren has been turned on."};                           // выполнена команда для коротковременного включения сирены
-const char sms_WasRebooted[]     PROGMEM = {"Command: Device was rebooted."};                                       // выполнена команда для коротковременного включения сирены
 const char sms_WrongUssd[]       PROGMEM = {"Command: Wrong USSD code."};                                           // сообщение о неправельной USSD коде
 const char sms_BalanceUssd[]     PROGMEM = {"Command: USSD code for getting balance was changed to "};              // выполнена команда для замены gsm команды для получения баланса
 const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format of command should be next:\nSendSMS 'number' 'text'"}; // выполнена команда для отправки смс другому абоненту
@@ -87,8 +86,7 @@ const char sms_DelaySiren[]      PROGMEM = {"Command: Delay of siren was changed
 #define E_mode           0                      // адресс для сохранения режимов работы 
 #define E_inTestMod      1                      // адресс для сохранения режима тестирования
 #define E_isRedirectSms  2                      // адресс для сохранения режима перенаправления всех смс
-#define E_wasRebooted    3                      // адресс для сохранения факта перезагрузки устройства по смс команде
-#define E_delaySiren     4                      // адресс для сохранения длины паузы между срабатыванием датяиков и включением сирены (в сикундах)
+#define E_delaySiren     3                      // адресс для сохранения длины паузы между срабатыванием датяиков и включением сирены (в сикундах)
 
 #define E_IsPIR1Enabled  10                     // адресс для сохранения включение/отключения режима 
 #define E_IsPIR2Enabled  11                     // адресс для сохранения длины паузы между срабатыванием датяиков и включением сирены (в сикундах)
@@ -132,8 +130,9 @@ unsigned long prRefreshVcc = 0;                 // время последнег
 unsigned long prReqSirena = 0;                  // время последнего обнаружения, что необходимо включать сирену
 
 byte countPressBtn = 0;                         // счетчик нажатий на кнопку
-bool controlTensionCable = true;                // включаем контроль растяжки
-bool wasRebooted = false;                       // указываем была ли последний раз перезагрузка программным путем
+bool PIR1Triggered = false;                     // переменная для хранения статуса сработал или не сработал датчик движения 1
+bool PIR2Triggered = false;                     // переменная для хранения статуса сработал или не сработал датчик движения 2
+bool TensionTriggered = false;                  // переменная для хранения статуса сработала или не сработала растяжка
 
 // переменные для определения когда необходимо сигнализировать о срабатывании датчиков
 bool isAlarmTension = false;                    // true если сработал датчик растяжки 
@@ -186,7 +185,6 @@ void setup()
         EEPROM.write(E_mode, NotInContrMod);            // устанавливаем по умолчанию режим не на охране
         EEPROM.write(E_inTestMod, false);               // режим тестирования по умолчанию выключен
         EEPROM.write(E_isRedirectSms, false);           // режим перенаправления всех смс по умолчанию выключен
-        EEPROM.write(E_wasRebooted, false);             // факт перезагрузки устройства по умолчанию выключено (устройство не перезагружалось)
         EEPROM.write(E_delaySiren, 0);                  // пауза между сработкой датчиков и включением сирены отключена (0 секунд) 
         EEPROM.write(E_IsPIR1Enabled, true);            
         EEPROM.write(E_IsPIR2Enabled, true);            
@@ -222,7 +220,6 @@ void setup()
   else Set_NotInContrMod();
 
   inTestMod = EEPROM.read(E_inTestMod);                 // читаем тестовый режим из еепром
-  wasRebooted = EEPROM.read(E_wasRebooted);             // читаем был ли последний раз перезагрузка программным путем  
 }
 
 bool newClick = true;
@@ -237,13 +234,6 @@ void loop()
   
   gsm.Refresh();                                                      // читаем сообщения от GSM модема   
 
-  if(wasRebooted)
-  {    
-    SendSms(&GetStringFromFlash(sms_WasRebooted), &NumberRead(E_NUM1_SmsCommand));
-    wasRebooted = false;
-    EEPROM.write(E_wasRebooted, false);
-  }
-  
   if (inTestMod && !isSiren)                                          // если включен режим тестирования и не сирена
     if (GetElapsed(prTestBlinkLed) > timeTestBlinkLed)   
     {
@@ -331,17 +321,18 @@ void loop()
       return;                         
     }
 
-    if (EEPROM.read(E_TensionEnabled) && controlTensionCable && SensorTriggered_TensionCable())
+    if (EEPROM.read(E_TensionEnabled) && !TensionTriggered && SensorTriggered_TensionCable())// проверяем растяжку только если она не срабатывала ранее (что б смс и звонки совершались единоразово)
     {
       reqSirena = true;
+      TensionTriggered = true;                                                               // запоминаем факт срабатывания растяжки для отображения статуса растяжки и для последующего отключения ее проверки
       if (prReqSirena == 1) prReqSirena = millis();
-      isAlarmTension = true;      
-      controlTensionCable = false;                                                            // выключаем контроль растяжки до следующей установки на охрану (что б смс и звонки совершались единоразово)
+      isAlarmTension = true;     
     }
     
     if (EEPROM.read(E_IsPIR1Enabled) && SensorTriggered_PIR1())
     {       
       reqSirena = true;
+      PIR1Triggered = true;                                                                  // запоминаем факт срабатывания датчика для отображения статуса датчика
       if (prReqSirena == 1) prReqSirena = millis();
       if (GetElapsed(prAlarmPIR1) > timeSmsPIR1 || prAlarmPIR1 == 0)                         // если выдержена пауза после последнего звонка и отправки смс 
         isAlarmPIR1 = true;
@@ -350,6 +341,7 @@ void loop()
     if (EEPROM.read(E_IsPIR2Enabled) && SensorTriggered_PIR2())
     {      
       reqSirena = true;
+      PIR1Triggered = true;                                                                  // запоминаем факт срабатывания датчика для отображения статуса датчика
       if (prReqSirena == 1) prReqSirena = millis();
       if (GetElapsed(prAlarmPIR2) > timeSmsPIR2 || prAlarmPIR2 == 0)                         // если выдержена пауза после последнего звонка и отправки смс
         isAlarmPIR2 = true;
@@ -368,7 +360,7 @@ void loop()
         prSiren = millis();      
     }      
     
-    if (isAlarmTension)                                                                       // проверяем состояние растяжки и если это первое обнаружение обрыва (controlTensionCable = true) то выполняем аналогичные действие
+    if (isAlarmTension)                                                                       // проверяем состояние растяжки и если это первое обнаружение обрыва (TensionTriggered = false) то выполняем аналогичные действие
     {                                                  
       if (gsm.IsAvailable())
       {
@@ -435,7 +427,8 @@ void loop()
     SendSms(&gsm.UssdText, &NumberRead(E_NumberAnsUssd));                             // отправляем ответ на Ussd запрос
     gsm.ClearUssd();                                                                  // сбрасываем ответ на gsm команду 
   }
-  if (!isSiren) ExecSmsCommand();                                                     // если не сирена проверяем доступна ли новая команда по смс и если да то выполняем ее
+  if(!isAlarmTension && !isAlarmPIR1 && !isAlarmPIR2)
+    ExecSmsCommand();                                                                 // если нет необработаных датчиков то проверяем доступна ли новая команда по смс и если да то выполняем ее
 }
 
 
@@ -457,6 +450,9 @@ bool Set_NotInContrMod()                                // метод для с�
   PlayTone(specerTone, 500);
   mode = NotInContrMod;                                 // снимаем с охраны
   StopSiren();                                          // выключаем сирену
+  TensionTriggered = false;                              
+  PIR1Triggered = false;        
+  PIR2Triggered = false; 
   prAlarmPIR1 = 0;                                      // сбрасываем счетчики временных пауз в ноль
   prAlarmPIR2 = 0;
   isAlarmTension = false;
@@ -501,7 +497,9 @@ bool Set_InContrMod(bool IsWaiting)                     // метод для у�
   }
   
   // установка переменных в дефолтное состояние
-  controlTensionCable = true;                           // включаем контроль растяжки
+  TensionTriggered = false;                              
+  PIR1Triggered = false;        
+  PIR2Triggered = false; 
   prAlarmPIR1 = 0;
   prAlarmPIR2 = 0;
   isAlarmTension = false;
@@ -815,24 +813,25 @@ void ExecSmsCommand()
       {
         SkimpySiren();
         SendSms(&GetStringFromFlash(sms_SkimpySiren), &gsm.SmsNumber);   
-      }
-      else
-      if (gsm.SmsText.startsWith("reboot"))                                              // если обнаружена смс команда для перезагрузки устройства
-      {
-        PlayTone(specerTone, 250);
-        EEPROM.write(E_wasRebooted, true);                                               // записываем статус, что устройство перезагружается        
-        gsm.Shutdown();                                                                  // выключаем gsm модуль
-        RebootFunc();                                                                    // вызываем Reboot arduino платы
-      }
+      }      
       else
       if (gsm.SmsText.startsWith("status"))                                              // если обнаружена смс команда для запроса статуса режимов и настроек устройства  
       {
         PlayTone(specerTone, 250);        
-        String msg = "On controlling: "   + String((mode == InContrMod) ? "on" : "off") + "\n"
-                   + "Test mode: "        + String((inTestMod) ? "on" : "off") + "\n" 
-                   + "Redirect SMS: "     + String((EEPROM.read(E_isRedirectSms)) ? "on" : "off") + "\n"
+        String msg = "Control: "          + String((mode == InContrMod) ? "on" : "off") + "\n"
+                   + "Test: "             + String((inTestMod) ? "on" : "off") + "\n" 
+                   + "Redir.SMS: "        + String((EEPROM.read(E_isRedirectSms)) ? "on" : "off") + "\n"
                    + "Power: "            + String((powCtr.IsBattPower) ? "battery" : "network") + "\n"
                    + "DelaySiren: "       + String(EEPROM.read(E_delaySiren)) + " sec";
+        if (mode == InContrMod)
+        {
+          if (EEPROM.read(E_IsPIR1Enabled))
+            msg = msg + "\nPIR1: "          + String((PIR1Triggered) ? "Triggered" : "Idle"); 
+          if (EEPROM.read(E_IsPIR2Enabled))
+            msg = msg + "\nPIR2: "          + String((PIR2Triggered) ? "Triggered" : "Idle"); 
+          if (EEPROM.read(E_TensionEnabled))
+            msg = msg + "\nTension: "       + String((TensionTriggered) ? "Triggered" : "Idle");   
+        }
         SendSms(&msg, &gsm.SmsNumber);          
       }           
       else
