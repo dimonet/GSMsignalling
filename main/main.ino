@@ -128,10 +128,10 @@ unsigned long prLastPressBtn = 0;               // время последнег
 unsigned long prTestBlinkLed = 0;               // время мерцания светодиода при включеном режима тестирования (милисекунды)
 unsigned long prRefreshVcc = 0;                 // время последнего измирения питания (милисекунды)
 unsigned long prReqSirena = 0;                  // время последнего обнаружения, что необходимо включать сирену
+unsigned long prTrigPIR1 = 0;                   // время последнего срабатывания датчика движения 1
+unsigned long prTrigPIR2 = 0;                   // время последнего срабатывания датчика движения 2
 
 byte countPressBtn = 0;                         // счетчик нажатий на кнопку
-bool PIR1Triggered = false;                     // переменная для хранения статуса сработал или не сработал датчик движения 1
-bool PIR2Triggered = false;                     // переменная для хранения статуса сработал или не сработал датчик движения 2
 bool TensionTriggered = false;                  // переменная для хранения статуса сработала или не сработала растяжка
 
 // переменные для определения когда необходимо сигнализировать о срабатывании датчиков
@@ -332,7 +332,7 @@ void loop()
     if (EEPROM.read(E_IsPIR1Enabled) && SensorTriggered_PIR1())
     {       
       reqSirena = true;
-      PIR1Triggered = true;                                                                  // запоминаем факт срабатывания датчика для отображения статуса датчика
+      prTrigPIR1 = millis();                                                                 // запоминаем когда сработал датчик для отображения статуса датчика
       if (prReqSirena == 1) prReqSirena = millis();
       if (GetElapsed(prAlarmPIR1) > timeSmsPIR1 || prAlarmPIR1 == 0)                         // если выдержена пауза после последнего звонка и отправки смс 
         isAlarmPIR1 = true;
@@ -341,7 +341,7 @@ void loop()
     if (EEPROM.read(E_IsPIR2Enabled) && SensorTriggered_PIR2())
     {      
       reqSirena = true;
-      PIR1Triggered = true;                                                                  // запоминаем факт срабатывания датчика для отображения статуса датчика
+      prTrigPIR2 = millis();                                                                 // запоминаем когда сработал датчик для отображения статуса датчика
       if (prReqSirena == 1) prReqSirena = millis();
       if (GetElapsed(prAlarmPIR2) > timeSmsPIR2 || prAlarmPIR2 == 0)                         // если выдержена пауза после последнего звонка и отправки смс
         isAlarmPIR2 = true;
@@ -354,7 +354,7 @@ void loop()
       if (!isSiren)
       {
         StartSiren();
-        prReqSirena = 0;                                                                        // устанавливаем в 0 для отключения паузы между следующим срабатыванием датчиков и включением сирены
+        prReqSirena = 0;                                                                      // устанавливаем в 0 для отключения паузы между следующим срабатыванием датчиков и включением сирены
       }
       else
         prSiren = millis();      
@@ -451,8 +451,8 @@ bool Set_NotInContrMod()                                // метод для с�
   mode = NotInContrMod;                                 // снимаем с охраны
   StopSiren();                                          // выключаем сирену
   TensionTriggered = false;                              
-  PIR1Triggered = false;        
-  PIR2Triggered = false; 
+  prTrigPIR1 = 0;
+  prTrigPIR2 = 0;
   prAlarmPIR1 = 0;                                      // сбрасываем счетчики временных пауз в ноль
   prAlarmPIR2 = 0;
   isAlarmTension = false;
@@ -498,8 +498,8 @@ bool Set_InContrMod(bool IsWaiting)                     // метод для у�
   
   // установка переменных в дефолтное состояние
   TensionTriggered = false;                              
-  PIR1Triggered = false;        
-  PIR2Triggered = false; 
+  prTrigPIR1 = 0;
+  prTrigPIR2 = 0; 
   prAlarmPIR1 = 0;
   prAlarmPIR2 = 0;
   isAlarmTension = false;
@@ -826,9 +826,9 @@ void ExecSmsCommand()
         if (mode == InContrMod)
         {
           if (EEPROM.read(E_IsPIR1Enabled))
-            msg = msg + "\nPIR1: "          + String((PIR1Triggered) ? "Triggered" : "Idle"); 
+            msg = msg + "\nPIR1: "          + ((prTrigPIR1 == 0) ? "Idle" : (String(GetElapsed(prTrigPIR1)/1000) + " sec")); 
           if (EEPROM.read(E_IsPIR2Enabled))
-            msg = msg + "\nPIR2: "          + String((PIR2Triggered) ? "Triggered" : "Idle"); 
+            msg = msg + "\nPIR2: "          + ((prTrigPIR1 == 0) ? "Idle" : (String(GetElapsed(prTrigPIR1)/1000) + " sec")); 
           if (EEPROM.read(E_TensionEnabled))
             msg = msg + "\nTension: "       + String((TensionTriggered) ? "Triggered" : "Idle");   
         }
