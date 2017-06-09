@@ -69,7 +69,9 @@ const char on[]                  PROGMEM = {"on"};
 const char off[]                 PROGMEM = {"off"};
 const char battery[]             PROGMEM = {"battery"};
 const char network[]             PROGMEM = {"network"};
-const char sec[]                 PROGMEM = {" sec."}; 
+const char sec[]                 PROGMEM = {" sec."};
+const char minut[]               PROGMEM = {" min."};
+const char hour[]                PROGMEM = {" hours."}; 
 
 // паузы
 #define  timeWaitInContr      25                           // время паузы от нажатие кнопки до установки режима охраны
@@ -616,7 +618,7 @@ bool ButtonIsHold(byte timeHold)
 
 
 void PlayTone(byte tone, unsigned int duration) 
-{
+{  
   for (unsigned long i = 0; i < duration * 1000L; i += tone * 2) 
   {
     digitalWrite(SpecerPin, HIGH);
@@ -738,7 +740,8 @@ bool SendSms(String *text, String *phone)      // собственный мет�
 {
   if(gsm.SendSms(text, phone))                 // если смс отправлено успешно 
   {  
-    PlayTone(specerTone, 250);                 // сигнализируем об этом
+    if (mode != InContrMod || !inTestMod)      // если не в режиме охраны или включен режим тестирования то сигнализируем спикером об отправке смс
+      PlayTone(specerTone, 250);                 
     return true;
   }
   else return false;
@@ -885,12 +888,50 @@ void ExecSmsCommand()
                    + GetStrFromFlash(delaySiren)       + String(EEPROM.read(E_delaySiren)) + GetStrFromFlash(sec);
         if (mode == InContrMod)
         {
+          unsigned long ltime;
+          String sStatus = "";          
           if (EEPROM.read(E_IsPIR1Enabled))
-            msg = msg + "\n" + GetStrFromFlash(PIR1)          + ((prTrigPIR1 == 0) ? GetStrFromFlash(idle) : (String(GetElapsed(prTrigPIR1)/1000) + GetStrFromFlash(sec)));
+          {             
+            if (prTrigPIR1 == 0) sStatus = GetStrFromFlash(idle);
+            else
+            {
+              ltime = GetElapsed(prTrigPIR1)/1000;
+              if (ltime <= 180) sStatus = String(ltime) + GetStrFromFlash(sec);             // < 180 сек. 
+              else 
+              if (ltime <= 7200) sStatus = String(ltime / 60) + GetStrFromFlash(minut);     // < 120 мин.
+              else 
+              sStatus = String(ltime / 3600) + GetStrFromFlash(hour);                       
+            }            
+            msg = msg + "\n" + GetStrFromFlash(PIR1) + sStatus;
+          }
           if (EEPROM.read(E_IsPIR2Enabled))
-            msg = msg + "\n" + GetStrFromFlash(PIR2)          + ((prTrigPIR1 == 0) ? GetStrFromFlash(idle) : (String(GetElapsed(prTrigPIR1)/1000) + GetStrFromFlash(sec))); 
+          {
+            if (prTrigPIR2 == 0) sStatus = GetStrFromFlash(idle);
+            else
+            {
+              ltime = GetElapsed(prTrigPIR2)/1000;
+              if (ltime <= 180) sStatus = String(ltime) + GetStrFromFlash(sec);             // < 180 сек. 
+              else 
+              if (ltime <= 7200) sStatus = String(ltime / 60) + GetStrFromFlash(minut);     // < 120 мин.
+              else 
+              sStatus = String(ltime / 3600) + GetStrFromFlash(hour);                       
+            }            
+            msg = msg + "\n" + GetStrFromFlash(PIR2) + sStatus;
+          }
           if (EEPROM.read(E_TensionEnabled))
-            msg = msg + "\n" + GetStrFromFlash(tension)       + ((prTension == 0) ? GetStrFromFlash(idle) : (String(GetElapsed(prTension)/1000) + GetStrFromFlash(sec)));  
+          {
+            if (prTension == 0) sStatus = GetStrFromFlash(idle);
+            else
+            {
+              ltime = GetElapsed(prTension)/1000;
+              if (ltime <= 180) sStatus = String(ltime) + GetStrFromFlash(sec);             // < 180 сек. 
+              else 
+              if (ltime <= 7200) sStatus = String(ltime / 60) + GetStrFromFlash(minut);     // < 120 мин.
+              else 
+              sStatus = String(ltime / 3600) + GetStrFromFlash(hour);                       
+            }            
+            msg = msg + "\n" + GetStrFromFlash(tension) + sStatus;            
+          }
         }
         SendSms(&msg, &gsm.SmsNumber);          
       }           
