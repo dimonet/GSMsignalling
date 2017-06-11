@@ -58,7 +58,7 @@ const char control[]             PROGMEM = {"On controlling: "};
 const char test[]                PROGMEM = {"Test mode: "}; 
 const char redirSms[]            PROGMEM = {"Redirect SMS: "}; 
 const char power[]               PROGMEM = {"Power: "}; 
-const char delaySiren[]          PROGMEM = {"DelaySiren: "}; 
+const char delSiren[]            PROGMEM = {"DelaySiren: "}; 
 const char PIR1[]                PROGMEM = {"PIR1: "}; 
 const char PIR2[]                PROGMEM = {"PIR2: "}; 
 const char tension[]             PROGMEM = {"Tension: "};
@@ -892,7 +892,7 @@ void ExecSmsCommand()
                    + GetStrFromFlash(test)             + String((inTestMod) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "\n" 
                    + GetStrFromFlash(redirSms)         + String((EEPROM.read(E_isRedirectSms)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "\n"
                    + GetStrFromFlash(power)            + String((powCtr.IsBattPower) ? GetStrFromFlash(battery) : GetStrFromFlash(network)) + "\n"
-                   + GetStrFromFlash(delaySiren)       + String(EEPROM.read(E_delaySiren)) + GetStrFromFlash(sec);
+                   + GetStrFromFlash(delSiren)       + String(EEPROM.read(E_delaySiren)) + GetStrFromFlash(sec);
         
         if (!EEPROM.read(E_SirenEnabled))
           msg = msg + "\n" + GetStrFromFlash(siren) + GetStrFromFlash(off);
