@@ -62,6 +62,7 @@ const char delaySiren[]          PROGMEM = {"DelaySiren: "};
 const char PIR1[]                PROGMEM = {"PIR1: "}; 
 const char PIR2[]                PROGMEM = {"PIR2: "}; 
 const char tension[]             PROGMEM = {"Tension: "};
+const char siren[]               PROGMEM = {"Siren: "};
 const char idle[]                PROGMEM = {"Idle"};
 const char on[]                  PROGMEM = {"on"};
 const char off[]                 PROGMEM = {"off"};
@@ -135,8 +136,9 @@ const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
 #define E_IsPIR1Enabled  10                     
 #define E_IsPIR2Enabled  11                   
 #define E_TensionEnabled 12
+#define E_SirenEnabled   13
 
-#define numSize            13                   // количество символов в строке телефонного номера
+#define numSize            15                   // количество символов в строке телефонного номера
 
 #define E_BalanceUssd      70                   // Ussd код для запроса баланца
 
@@ -236,9 +238,10 @@ void setup()
         EEPROM.write(E_delayOnContr, 25);               // пауза от нажатия кнопки до установки режима охраны (25 сек)
         EEPROM.write(E_intervalVcc, 0);                 // интервал между измерениями питания (0 секунд)
         EEPROM.write(E_BalanceUssd, "");                // Ussd код для запроса баланца
+        EEPROM.write(E_SirenEnabled, true);             // сирена по умолчанию включена
         EEPROM.write(E_IsPIR1Enabled, true);            
         EEPROM.write(E_IsPIR2Enabled, true);            
-        EEPROM.write(E_TensionEnabled, true);            
+        EEPROM.write(E_TensionEnabled, true);                    
         RebootFunc();                                   // перезагружаем устройство
     }
   }  
@@ -580,7 +583,7 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
 void  StartSiren()
 {
   digitalWrite(SirenLED, HIGH);
-  if (!inTestMod)                                        // если не включен тестовый режим
+  if (!inTestMod && EEPROM.read(E_SirenEnabled))         // если не включен тестовый режим и сирена не отключена в конфигурации
     digitalWrite(SirenGenerator, LOW);                   // включаем сирену через релье
   else
     PlayTone(specerTone, 100);                           // если включен режим тестирование то сигнализируем только спикером
@@ -890,6 +893,10 @@ void ExecSmsCommand()
                    + GetStrFromFlash(redirSms)         + String((EEPROM.read(E_isRedirectSms)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "\n"
                    + GetStrFromFlash(power)            + String((powCtr.IsBattPower) ? GetStrFromFlash(battery) : GetStrFromFlash(network)) + "\n"
                    + GetStrFromFlash(delaySiren)       + String(EEPROM.read(E_delaySiren)) + GetStrFromFlash(sec);
+        
+        if (!EEPROM.read(E_SirenEnabled))
+          msg = msg + "\n" + GetStrFromFlash(siren) + GetStrFromFlash(off);
+          
         if (mode == OnContrMod)
         {
           unsigned long ltime;
@@ -1050,10 +1057,11 @@ void ExecSmsCommand()
         PlayTone(specerTone, 250);                                
         String msg = GetStrFromFlash(delOnContr)   + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
            + GetStrFromFlash(intervalVcc)          + "'" + String(EEPROM.read(E_intervalVcc)) + "'" + GetStrFromFlash(sec) + "\n"
-           + GetStrFromFlash(balanceUssd)          + "'" + ReadFromEEPROM(E_BalanceUssd) + "'" + "\n"
+           + GetStrFromFlash(balanceUssd)          + "'" + ReadFromEEPROM(E_BalanceUssd) + "'" + "\n"           
            + GetStrFromFlash(PIR1)                 + "'" + String((EEPROM.read(E_IsPIR1Enabled)) ? "on" : "off") + "'" + "\n"
            + GetStrFromFlash(PIR2)                 + "'" + String((EEPROM.read(E_IsPIR2Enabled)) ? "on" : "off") + "'" + "\n"
-           + GetStrFromFlash(tension)              + "'" + String((EEPROM.read(E_TensionEnabled)) ? "on" : "off")  + "'" ;
+           + GetStrFromFlash(tension)              + "'" + String((EEPROM.read(E_TensionEnabled)) ? "on" : "off") + "'" + "\n"
+           + GetStrFromFlash(siren)                + "'" + String((EEPROM.read(E_SirenEnabled)) ? "on" : "off") + "'";
         SendSms(&msg, &gsm.SmsNumber);   
       }
       else  
@@ -1067,13 +1075,7 @@ void ExecSmsCommand()
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
           int duration = str.indexOf('\'');  
-          sConf[i] = str.substring(0, duration);      
-         /* if (beginStr <= 0 || duration <= 0 || sConf[i].length() == 0)
-          {  
-            if (i == 0) sConf[i] = "25";                                // знячения по умоляанию для delayOnContr
-            if (i == 1) sConf[i] = '0';                                 // знячения по умоляанию для intervalVcc
-            if (i == 2) sConf[i] = "";                                  // знячения по умоляанию для BalanceUssd
-          }*/
+          sConf[i] = str.substring(0, duration);              
           str = str.substring(duration +1);         
         }        
         EEPROM.write(E_delayOnContr, sConf[0].toInt());
@@ -1081,7 +1083,7 @@ void ExecSmsCommand()
         WriteToEEPROM(E_BalanceUssd, &sConf[2]);       
 
         bool bConf[3];                                                  // сохраняем настройки по датчикам
-        for(byte i = 0; i < 3; i++)
+        for(byte i = 0; i < 4; i++)
         {
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
@@ -1095,14 +1097,15 @@ void ExecSmsCommand()
         EEPROM.write(E_IsPIR1Enabled, bConf[0]);
         EEPROM.write(E_IsPIR2Enabled, bConf[1]);
         EEPROM.write(E_TensionEnabled, bConf[2]);               
-        
+        EEPROM.write(E_SirenEnabled, bConf[3]);
         String msg = GetStrFromFlash(delOnContr)   + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
            + GetStrFromFlash(intervalVcc)          + "'" + String(EEPROM.read(E_intervalVcc)) + "'" + GetStrFromFlash(sec) + "\n"
-           + GetStrFromFlash(balanceUssd)          + "'" + ReadFromEEPROM(E_BalanceUssd) + "'" + "\n"
+           + GetStrFromFlash(balanceUssd)          + "'" + ReadFromEEPROM(E_BalanceUssd) + "'" + "\n"           
            + GetStrFromFlash(PIR1)                 + "'" + String((EEPROM.read(E_IsPIR1Enabled)) ? "on" : "off") + "'" + "\n"
            + GetStrFromFlash(PIR2)                 + "'" + String((EEPROM.read(E_IsPIR2Enabled)) ? "on" : "off") + "'" + "\n"
-           + GetStrFromFlash(tension)              + "'" + String((EEPROM.read(E_TensionEnabled)) ? "on" : "off")  + "'" ;
-        SendSms(&msg, &gsm.SmsNumber);   
+           + GetStrFromFlash(tension)              + "'" + String((EEPROM.read(E_TensionEnabled)) ? "on" : "off") + "'" + "\n"
+           + GetStrFromFlash(siren)                + "'" + String((EEPROM.read(E_SirenEnabled)) ? "on" : "off") + "'";
+        SendSms(&msg, &gsm.SmsNumber);  
       }
       else                                                                              // если смс команда не распознана
       {
