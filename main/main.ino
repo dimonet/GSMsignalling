@@ -277,7 +277,7 @@ bool newClick = true;
 
 void loop() 
 {       
-  if (GetElapsed(prRefreshVcc) > EEPROM.read(E_intervalVcc) || prRefreshVcc == 0) // проверяем сколько прошло времени после последнего измерения питания (секунды) (выдерживаем паузц между измерениями что б не загружать контроллер)
+  if (GetElapsed(prRefreshVcc) > EEPROM.read(E_intervalVcc) * 1000 || prRefreshVcc == 0) // проверяем сколько прошло времени после последнего измерения питания (секунды) (выдерживаем паузц между измерениями что б не загружать контроллер)
   {   
     PowerControl();                                                   // мониторим питание системы
     prRefreshVcc = millis();
