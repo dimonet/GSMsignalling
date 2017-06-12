@@ -239,7 +239,7 @@ void setup()
         EEPROM.write(E_delaySiren, 0);                  // пауза между сработкой датчиков и включением сирены отключена (0 секунд) 
         EEPROM.write(E_delayOnContr, 25);               // пауза от нажатия кнопки до установки режима охраны (25 сек)
         EEPROM.write(E_intervalVcc, 0);                 // интервал между измерениями питания (0 секунд)
-        EEPROM.write(E_BalanceUssd, "");                // Ussd код для запроса баланца
+        EEPROM.write(E_BalanceUssd, "***");                // Ussd код для запроса баланца
         EEPROM.write(E_SirenEnabled, true);             // сирена по умолчанию включена
         EEPROM.write(E_IsPIR1Enabled, true);            
         EEPROM.write(E_IsPIR2Enabled, true);            
