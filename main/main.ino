@@ -147,16 +147,16 @@ const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
 #define E_NUM1_OutOfContr  100                  // 1-й номер для снятие с охраны
 #define E_NUM2_OutOfContr  117                  // 2-й номер для снятие с охраны
 #define E_NUM3_OutOfContr  134                  // 3-й номер для снятие с охраны
-#define E_NUM4_OutOfContr  130                  // 4-й номер для снятие с охраны
+#define E_NUM4_OutOfContr  151                  // 4-й номер для снятие с охраны
 
-#define E_NUM1_OnContr     151                  // 1-й номер для установки на охрану
-#define E_NUM2_OnContr     168                  // 2-й номер для установки на охрану
-#define E_NUM3_OnContr     185                  // 2-й номер для установки на охрану
+#define E_NUM1_OnContr     168                  // 1-й номер для установки на охрану
+#define E_NUM2_OnContr     185                  // 2-й номер для установки на охрану
+#define E_NUM3_OnContr     202                  // 2-й номер для установки на охрану
 
-#define E_NUM1_SmsCommand  202                  // 1-й номер для управления через sms
-#define E_NUM2_SmsCommand  219                  // 2-й номер для управления через sms
-#define E_NUM3_SmsCommand  236                  // 3-й номер для управления через sms
-#define E_NUM4_SmsCommand  253                  // 3-й номер для управления через sms  
+#define E_NUM1_SmsCommand  219                  // 1-й номер для управления через sms
+#define E_NUM2_SmsCommand  236                  // 2-й номер для управления через sms
+#define E_NUM3_SmsCommand  253                  // 3-й номер для управления через sms
+#define E_NUM4_SmsCommand  270                  // 3-й номер для управления через sms  
 
 
 //// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ////
