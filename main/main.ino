@@ -145,16 +145,18 @@ const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
 #define E_NumberAnsUssd    85                   // для промежуточного хранения номера телефона, от которого получено gsm код и которому необходимо отправить ответ (баланс и т.д.)
 
 #define E_NUM1_OutOfContr  100                  // 1-й номер для снятие с охраны
-#define E_NUM2_OutOfContr  115                  // 2-й номер для снятие с охраны
-#define E_NUM3_OutOfContr  130                  // 3-й номер для снятие с охраны
+#define E_NUM2_OutOfContr  117                  // 2-й номер для снятие с охраны
+#define E_NUM3_OutOfContr  134                  // 3-й номер для снятие с охраны
+#define E_NUM4_OutOfContr  130                  // 4-й номер для снятие с охраны
 
-#define E_NUM1_OnContr     145                  // 1-й номер для установки на охрану
-#define E_NUM2_OnContr     160                  // 2-й номер для установки на охрану
+#define E_NUM1_OnContr     151                  // 1-й номер для установки на охрану
+#define E_NUM2_OnContr     168                  // 2-й номер для установки на охрану
+#define E_NUM3_OnContr     185                  // 2-й номер для установки на охрану
 
-#define E_NUM1_SmsCommand  175                  // 1-й номер для управления через sms
-#define E_NUM2_SmsCommand  190                  // 2-й номер для управления через sms
-#define E_NUM3_SmsCommand  205                  // 3-й номер для управления через sms
-  
+#define E_NUM1_SmsCommand  202                  // 1-й номер для управления через sms
+#define E_NUM2_SmsCommand  219                  // 2-й номер для управления через sms
+#define E_NUM3_SmsCommand  236                  // 3-й номер для управления через sms
+#define E_NUM4_SmsCommand  253                  // 3-й номер для управления через sms  
 
 
 //// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ////
@@ -354,7 +356,8 @@ void loop()
     if (gsm.NewRing)                                                  // если обнаружен входящий звонок
     {
       if (NumberRead(E_NUM1_OnContr).indexOf(gsm.RingNumber) > -1 ||  // если найден зарегистрированный звонок то ставим на охрану
-          NumberRead(E_NUM2_OnContr).indexOf(gsm.RingNumber) > -1          
+          NumberRead(E_NUM2_OnContr).indexOf(gsm.RingNumber) > -1 ||
+          NumberRead(E_NUM3_OnContr).indexOf(gsm.RingNumber) > -1           
          )      
       {               
         digitalWrite(SirenLED, LOW);                        // на время выключаем мигание светодиода сирены если включен режим тестирования
@@ -460,7 +463,8 @@ void loop()
     {      
       if (NumberRead(E_NUM1_OutOfContr).indexOf(gsm.RingNumber) > -1 ||               // если найден зарегистрированный звонок то снимаем с охраны
           NumberRead(E_NUM2_OutOfContr).indexOf(gsm.RingNumber) > -1 || 
-          NumberRead(E_NUM3_OutOfContr).indexOf(gsm.RingNumber) > -1          
+          NumberRead(E_NUM3_OutOfContr).indexOf(gsm.RingNumber) > -1 ||
+          NumberRead(E_NUM4_OutOfContr).indexOf(gsm.RingNumber) > -1         
          )               
       {                    
         delay(timeRejectCall);                                                        // пауза перед збросом звонка
@@ -469,7 +473,8 @@ void loop()
       }
       else
       if ((NumberRead(E_NUM1_OnContr).indexOf(gsm.RingNumber) > -1 ||
-           NumberRead(E_NUM2_OnContr).indexOf(gsm.RingNumber) > -1) && 
+           NumberRead(E_NUM2_OnContr).indexOf(gsm.RingNumber) > -1 ||
+           NumberRead(E_NUM3_OnContr).indexOf(gsm.RingNumber) > -1) && 
           reqSirena &&
           !isSiren
           )                // если найден зарегистрированный звонок то снимаем с охраны
@@ -761,12 +766,14 @@ void ExecSmsCommand()
   {
     if ((gsm.SmsNumber.indexOf(NumberRead(E_NUM1_SmsCommand)) > -1 ||                    // если обнаружено зарегистрированый номер
          gsm.SmsNumber.indexOf(NumberRead(E_NUM2_SmsCommand)) > -1 ||
-         gsm.SmsNumber.indexOf(NumberRead(E_NUM3_SmsCommand)) > -1
+         gsm.SmsNumber.indexOf(NumberRead(E_NUM3_SmsCommand)) > -1 ||
+         gsm.SmsNumber.indexOf(NumberRead(E_NUM4_SmsCommand)) > -1
         ) 
         ||
         (NumberRead(E_NUM1_SmsCommand).startsWith("***")  &&                             // если нет зарегистрированных номеров (при первом включении необходимо зарегистрировать номера)
          NumberRead(E_NUM2_SmsCommand).startsWith("***")  &&
-         NumberRead(E_NUM3_SmsCommand).startsWith("***")
+         NumberRead(E_NUM3_SmsCommand).startsWith("***")  &&
+         NumberRead(E_NUM4_SmsCommand).startsWith("***")
          )
        )
     { 
@@ -965,9 +972,9 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith(GetStrFromFlash(outofcontr1)))                          // если обнаружена смс команда для регистрации группы телефонов для снятие с охраны
       {
         PlayTone(specerTone, 250);                      
-        String nums[3];
+        String nums[4];
         String str = gsm.SmsText;;
-        for(byte i = 0; i < 3; i++)
+        for(byte i = 0; i < 4; i++)
         {
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
@@ -975,21 +982,23 @@ void ExecSmsCommand()
           nums[i] = str.substring(0, duration);      
           str = str.substring(duration +1);            
         }        
-        WriteToEEPROM(E_NUM1_OutOfContr , &nums[0]);        
+        WriteToEEPROM(E_NUM1_OutOfContr, &nums[0]);        
         WriteToEEPROM(E_NUM2_OutOfContr, &nums[1]);  
-        WriteToEEPROM(E_NUM3_OutOfContr, &nums[2]);          
+        WriteToEEPROM(E_NUM3_OutOfContr, &nums[2]);
+        WriteToEEPROM(E_NUM4_OutOfContr, &nums[3]);        
         String msg = "OutOfContr1:\n'" + NumberRead(E_NUM1_OutOfContr) + "'" + "\n"
                    + "OutOfContr2:\n'" + NumberRead(E_NUM2_OutOfContr) + "'" + "\n"
-                   + "OutOfContr3:\n'" + NumberRead(E_NUM3_OutOfContr) + "'";
+                   + "OutOfContr3:\n'" + NumberRead(E_NUM3_OutOfContr) + "'" + "\n"
+                   + "OutOfContr4:\n'" + NumberRead(E_NUM4_OutOfContr) + "'";
         SendSms(&msg, &gsm.SmsNumber);    
       }
       else     
       if (gsm.SmsText.startsWith(GetStrFromFlash(oncontr1)))                           // если обнаружена смс команда для регистрации группы телефонов для установки на охрану
       {
         PlayTone(specerTone, 250);                     
-        String nums[2];
+        String nums[3];
         String str = gsm.SmsText;         
-        for(byte i = 0; i < 2; i++)
+        for(byte i = 0; i < 3; i++)
         {
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
@@ -999,17 +1008,19 @@ void ExecSmsCommand()
         }              
         WriteToEEPROM(E_NUM1_OnContr, &nums[0]);  
         WriteToEEPROM(E_NUM2_OnContr, &nums[1]);
+        WriteToEEPROM(E_NUM3_OnContr, &nums[2]);        
         String msg = "OnContr1:\n'" + NumberRead(E_NUM1_OnContr) + "'" + "\n"
-                   + "OnContr2:\n'" + NumberRead(E_NUM2_OnContr) + "'";
+                   + "OnContr2:\n'" + NumberRead(E_NUM2_OnContr) + "'" + "\n"
+                   + "OnContr3:\n'" + NumberRead(E_NUM3_OnContr) + "'";
         SendSms(&msg, &gsm.SmsNumber);               
       }
       else
       if (gsm.SmsText.startsWith(GetStrFromFlash(smscommand1)))                         // если обнаружена смс команда для регистрации группы телефонов для управления через смс команды
       {
         PlayTone(specerTone, 250);                     
-        String nums[3];
+        String nums[4];
         String str = gsm.SmsText;        
-        for(byte i = 0; i < 3; i++)
+        for(byte i = 0; i < 4; i++)
         {
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
@@ -1019,10 +1030,12 @@ void ExecSmsCommand()
         }        
         WriteToEEPROM(E_NUM1_SmsCommand, &nums[0]);  
         WriteToEEPROM(E_NUM2_SmsCommand, &nums[1]);
-        WriteToEEPROM(E_NUM3_SmsCommand, &nums[2]);        
+        WriteToEEPROM(E_NUM3_SmsCommand, &nums[2]);  
+        WriteToEEPROM(E_NUM4_SmsCommand, &nums[3]);         
         String msg = "SmsCommand1:\n'" + NumberRead(E_NUM1_SmsCommand) + "'" + "\n"
                    + "SmsCommand2:\n'" + NumberRead(E_NUM2_SmsCommand) + "'" + "\n"
-                   + "SmsCommand3:\n'" + NumberRead(E_NUM3_SmsCommand) + "'";
+                   + "SmsCommand3:\n'" + NumberRead(E_NUM3_SmsCommand) + "'" + "\n"
+                   + "SmsCommand4:\n'" + NumberRead(E_NUM4_SmsCommand) + "'";
         SendSms(&msg, &gsm.SmsNumber);     
       }      
       else            
@@ -1031,7 +1044,8 @@ void ExecSmsCommand()
         PlayTone(specerTone, 250);        
         String msg = "OutOfContr1:\n'" + NumberRead(E_NUM1_OutOfContr) + "'" + "\n"
                    + "OutOfContr2:\n'" + NumberRead(E_NUM2_OutOfContr) + "'" + "\n"
-                   + "OutOfContr3:\n'" + NumberRead(E_NUM3_OutOfContr) + "'";
+                   + "OutOfContr3:\n'" + NumberRead(E_NUM3_OutOfContr) + "'" + "\n"
+                   + "OutOfContr4:\n'" + NumberRead(E_NUM4_OutOfContr) + "'";
         SendSms(&msg, &gsm.SmsNumber);                    
       }
       else
@@ -1039,7 +1053,8 @@ void ExecSmsCommand()
       {
         PlayTone(specerTone, 250);       
         String msg = "OnContr1:\n'" + NumberRead(E_NUM1_OnContr) + "'" + "\n"
-                   + "OnContr2:\n'" + NumberRead(E_NUM2_OnContr) + "'";    
+                   + "OnContr2:\n'" + NumberRead(E_NUM2_OnContr) + "'" + "\n"                    
+                   + "OnContr3:\n'" + NumberRead(E_NUM3_OnContr) + "'";   
         SendSms(&msg, &gsm.SmsNumber);
       }
       else
@@ -1048,7 +1063,8 @@ void ExecSmsCommand()
         PlayTone(specerTone, 250);       
         String msg = "SmsCommand1:\n'" + NumberRead(E_NUM1_SmsCommand) + "'" + "\n"
                    + "SmsCommand2:\n'" + NumberRead(E_NUM2_SmsCommand) + "'" + "\n" 
-                   + "SmsCommand3:\n'" + NumberRead(E_NUM3_SmsCommand) + "'";
+                   + "SmsCommand3:\n'" + NumberRead(E_NUM3_SmsCommand) + "'" + "\n" 
+                   + "SmsCommand4:\n'" + NumberRead(E_NUM4_SmsCommand) + "'";
         SendSms(&msg, &gsm.SmsNumber);
       }     
       else
@@ -1058,10 +1074,10 @@ void ExecSmsCommand()
         String msg = GetStrFromFlash(delOnContr)   + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
            + GetStrFromFlash(intervalVcc)          + "'" + String(EEPROM.read(E_intervalVcc)) + "'" + GetStrFromFlash(sec) + "\n"
            + GetStrFromFlash(balanceUssd)          + "'" + ReadFromEEPROM(E_BalanceUssd) + "'" + "\n" 
-           + GetStrFromFlash(siren)                + "'" + String((EEPROM.read(E_SirenEnabled)) ? "on" : "off") + "'" + "\n"    
-           + GetStrFromFlash(PIR1)                 + "'" + String((EEPROM.read(E_IsPIR1Enabled)) ? "on" : "off") + "'" + "\n"
-           + GetStrFromFlash(PIR2)                 + "'" + String((EEPROM.read(E_IsPIR2Enabled)) ? "on" : "off") + "'" + "\n"
-           + GetStrFromFlash(tension)              + "'" + String((EEPROM.read(E_TensionEnabled)) ? "on" : "off") + "'";
+           + GetStrFromFlash(siren)                + "'" + String((EEPROM.read(E_SirenEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"    
+           + GetStrFromFlash(PIR1)                 + "'" + String((EEPROM.read(E_IsPIR1Enabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
+           + GetStrFromFlash(PIR2)                 + "'" + String((EEPROM.read(E_IsPIR2Enabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
+           + GetStrFromFlash(tension)              + "'" + String((EEPROM.read(E_TensionEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'";
         SendSms(&msg, &gsm.SmsNumber);   
       }
       else  
