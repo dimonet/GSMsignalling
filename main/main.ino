@@ -239,7 +239,7 @@ void setup()
         EEPROM.write(E_delaySiren, 0);                  // пауза между сработкой датчиков и включением сирены отключена (0 секунд) 
         EEPROM.write(E_delayOnContr, 25);               // пауза от нажатия кнопки до установки режима охраны (25 сек)
         EEPROM.write(E_intervalVcc, 0);                 // интервал между измерениями питания (0 секунд)
-        EEPROM.write(E_BalanceUssd, "***");                // Ussd код для запроса баланца
+        EEPROM.write(E_BalanceUssd, "***");             // Ussd код для запроса баланца
         EEPROM.write(E_SirenEnabled, true);             // сирена по умолчанию включена
         EEPROM.write(E_IsPIR1Enabled, true);            
         EEPROM.write(E_IsPIR2Enabled, true);            
@@ -379,7 +379,7 @@ void loop()
     {
       int cSiren;
       if (!inTestMod) cSiren = timeSiren;                             // если выключен режим тестирования то сохраняем установленное время работы сирены
-        else cSiren = timeSiren / 5;                                  // если включен режим тестирования то время работы сирены сокращаем в четыре раза для удобства проверки датчиков
+        else cSiren = timeSiren / 10;                                  // если включен режим тестирования то время работы сирены сокращаем в десять раза для удобства проверки датчиков
       if (GetElapsed(prSiren) > cSiren)                               // если включена сирена и сирена работает больше установленного времени то выключаем ее
         StopSiren();
     }
