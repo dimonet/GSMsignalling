@@ -140,9 +140,9 @@ const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
 
 #define numSize            15                   // количество символов в строке телефонного номера
 
-#define E_BalanceUssd      70                   // Ussd код для запроса баланца
+#define E_BalanceUssd      60                   // Ussd код для запроса баланца
 
-#define E_NumberAnsUssd    85                   // для промежуточного хранения номера телефона, от которого получено gsm код и которому необходимо отправить ответ (баланс и т.д.)
+#define E_NumberAnsUssd    80                   // для промежуточного хранения номера телефона, от которого получено gsm код и которому необходимо отправить ответ (баланс и т.д.)
 
 #define E_NUM1_OutOfContr  100                  // 1-й номер для снятие с охраны
 #define E_NUM2_OutOfContr  117                  // 2-й номер для снятие с охраны
