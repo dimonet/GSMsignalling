@@ -140,9 +140,9 @@ const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
 
 #define numSize            15                   // количество символов в строке телефонного номера
 
-#define E_BalanceUssd      70                   // Ussd код для запроса баланца
+#define E_BalanceUssd      60                   // Ussd код для запроса баланца
 
-#define E_NumberAnsUssd    85                   // для промежуточного хранения номера телефона, от которого получено gsm код и которому необходимо отправить ответ (баланс и т.д.)
+#define E_NumberAnsUssd    80                   // для промежуточного хранения номера телефона, от которого получено gsm код и которому необходимо отправить ответ (баланс и т.д.)
 
 #define E_NUM1_OutOfContr  100                  // 1-й номер для снятие с охраны
 #define E_NUM2_OutOfContr  117                  // 2-й номер для снятие с охраны
@@ -360,16 +360,16 @@ void loop()
           NumberRead(E_NUM3_OnContr).indexOf(gsm.RingNumber) > -1           
          )      
       {               
-        digitalWrite(SirenLED, LOW);                                  // на время выключаем мигание светодиода сирены если включен режим тестирования
-        delay(timeRejectCall);                                        // пауза перед збросом звонка        
-        gsm.RejectCall();                                             // сбрасываем вызов               
-        Set_OnContrMod(false);                                        // устанавливаем на охрану без паузы              
+        digitalWrite(SirenLED, LOW);                        // на время выключаем мигание светодиода сирены если включен режим тестирования
+        delay(timeRejectCall);                              // пауза перед збросом звонка        
+        gsm.RejectCall();                                   // сбрасываем вызов               
+        Set_OnContrMod(false);                              // устанавливаем на охрану без паузы              
       }
-      else gsm.RejectCall();                                          // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)      
-    gsm.ClearRing();                                                  // очищаем обнаруженный входящий звонок    
+      else gsm.RejectCall();                                // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)      
+    gsm.ClearRing();                                        // очищаем обнаруженный входящий звонок    
     }
     
-  }                                                                   // end OutOfContrMod 
+  }                                                         // end OutOfContrMod 
   else
   
   ////// IN CONTROL MODE ///////  
@@ -599,14 +599,14 @@ void  StartSiren()
   else
     PlayTone(specerTone, 100);                          // если включен режим тестирование то сигнализируем только спикером
   isSiren = true; 
-  prSiren = millis(); 
+  prSiren = millis();  
 }
 
 
 void  StopSiren()
 {
   digitalWrite(SirenLED, LOW);
-  digitalWrite(SirenGenerator, HIGH);                   // выключаем сирену через релье
+  digitalWrite(SirenGenerator, HIGH);                    // выключаем сирену через релье
   isSiren = false;   
 }
 
