@@ -109,6 +109,7 @@ const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
 
 // Спикер
 #define specerTone 98                           // тон спикера
+#define smsSpecDur 100                          // длительность сигнала при получении смс команд и отправки ответа 
 
 //Power control 
 #define pinMeasureVcc A0                        // нога чтения типа питания (БП или батарея)
@@ -762,7 +763,7 @@ bool SendSms(String *text, String *phone)      // собственный мет�
   if(gsm.SendSms(text, phone))                 // если смс отправлено успешно 
   {  
     if (mode != OnContrMod || !inTestMod)      // если не в режиме охраны или включен режим тестирования то сигнализируем спикером об отправке смс
-      PlayTone(specerTone, 250);                 
+      PlayTone(specerTone, smsSpecDur);                 
     return true;
   }
   else return false;
@@ -791,7 +792,7 @@ void ExecSmsCommand()
       
       if (gsm.SmsText.startsWith("*") || gsm.SmsText.startsWith("#"))                    // если сообщение начинается на * или # то это Ussd запрос
       {
-        PlayTone(specerTone, 250); 
+        PlayTone(specerTone, smsSpecDur); 
         if (gsm.RequestUssd(&gsm.SmsText))                                               // отправляем Ussd запрос и если он валидный (запрос заканчиваться на #)             
           WriteToEEPROM(E_NumberAnsUssd, &gsm.SmsNumber);                                // то сохраняем номер на который необходимо будет отправить ответ от Ussd запроса                                                    
         else
@@ -800,7 +801,7 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText.startsWith(GetStrFromFlash(sendsms)))                              // если обнаружена смс команда для отправки смс другому абоненту
       {
-        PlayTone(specerTone, 250); 
+        PlayTone(specerTone, smsSpecDur); 
         String number = "";                                                              // переменная для хранения номера получателя
         String text = "";                                                                // переменная для хранения текста смс
         String str = gsm.SmsText;
@@ -834,7 +835,7 @@ void ExecSmsCommand()
       if (gsm.SmsText == GetStrFromFlash(balance))                                       // если обнаружена смс команда для запроса баланса
       {        
         digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим
-        PlayTone(specerTone, 250); 
+        PlayTone(specerTone, smsSpecDur); 
         if(gsm.RequestUssd(&ReadFromEEPROM(E_BalanceUssd)))                              // отправляем Ussd запрос для получения баланса и если он валидный (запрос заканчиваться на #)    
           WriteToEEPROM(E_NumberAnsUssd, &gsm.SmsNumber);                                // то сохраняем номер на который необходимо будет отправить баланс                 
         else
@@ -844,7 +845,7 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith(GetStrFromFlash(teston)))                              // если обнаружена смс команда для включения тестового режима для тестирования датчиков
       {        
         digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим
-        PlayTone(specerTone, 250); 
+        PlayTone(specerTone, smsSpecDur); 
         inTestMod = true;
         EEPROM.write(E_inTestMod, true);                                                 // пишим режим тестирование датчиков в еепром 
         SendSms(&GetStrFromFlash(sms_TestModOn), &gsm.SmsNumber);                        // отправляем смс о завершении выполнения даной смс команды                                                         
@@ -853,7 +854,7 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith(GetStrFromFlash(testoff)))                             // если обнаружена смс команда для выключения тестового режима для тестирования датчиков
       {
         digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим                                                 
-        PlayTone(specerTone, 250); 
+        PlayTone(specerTone, smsSpecDur); 
         inTestMod = false;
         EEPROM.write(E_inTestMod, false);                                                // пишим режим тестирование датчиков в еепром 
         SendSms(&GetStrFromFlash(sms_TestModOff), &gsm.SmsNumber);                       // отправляем смс о завершении выполнения даной смс команды                 
@@ -875,14 +876,14 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText.startsWith(GetStrFromFlash(redirecton)))                          // если обнаружена смс команда для включения режима "перенапралять входящие смс от незарегистрированных номеров на номер SmsCommand1" 
       {
-        PlayTone(specerTone, 250);
+        PlayTone(specerTone, smsSpecDur);
         EEPROM.write(E_isRedirectSms, true);         
         SendSms(&GetStrFromFlash(sms_RedirectOn), &gsm.SmsNumber);                                          
       }
       else 
       if (gsm.SmsText.startsWith(GetStrFromFlash(redirectoff)))                          // если обнаружена смс команда для выключения режима "перенапралять входящие смс от незарегистрированных номеров на номер SmsCommand1" 
       {
-        PlayTone(specerTone, 250);
+        PlayTone(specerTone, smsSpecDur);
         EEPROM.write(E_isRedirectSms, false);          
         SendSms(&GetStrFromFlash(sms_RedirectOff), &gsm.SmsNumber);       
       }
@@ -895,7 +896,7 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText.startsWith(GetStrFromFlash(reboot)))                                // если обнаружена смс команда для перезагрузки устройства
       {
-        PlayTone(specerTone, 250);
+        PlayTone(specerTone, smsSpecDur);
         EEPROM.write(E_wasRebooted, true);                                                // записываем статус, что устройство перезагружается        
         gsm.Shutdown();                                                                   // выключаем gsm модуль
         RebootFunc();                                                                     // вызываем Reboot arduino платы
@@ -903,7 +904,7 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText.startsWith(GetStrFromFlash(_status)))                               // если обнаружена смс команда для запроса статуса режимов и настроек устройства  
       {
-        PlayTone(specerTone, 250);        
+        PlayTone(specerTone, smsSpecDur);        
         String msg = GetStrFromFlash(control)          + String((mode == OnContrMod) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "\n"
                    + GetStrFromFlash(test)             + String((inTestMod) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "\n" 
                    + GetStrFromFlash(redirSms)         + String((EEPROM.read(E_isRedirectSms)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "\n"
@@ -965,7 +966,7 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText.startsWith(GetStrFromFlash(delaysiren)))                           // если обнаружена смс команда для установки длины паузы между срабатыванием датчиков и включение сирены  
       {
-        PlayTone(specerTone, 250);
+        PlayTone(specerTone, smsSpecDur);
         String str = gsm.SmsText;
         int beginStr = str.indexOf('\'');
         str = str.substring(beginStr + 1);
@@ -980,7 +981,7 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText.startsWith(GetStrFromFlash(outofcontr1)))                          // если обнаружена смс команда для регистрации группы телефонов для снятие с охраны
       {
-        PlayTone(specerTone, 250);                      
+        PlayTone(specerTone, smsSpecDur);                      
         String nums[4];
         String str = gsm.SmsText;;
         for(byte i = 0; i < 4; i++)
@@ -1004,7 +1005,7 @@ void ExecSmsCommand()
       else     
       if (gsm.SmsText.startsWith(GetStrFromFlash(oncontr1)))                           // если обнаружена смс команда для регистрации группы телефонов для установки на охрану
       {
-        PlayTone(specerTone, 250);                     
+        PlayTone(specerTone, smsSpecDur);                     
         String nums[3];
         String str = gsm.SmsText;         
         for(byte i = 0; i < 3; i++)
@@ -1026,7 +1027,7 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText.startsWith(GetStrFromFlash(smscommand1)))                         // если обнаружена смс команда для регистрации группы телефонов для управления через смс команды
       {
-        PlayTone(specerTone, 250);                     
+        PlayTone(specerTone, smsSpecDur);                     
         String nums[4];
         String str = gsm.SmsText;        
         for(byte i = 0; i < 4; i++)
@@ -1050,7 +1051,7 @@ void ExecSmsCommand()
       else            
       if (gsm.SmsText.startsWith(GetStrFromFlash(outofcontr)))                       // если обнаружена смс команда для запроса списка зарегистрированных телефонов для снятие с охраны
       {
-        PlayTone(specerTone, 250);        
+        PlayTone(specerTone, smsSpecDur);        
         String msg = "OutOfContr1:\n'" + NumberRead(E_NUM1_OutOfContr) + "'" + "\n"
                    + "OutOfContr2:\n'" + NumberRead(E_NUM2_OutOfContr) + "'" + "\n"
                    + "OutOfContr3:\n'" + NumberRead(E_NUM3_OutOfContr) + "'" + "\n"
@@ -1060,7 +1061,7 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText.startsWith(GetStrFromFlash(oncontr)))                          // если обнаружена смс команда для запроса списка зарегистрированных телефонов для установки на охрану
       {
-        PlayTone(specerTone, 250);       
+        PlayTone(specerTone, smsSpecDur);       
         String msg = "OnContr1:\n'" + NumberRead(E_NUM1_OnContr) + "'" + "\n"
                    + "OnContr2:\n'" + NumberRead(E_NUM2_OnContr) + "'" + "\n"                    
                    + "OnContr3:\n'" + NumberRead(E_NUM3_OnContr) + "'";   
@@ -1069,7 +1070,7 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText.startsWith(GetStrFromFlash(smscommand)))                       // если обнаружена смс команда для запроса списка зарегистрированных телефонов для управления через смс команды
       {
-        PlayTone(specerTone, 250);       
+        PlayTone(specerTone, smsSpecDur);       
         String msg = "SmsCommand1:\n'" + NumberRead(E_NUM1_SmsCommand) + "'" + "\n"
                    + "SmsCommand2:\n'" + NumberRead(E_NUM2_SmsCommand) + "'" + "\n" 
                    + "SmsCommand3:\n'" + NumberRead(E_NUM3_SmsCommand) + "'" + "\n" 
@@ -1079,7 +1080,7 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText.startsWith(GetStrFromFlash(settings)))
       {
-        PlayTone(specerTone, 250);                                
+        PlayTone(specerTone, smsSpecDur);                                
         String msg = GetStrFromFlash(delOnContr)   + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
            + GetStrFromFlash(delSiren)             + "'" + String(EEPROM.read(E_delaySiren)) + "'" + GetStrFromFlash(sec) + "\n"
            + GetStrFromFlash(intervalVcc)          + "'" + String(EEPROM.read(E_intervalVcc)) + "'" + GetStrFromFlash(sec) + "\n"
@@ -1093,7 +1094,7 @@ void ExecSmsCommand()
       else  
       if (gsm.SmsText.startsWith(GetStrFromFlash(delayOnContr)))
       {
-        PlayTone(specerTone, 250);                        
+        PlayTone(specerTone, smsSpecDur);                        
         String sConf[4];
         String str = gsm.SmsText;        
         for(byte i = 0; i < 4; i++)
@@ -1137,7 +1138,7 @@ void ExecSmsCommand()
       }
       else                                                                              // если смс команда не распознана
       {
-        PlayTone(specerTone, 250);              
+        PlayTone(specerTone, smsSpecDur);              
         SendSms(&GetStrFromFlash(sms_ErrorCommand), &gsm.SmsNumber);                    // то отправляем смс со списком всех доступных смс команд
       }                                                                                 
     }    
