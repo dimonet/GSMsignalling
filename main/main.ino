@@ -292,7 +292,7 @@ void loop()
 
   if(wasRebooted)
   {    
-    SendSms(&GetStrFromFlash(sms_WasRebooted), &NumberRead(E_NUM1_SmsCommand));
+    SendSms(&GetStrFromFlash(sms_WasRebooted), &NumberRead(E_NUM1_OutOfContr));
     wasRebooted = false;
     EEPROM.write(E_wasRebooted, false);
   }
@@ -334,7 +334,7 @@ void loop()
         if(gsm.RequestUssd(&ReadFromEEPROM(E_BalanceUssd)))
           WriteToEEPROM(E_NumberAnsUssd, &NumberRead(E_NUM1_SmsCommand));              // сохраняем номер на который необходимо будет отправить ответ                   
         else
-          SendSms(&GetStrFromFlash(sms_WrongUssd), &NumberRead(E_NUM1_SmsCommand));    // если ответ пустой то отправляем сообщение об ошибке команды 
+          SendSms(&GetStrFromFlash(sms_WrongUssd), &NumberRead(E_NUM1_OutOfContr));    // если ответ пустой то отправляем сообщение об ошибке команды 
       }                                                                                
       else
       // кратковременное включение сирены (для тестирования модуля сирены)
@@ -435,7 +435,7 @@ void loop()
       if (gsm.IsAvailable())
       {
         if (!inTestMod)    
-          gsm.SendSms(&GetStrFromFlash(sms_TensionCable), &NumberRead(E_NUM1_SmsCommand)); 
+          gsm.SendSms(&GetStrFromFlash(sms_TensionCable), &NumberRead(E_NUM1_OutOfContr)); 
         gsm.Call(&NumberRead(E_NUM1_OutOfContr));      
         isAlarmTension = false;
       }                                                    
@@ -446,7 +446,7 @@ void loop()
       if (gsm.IsAvailable())              
       {  
         if (!inTestMod)  
-          gsm.SendSms(&GetStrFromFlash(sms_PIR1), &NumberRead(E_NUM1_SmsCommand));            // если не включен режим тестирование отправляем смс
+          gsm.SendSms(&GetStrFromFlash(sms_PIR1), &NumberRead(E_NUM1_OutOfContr));            // если не включен режим тестирование отправляем смс
         gsm.Call(&NumberRead(E_NUM1_OutOfContr));                                             // сигнализируем звонком о сработке датчика движения
         prAlarmPIR1 = millis();
         isAlarmPIR1 = false;
@@ -458,7 +458,7 @@ void loop()
       if (gsm.IsAvailable())
       {  
         if (!inTestMod)
-          gsm.SendSms(&GetStrFromFlash(sms_PIR2), &NumberRead(E_NUM1_SmsCommand));
+          gsm.SendSms(&GetStrFromFlash(sms_PIR2), &NumberRead(E_NUM1_OutOfContr));
         gsm.Call(&NumberRead(E_NUM1_OutOfContr));
         prAlarmPIR2 = millis();
         isAlarmPIR2 = false;
@@ -705,10 +705,10 @@ void PowerControl()                                                             
   digitalWrite(BattPowerLED, powCtr.IsBattPower);
         
   if (!inTestMod && !powCtr.IsBattPowerPrevious && powCtr.IsBattPower)                    // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v) и если не включен режим тестирования
-    SendSms(&GetStrFromFlash(sms_BattPower), &NumberRead(E_NUM1_SmsCommand));             // отправляем смс о переходе на резервное питание         
+    SendSms(&GetStrFromFlash(sms_BattPower), &NumberRead(E_NUM1_OutOfContr));             // отправляем смс о переходе на резервное питание         
    
   if (!inTestMod && powCtr.IsBattPowerPrevious && !powCtr.IsBattPower)                    // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования  
-    SendSms(&GetStrFromFlash(sms_NetPower), &NumberRead(E_NUM1_SmsCommand));              // отправляем смс о возобновлении  сетевое питание 220v 
+    SendSms(&GetStrFromFlash(sms_NetPower), &NumberRead(E_NUM1_OutOfContr));              // отправляем смс о возобновлении  сетевое питание 220v 
 }
 
 void SkimpySiren()                                                                        // метод для кратковременного включения сирены (для теститования сирены)
@@ -1143,7 +1143,7 @@ void ExecSmsCommand()
     }    
     else if (EEPROM.read(E_isRedirectSms))                                              // если смс пришла не с зарегистрированых номеров и включен режим перенаправления всех смс
     {
-      SendSms(&String(gsm.SmsText), &NumberRead(E_NUM1_SmsCommand));                    // перенаправляем смс на зарегистрированный номер под именем SmsCommand1
+      SendSms(&String(gsm.SmsText), &NumberRead(E_NUM1_OutOfContr));                    // перенаправляем смс на зарегистрированный номер под именем SmsCommand1
     }    
   gsm.ClearSms(); 
   }  
