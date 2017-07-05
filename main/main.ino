@@ -1081,6 +1081,7 @@ void ExecSmsCommand()
       {
         PlayTone(specerTone, 250);                                
         String msg = GetStrFromFlash(delOnContr)   + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
+           + GetStrFromFlash(delSiren)             + "'" + String(EEPROM.read(E_delaySiren)) + "'" + GetStrFromFlash(sec) + "\n"
            + GetStrFromFlash(intervalVcc)          + "'" + String(EEPROM.read(E_intervalVcc)) + "'" + GetStrFromFlash(sec) + "\n"
            + GetStrFromFlash(balanceUssd)          + "'" + ReadFromEEPROM(E_BalanceUssd) + "'" + "\n" 
            + GetStrFromFlash(siren)                + "'" + String((EEPROM.read(E_SirenEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"    
@@ -1093,9 +1094,9 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith(GetStrFromFlash(delayOnContr)))
       {
         PlayTone(specerTone, 250);                        
-        String sConf[3];
+        String sConf[4];
         String str = gsm.SmsText;        
-        for(byte i = 0; i < 3; i++)
+        for(byte i = 0; i < 4; i++)
         {
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
@@ -1104,8 +1105,9 @@ void ExecSmsCommand()
           str = str.substring(duration +1);         
         }        
         EEPROM.write(E_delayOnContr, sConf[0].toInt());
-        EEPROM.write(E_intervalVcc, sConf[1].toInt());
-        WriteToEEPROM(E_BalanceUssd, &sConf[2]);       
+        EEPROM.write(E_delaySiren, sConf[1].toInt());
+        EEPROM.write(E_intervalVcc, sConf[2].toInt());
+        WriteToEEPROM(E_BalanceUssd, &sConf[3]);       
 
         bool bConf[4];                                                  // сохраняем настройки по датчикам
         for(byte i = 0; i < 4; i++)
@@ -1124,6 +1126,7 @@ void ExecSmsCommand()
         EEPROM.write(E_IsPIR2Enabled, bConf[2]);
         EEPROM.write(E_TensionEnabled, bConf[3]);
         String msg = GetStrFromFlash(delOnContr)   + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
+           + GetStrFromFlash(delSiren)             + "'" + String(EEPROM.read(E_delaySiren)) + "'" + GetStrFromFlash(sec) + "\n"
            + GetStrFromFlash(intervalVcc)          + "'" + String(EEPROM.read(E_intervalVcc)) + "'" + GetStrFromFlash(sec) + "\n"
            + GetStrFromFlash(balanceUssd)          + "'" + ReadFromEEPROM(E_BalanceUssd) + "'" + "\n" 
            + GetStrFromFlash(siren)                + "'" + String((EEPROM.read(E_SirenEnabled)) ? "on" : "off") + "'" + "\n"    
