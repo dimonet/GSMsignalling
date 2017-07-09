@@ -50,7 +50,7 @@ const char oncontr[]             PROGMEM = {"oncontr"};
 const char smscommand[]          PROGMEM = {"smscommand"};
 const char settings[]            PROGMEM = {"setting"};
 const char sensor[]              PROGMEM = {"sensor"};
-const char delayOnContr[]        PROGMEM = {"delayoncontr"};
+const char delaySiren[]          PROGMEM = {"delaysiren"};
 const char _PIR1[]               PROGMEM = {"pir1"};
 
 // Строки для формирования смс ответов на смс команды Status и Settings
@@ -1066,8 +1066,8 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith(GetStrFromFlash(settings)))
       {
         PlayTone(specerTone, smsSpecDur);                                
-        String msg = GetStrFromFlash(delOnContr)   + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
-           + GetStrFromFlash(delSiren)             + "'" + String(EEPROM.read(E_delaySiren)) + "'" + GetStrFromFlash(sec) + "\n"
+        String msg = GetStrFromFlash(delSiren)     + "'" + String(EEPROM.read(E_delaySiren)) + "'" + GetStrFromFlash(sec) + "\n"
+           + GetStrFromFlash(delOnContr)           + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
            + GetStrFromFlash(intervalVcc)          + "'" + String(EEPROM.read(E_intervalVcc)) + "'" + GetStrFromFlash(sec) + "\n"
            + GetStrFromFlash(balanceUssd)          + "'" + ReadFromEEPROM(E_BalanceUssd) + "'" + "\n" 
            + GetStrFromFlash(siren)                + "'" + String((EEPROM.read(E_SirenEnabled)) ? "on" : "off") + "'" + "\n";
@@ -1082,7 +1082,7 @@ void ExecSmsCommand()
         SendSms(&msg, &gsm.SmsNumber);
       }
       else  
-      if (gsm.SmsText.startsWith(GetStrFromFlash(delayOnContr)))            // если обнаружена команда с основными настройками устройства (сетинги)
+      if (gsm.SmsText.startsWith(GetStrFromFlash(delaySiren)))              // если обнаружена команда с основными настройками устройства (сетинги)
       {
         PlayTone(specerTone, smsSpecDur);                        
         String sConf[4];
@@ -1104,14 +1104,14 @@ void ExecSmsCommand()
           }               
           str = str.substring(duration + 1);         
         }        
-        EEPROM.write(E_delayOnContr, sConf[0].toInt());
-        EEPROM.write(E_delaySiren, sConf[1].toInt());
+        EEPROM.write(E_delaySiren, sConf[0].toInt());
+        EEPROM.write(E_delayOnContr, sConf[1].toInt());        
         EEPROM.write(E_intervalVcc, sConf[2].toInt());
         WriteToEEPROM(E_BalanceUssd, &sConf[3]);       
         EEPROM.write(E_SirenEnabled, bSirEnab);
 
-        String msg = GetStrFromFlash(delOnContr)   + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
-           + GetStrFromFlash(delSiren)             + "'" + String(EEPROM.read(E_delaySiren)) + "'" + GetStrFromFlash(sec) + "\n"
+        String msg = GetStrFromFlash(delSiren)     + "'" + String(EEPROM.read(E_delaySiren)) + "'" + GetStrFromFlash(sec) + "\n"
+           + GetStrFromFlash(delOnContr)           + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
            + GetStrFromFlash(intervalVcc)          + "'" + String(EEPROM.read(E_intervalVcc)) + "'" + GetStrFromFlash(sec) + "\n"
            + GetStrFromFlash(balanceUssd)          + "'" + ReadFromEEPROM(E_BalanceUssd) + "'" + "\n" 
            + GetStrFromFlash(siren)                + "'" + String((EEPROM.read(E_SirenEnabled)) ? "on" : "off") + "'" + "\n";
