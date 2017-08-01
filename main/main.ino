@@ -394,6 +394,7 @@ void loop()
 
     if (EEPROM.read(E_TensionEnabled) && prTension == 0 && SensorTriggered_TensionCable())   // проверяем растяжку только если она не срабатывала ранее (что б смс и звонки совершались единоразово)
     {
+      digitalWrite(SirenLED, HIGH);                                                          // сигнализируем светодиодом о тревоге
       reqSirena = true;                                                                      // запоминаем когда сработал датчик для отображения статуса датчика
       prTension = millis();      
       if (prReqSirena == 1) prReqSirena = millis();
@@ -402,6 +403,7 @@ void loop()
     
     if (EEPROM.read(E_IsPIR1Enabled) && SensorTriggered_PIR1())
     {       
+      digitalWrite(SirenLED, HIGH);                                                          // сигнализируем светодиодом о тревоге
       reqSirena = true;
       prTrigPIR1 = millis();                                                                 // запоминаем когда сработал датчик для отображения статуса датчика
       if (prReqSirena == 1) prReqSirena = millis();
@@ -410,7 +412,8 @@ void loop()
     }
 
     if (EEPROM.read(E_IsPIR2Enabled) && SensorTriggered_PIR2())
-    {      
+    { 
+      digitalWrite(SirenLED, HIGH);                                                          // сигнализируем светодиодом о тревоге
       reqSirena = true;
       prTrigPIR2 = millis();                                                                 // запоминаем когда сработал датчик для отображения статуса датчика
       if (prReqSirena == 1) prReqSirena = millis();
@@ -593,8 +596,8 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
 
 
 void  StartSiren()
-{
-  digitalWrite(SirenLED, HIGH);
+{  
+  digitalWrite(SirenLED, HIGH);                         // сигнализируем светодиодом о тревоге
   if (!inTestMod)                                       // если не включен тестовый режим
   {
     if (EEPROM.read(E_SirenEnabled))                    // и сирена не отключена в конфигурации
@@ -609,7 +612,7 @@ void  StartSiren()
 
 void  StopSiren()
 {
-  digitalWrite(SirenLED, LOW);
+  digitalWrite(SirenLED, LOW);                           // выключаем светодиод о индикации тревоги 
   digitalWrite(SirenGenerator, HIGH);                    // выключаем сирену через релье
   isSiren = false;   
 }
