@@ -505,7 +505,32 @@ void loop()
       else gsm.RejectCall();                                                          // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)
       gsm.ClearRing();                                                                // очищаем обнаруженный входящий звонок 
     }         
-  }                                                                                   // end OnContrMod   
+  }                                                                                   // end OnContrMod
+
+  // обработка датчика газа/дыма
+  if (prTrigGas != 0 && (GetElapsed(prTrigGas)/1000) > 43200)                         // если время последнего срабатывания больше чем 12 часов то обнуляем его 
+    
+  if (EEPROM.read(E_IsGasEnabled) && SensorTriggered_Gas())                           // если датчик газа/дыма включен то опрашиваем его                  
+  {       
+    //digitalWrite(SirenLED, HIGH);                                                   // сигнализируем светодиодом о тревоге
+    //reqSirena = true;
+    prTrigGas = millis();                                                             // запоминаем когда сработал датчик для отображения статуса датчика
+    //if (prReqSirena == 1) prReqSirena = millis();
+    if (GetElapsed(prAlarmGas) > timeSmsGas || prAlarmGas == 0)                       // если выдержена пауза после последнего звонка и отправки смс 
+      isAlarmGas = true;
+  }
+  if (isAlarmGas)                                                                      
+  {                                                                 
+    if (gsm.IsAvailable())              
+    {  
+      if (!inTestMod)  
+        gsm.SendSms(&GetStrFromFlash(sms_Gas), &NumberRead(E_NUM1_OutOfContr));       // если не включен режим тестирование отправляем смс
+      gsm.Call(&NumberRead(E_NUM1_OutOfContr));                                       // сигнализируем звонком о сработке датчика
+      prAlarmGas = millis();
+      isAlarmGas = false;
+    }
+  }
+  ///----------------
   
   if (gsm.NewUssd)                                                                    // если доступный новый ответ на Ussd запрос
   {
@@ -538,17 +563,14 @@ bool Set_OutOfContrMod()                                // метод для с�
   prTrigPIR1 = 0;
   prTrigPIR2 = 0;
   prTension = 0;
-  prTrigGas = 0;
-  
+   
   prAlarmPIR1 = 0;                                      // сбрасываем счетчики временных пауз в ноль
   prAlarmPIR2 = 0;
-  prAlarmGas = 0;
-  
+   
   isAlarmPIR1 = false;
   isAlarmPIR2 = false;
   isAlarmTension = false;
-  isAlarmGas = false;
-  
+   
   reqSirena = false; 
   EEPROM.write(E_mode, mode);                           // пишим режим в еепром, что б при следующем включении устройства, оно оставалось в данном режиме
   return true;
@@ -590,17 +612,14 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
   // установка переменных в дефолтное состояние  
   prTrigPIR1 = 0;
   prTrigPIR2 = 0;
-  prTrigGas = 0;
-  
+ 
   prAlarmPIR1 = 0;
   prAlarmPIR2 = 0;
   prTension = 0;
-  prAlarmGas = 0;
   
   isAlarmTension = false;
   isAlarmPIR1 = false;
   isAlarmPIR2 = false; 
-  isAlarmGas = false;
   
   //установка на охрану                                                       
   digitalWrite(OutOfContrLED, LOW);
@@ -943,10 +962,24 @@ void ExecSmsCommand()
         if (!EEPROM.read(E_SirenEnabled))
           msg = msg + "\n" + GetStrFromFlash(siren) + GetStrFromFlash(off);
           
+        unsigned long ltime;
+        String sStatus = "";                  
+        if (EEPROM.read(E_IsGasEnabled))
+        {
+          if (prTrigGas == 0) sStatus = GetStrFromFlash(idle);
+          else
+          {
+            ltime = GetElapsed(prTrigGas)/1000;
+            if (ltime <= 180) sStatus = String(ltime) + GetStrFromFlash(sec);             // < 180 сек. 
+            else 
+            if (ltime <= 7200) sStatus = String(ltime / 60) + GetStrFromFlash(minut);     // < 120 мин.
+            else 
+            sStatus = String(ltime / 3600) + GetStrFromFlash(hour);                       
+          }            
+          msg = msg + "\n" + GetStrFromFlash(Gas) + sStatus;
+        }         
         if (mode == OnContrMod)
         {
-          unsigned long ltime;
-          String sStatus = "";          
           if (EEPROM.read(E_IsPIR1Enabled))
           {             
             if (prTrigPIR1 == 0) sStatus = GetStrFromFlash(idle);
@@ -974,21 +1007,7 @@ void ExecSmsCommand()
               sStatus = String(ltime / 3600) + GetStrFromFlash(hour);                       
             }            
             msg = msg + "\n" + GetStrFromFlash(PIR2) + sStatus;
-          }
-          if (EEPROM.read(E_IsGasEnabled))
-          {
-            if (prTrigGas == 0) sStatus = GetStrFromFlash(idle);
-            else
-            {
-              ltime = GetElapsed(prTrigGas)/1000;
-              if (ltime <= 180) sStatus = String(ltime) + GetStrFromFlash(sec);             // < 180 сек. 
-              else 
-              if (ltime <= 7200) sStatus = String(ltime / 60) + GetStrFromFlash(minut);     // < 120 мин.
-              else 
-              sStatus = String(ltime / 3600) + GetStrFromFlash(hour);                       
-            }            
-            msg = msg + "\n" + GetStrFromFlash(Gas) + sStatus;
-          }          
+          }                    
           if (EEPROM.read(E_TensionEnabled))
           {
             if (prTension == 0) sStatus = GetStrFromFlash(idle);
