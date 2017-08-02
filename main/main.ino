@@ -13,6 +13,7 @@
 const char sms_TensionCable[]    PROGMEM = {"ALARM: TensionCable sensor."};                                         // текст смс для растяжки
 const char sms_PIR1[]            PROGMEM = {"ALARM: PIR1 sensor."};                                                 // текст смс для датчика движения 1
 const char sms_PIR2[]            PROGMEM = {"ALARM: PIR2 sensor."};                                                 // текст смс для датчика движения 2
+const char sms_Gas[]             PROGMEM = {"ALARM: Gas sensor."};                                                  // текст смс для датчика газа/дыма
 
 const char sms_BattPower[]       PROGMEM = {"POWER: Backup Battery is used for powering system."};                  // текст смс для оповещения о том, что исчезло сетевое питание
 const char sms_NetPower[]        PROGMEM = {"POWER: Network power has been restored."};                             // текст смс для оповещения о том, что сетевое питание возобновлено
@@ -60,7 +61,8 @@ const char redirSms[]            PROGMEM = {"Redirect SMS: "};
 const char power[]               PROGMEM = {"Power: "}; 
 const char delSiren[]            PROGMEM = {"DelaySiren: "}; 
 const char PIR1[]                PROGMEM = {"PIR1: "}; 
-const char PIR2[]                PROGMEM = {"PIR2: "}; 
+const char PIR2[]                PROGMEM = {"PIR2: "};
+const char Gas[]                 PROGMEM = {"Gas: "}; 
 const char tension[]             PROGMEM = {"Tension: "};
 const char siren[]               PROGMEM = {"Siren: "};
 const char idle[]                PROGMEM = {"Idle"};
@@ -82,6 +84,7 @@ const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
 #define  timeSiren            20000                        // время работы сирены (милисекунды).
 #define  timeSmsPIR1          120000                       // время паузы после последнего СМС датчика движения 1 (милисекунды)
 #define  timeSmsPIR2          120000                       // время паузы после последнего СМС датчика движения 2 (милисекунды)
+#define  timeSmsGas           120000                       // время паузы после последнего СМС датчика газа/дыма (милисекунды)
 #define  timeSkimpySiren      300                          // время короткого срабатывания модуля сирены
 #define  timeAllLeds          1200                         // время горение всех светодиодов во время включения устройства (тестирования светодиодов)
 #define  timeTestBlinkLed     400                          // время мерцания светодиода при включеном режима тестирования
@@ -119,6 +122,7 @@ const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
 #define SH1 A2                                  // нога на растяжку
 #define pinPIR1 4                               // нога датчика движения 1
 #define pinPIR2 3                               // нога датчика движения 2
+#define pinGas  6                               // нога датчика газа/дыма 6
 
 //// КОНСТАНТЫ РЕЖИМОВ РАБОТЫ //// 
 #define OutOfContrMod  1                        // снята с охраны
@@ -136,8 +140,9 @@ const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
 
 #define E_SirenEnabled   10
 #define E_IsPIR1Enabled  11                     
-#define E_IsPIR2Enabled  12                   
-#define E_TensionEnabled 13
+#define E_IsPIR2Enabled  12
+#define E_IsGasEnabled   13                   
+#define E_TensionEnabled 14
 
 #define numSize            15                   // количество символов в строке телефонного номера
 
@@ -174,6 +179,7 @@ bool reqSirena = false;                         // уст. в true когда с
 unsigned long prSiren = 0;                      // время включения сирены (милисекунды)
 unsigned long prAlarmPIR1 = 0;                  // время последнего СМС датчика движения 1 (милисекунды)
 unsigned long prAlarmPIR2 = 0;                  // время последнего СМС датчика движения 2 (милисекунды)
+unsigned long prAlarmGas = 0;                   // время последнего СМС датчика газа\дыма (милисекунды)
 unsigned long prLastPressBtn = 0;               // время последнего нажатие на кнопку (милисекунды)
 unsigned long prTestBlinkLed = 0;               // время мерцания светодиода при включеном режима тестирования (милисекунды)
 unsigned long prRefreshVcc = 0;                 // время последнего измирения питания (милисекунды)
@@ -181,6 +187,7 @@ unsigned long prReqSirena = 0;                  // время последнег
 unsigned long prTrigPIR1 = 0;                   // время последнего срабатывания датчика движения 1
 unsigned long prTrigPIR2 = 0;                   // время последнего срабатывания датчика движения 2
 unsigned long prTension = 0;                    // время последнего срабатывания растяжки
+unsigned long prTrigGas = 0;                    // время последнего срабатывания датчика газа/дыма
 
 byte countPressBtn = 0;                         // счетчик нажатий на кнопку
 bool wasRebooted = false;                       // указываем была ли последний раз перезагрузка программным путем
@@ -189,7 +196,7 @@ bool wasRebooted = false;                       // указываем была �
 bool isAlarmTension = false;                    // true если сработал датчик растяжки 
 bool isAlarmPIR1 = false;                       // true если сработал 1-й датчик движения 
 bool isAlarmPIR2 = false;                       // true если сработал 2-й датчик движения 
-
+bool isAlarmGas = false;                        // true если сработал датчик газа/дыма 
 
 MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
 PowerControl powCtr (netVcc, 0.1, pinMeasureVcc);       // контроль питания
@@ -210,6 +217,7 @@ void setup()
   pinMode(SH1, INPUT_PULLUP);                 // нога на растяжку
   pinMode(pinPIR1, INPUT);                    // нога датчика движения 1
   pinMode(pinPIR2, INPUT);                    // нога датчика движения 2
+  pinMode(pinGas, INPUT);                     // нога датчика газа/дыма 
   pinMode(Button, INPUT_PULLUP);              // кнопка для установки режима охраны
   pinMode(SirenGenerator, OUTPUT);            // нога на сирену
   pinMode(pinMeasureVcc, INPUT);              // нога чтения типа питания (БП или батарея)    
@@ -243,7 +251,8 @@ void setup()
         EEPROM.write(E_BalanceUssd, "***");             // Ussd код для запроса баланца
         EEPROM.write(E_SirenEnabled, true);             // сирена по умолчанию включена
         EEPROM.write(E_IsPIR1Enabled, true);            
-        EEPROM.write(E_IsPIR2Enabled, true);            
+        EEPROM.write(E_IsPIR2Enabled, true);
+        EEPROM.write(E_IsGasEnabled, true);
         EEPROM.write(E_TensionEnabled, true);                    
         RebootFunc();                                   // перезагружаем устройство
     }
@@ -503,7 +512,7 @@ void loop()
     SendSms(&gsm.UssdText, &NumberRead(E_NumberAnsUssd));                             // отправляем ответ на Ussd запрос
     gsm.ClearUssd();                                                                  // сбрасываем ответ на gsm команду 
   }
-  if(!isAlarmTension && !isAlarmPIR1 && !isAlarmPIR2)
+  if(!isAlarmTension && !isAlarmPIR1 && !isAlarmPIR2 && !isAlarmGas)
     ExecSmsCommand();                                                                 // если нет необработаных датчиков то проверяем доступна ли новая команда по смс и если да то выполняем ее
 }
 
@@ -529,11 +538,17 @@ bool Set_OutOfContrMod()                                // метод для с�
   prTrigPIR1 = 0;
   prTrigPIR2 = 0;
   prTension = 0;
+  prTrigGas = 0;
+  
   prAlarmPIR1 = 0;                                      // сбрасываем счетчики временных пауз в ноль
   prAlarmPIR2 = 0;
-  isAlarmTension = false;
+  prAlarmGas = 0;
+  
   isAlarmPIR1 = false;
   isAlarmPIR2 = false;
+  isAlarmTension = false;
+  isAlarmGas = false;
+  
   reqSirena = false; 
   EEPROM.write(E_mode, mode);                           // пишим режим в еепром, что б при следующем включении устройства, оно оставалось в данном режиме
   return true;
@@ -574,13 +589,18 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
   
   // установка переменных в дефолтное состояние  
   prTrigPIR1 = 0;
-  prTrigPIR2 = 0; 
+  prTrigPIR2 = 0;
+  prTrigGas = 0;
+  
   prAlarmPIR1 = 0;
   prAlarmPIR2 = 0;
   prTension = 0;
+  prAlarmGas = 0;
+  
   isAlarmTension = false;
   isAlarmPIR1 = false;
   isAlarmPIR2 = false; 
+  isAlarmGas = false;
   
   //установка на охрану                                                       
   digitalWrite(OutOfContrLED, LOW);
@@ -661,15 +681,21 @@ bool SensorTriggered_TensionCable()                                     // ме�
   else return false;
 }
 
-bool SensorTriggered_PIR1()                                             // метод проверки состояния датчик движения 1
+bool SensorTriggered_PIR1()                                             // метод проверки состояния датчика движения 1
 {
   if (digitalRead(pinPIR1) == HIGH) return true;
   else return false;
 }
 
-bool SensorTriggered_PIR2()                                             // метод проверки состояния датчик движения 2
+bool SensorTriggered_PIR2()                                             // метод проверки состояния датчика движения 2
 { 
   if (digitalRead(pinPIR2) == HIGH) return true;
+  else return false;
+}
+
+bool SensorTriggered_Gas()                                              // метод проверки состояния датчика газа/дыма
+{ 
+  if (digitalRead(pinGas) == HIGH) return true;
   else return false;
 }
 
@@ -949,6 +975,20 @@ void ExecSmsCommand()
             }            
             msg = msg + "\n" + GetStrFromFlash(PIR2) + sStatus;
           }
+          if (EEPROM.read(E_IsGasEnabled))
+          {
+            if (prTrigGas == 0) sStatus = GetStrFromFlash(idle);
+            else
+            {
+              ltime = GetElapsed(prTrigGas)/1000;
+              if (ltime <= 180) sStatus = String(ltime) + GetStrFromFlash(sec);             // < 180 сек. 
+              else 
+              if (ltime <= 7200) sStatus = String(ltime / 60) + GetStrFromFlash(minut);     // < 120 мин.
+              else 
+              sStatus = String(ltime / 3600) + GetStrFromFlash(hour);                       
+            }            
+            msg = msg + "\n" + GetStrFromFlash(Gas) + sStatus;
+          }          
           if (EEPROM.read(E_TensionEnabled))
           {
             if (prTension == 0) sStatus = GetStrFromFlash(idle);
@@ -1079,8 +1119,9 @@ void ExecSmsCommand()
       else
         if (gsm.SmsText.startsWith(GetStrFromFlash(sensor)))               // если обнаружена команда для возврата сетингов датчиков
         {
-         String msg = GetStrFromFlash(PIR1)        + "'" + String((EEPROM.read(E_IsPIR1Enabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(PIR2)                 + "'" + String((EEPROM.read(E_IsPIR2Enabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
+         String msg = GetStrFromFlash(PIR1)        + "'" + String((EEPROM.read(E_IsPIR1Enabled))  ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
+           + GetStrFromFlash(PIR2)                 + "'" + String((EEPROM.read(E_IsPIR2Enabled))  ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
+           + GetStrFromFlash(Gas)                  + "'" + String((EEPROM.read(E_IsGasEnabled))   ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(tension)              + "'" + String((EEPROM.read(E_TensionEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'";
         SendSms(&msg, &gsm.SmsNumber);
       }
@@ -1125,8 +1166,8 @@ void ExecSmsCommand()
       {
         PlayTone(specerTone, smsSpecDur);                        
         String str = gsm.SmsText;        
-        bool bConf[3];                                                            // сохраняем настройки по датчикам
-        for(byte i = 0; i < 3; i++)
+        bool bConf[4];                                                            // сохраняем настройки по датчикам
+        for(byte i = 0; i < 4; i++)
         {
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
@@ -1139,9 +1180,11 @@ void ExecSmsCommand()
         }
         EEPROM.write(E_IsPIR1Enabled, bConf[0]);
         EEPROM.write(E_IsPIR2Enabled, bConf[1]);
-        EEPROM.write(E_TensionEnabled, bConf[2]);
-        String msg = GetStrFromFlash(PIR1)         + "'" + String((EEPROM.read(E_IsPIR1Enabled)) ? "on" : "off") + "'" + "\n"
-           + GetStrFromFlash(PIR2)                 + "'" + String((EEPROM.read(E_IsPIR2Enabled)) ? "on" : "off") + "'" + "\n"
+        EEPROM.write(E_IsGasEnabled,  bConf[2]);
+        EEPROM.write(E_TensionEnabled, bConf[3]);
+        String msg = GetStrFromFlash(PIR1)         + "'" + String((EEPROM.read(E_IsPIR1Enabled))  ? "on" : "off") + "'" + "\n"
+           + GetStrFromFlash(PIR2)                 + "'" + String((EEPROM.read(E_IsPIR2Enabled))  ? "on" : "off") + "'" + "\n"
+           + GetStrFromFlash(Gas)                  + "'" + String((EEPROM.read(E_IsGasEnabled))   ? "on" : "off") + "'" + "\n"
            + GetStrFromFlash(tension)              + "'" + String((EEPROM.read(E_TensionEnabled)) ? "on" : "off") + "'";
         SendSms(&msg, &gsm.SmsNumber);  
       }
