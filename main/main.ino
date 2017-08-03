@@ -175,7 +175,6 @@ bool inTestMod = false;                         // режим тестирова
 bool isSiren = false;                           // режим сирены
 bool reqSirena = false;                         // уст. в true когда сработал датчик и необходимо включить сирену
 
-
 unsigned long prSiren = 0;                      // время включения сирены (милисекунды)
 unsigned long prAlarmPIR1 = 0;                  // время последнего СМС датчика движения 1 (милисекунды)
 unsigned long prAlarmPIR2 = 0;                  // время последнего СМС датчика движения 2 (милисекунды)
@@ -197,6 +196,7 @@ bool isAlarmTension = false;                    // true если сработа�
 bool isAlarmPIR1 = false;                       // true если сработал 1-й датчик движения 
 bool isAlarmPIR2 = false;                       // true если сработал 2-й датчик движения 
 bool isAlarmGas = false;                        // true если сработал датчик газа/дыма 
+bool isGas = false;                             // уст. в true когда сработал датчик газа/дыма
 
 MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
 PowerControl powCtr (netVcc, 0.1, pinMeasureVcc);       // контроль питания
@@ -509,25 +509,37 @@ void loop()
 
   // обработка датчика газа/дыма
   if (prTrigGas != 0 && (GetElapsed(prTrigGas)/1000) > 43200)                         // если время последнего срабатывания больше чем 12 часов то обнуляем его 
+    prTrigGas = 0;
     
-  if (EEPROM.read(E_IsGasEnabled) && SensorTriggered_Gas())                           // если датчик газа/дыма включен то опрашиваем его                  
-  {       
-    //digitalWrite(SirenLED, HIGH);                                                   // сигнализируем светодиодом о тревоге
-    //reqSirena = true;
-    prTrigGas = millis();                                                             // запоминаем когда сработал датчик для отображения статуса датчика
-    //if (prReqSirena == 1) prReqSirena = millis();
-    if (GetElapsed(prAlarmGas) > timeSmsGas || prAlarmGas == 0)                       // если выдержена пауза после последнего звонка и отправки смс 
-      isAlarmGas = true;
-  }
-  if (isAlarmGas)                                                                      
-  {                                                                 
-    if (gsm.IsAvailable())              
-    {  
-      if (!inTestMod)  
-        gsm.SendSms(&GetStrFromFlash(sms_Gas), &NumberRead(E_NUM1_OutOfContr));       // если не включен режим тестирование отправляем смс
-      gsm.Call(&NumberRead(E_NUM1_OutOfContr));                                       // сигнализируем звонком о сработке датчика
-      prAlarmGas = millis();
-      isAlarmGas = false;
+  if (EEPROM.read(E_IsGasEnabled))                                                     // если датчик газа/дыма включен
+  {
+    if (SensorTriggered_Gas())                                                        // то опрашиваем его                  
+    {       
+      digitalWrite(SirenLED, HIGH);                                                   // сигнализируем светодиодом о тревоге
+      if (!isGas && inTestMod) PlayTone(specerTone, 100);                             // если включен режим тестирование и это первое срабатывание то сигнализируем спикером  
+      isGas = true;
+      //reqSirena = true;
+      prTrigGas = millis();                                                           // запоминаем когда сработал датчик для отображения статуса датчика
+      //if (prReqSirena == 1) prReqSirena = millis();
+      if (GetElapsed(prAlarmGas) > timeSmsGas || prAlarmGas == 0)                     // если выдержена пауза после последнего звонка и отправки смс 
+        isAlarmGas = true;
+    }
+    else if (isGas && !isSiren)
+    {
+      digitalWrite(SirenLED, LOW);
+      isGas = false;
+    }
+  
+    if (isAlarmGas)                                                                      
+    {                                                                 
+      if (gsm.IsAvailable())              
+      {  
+        if (!inTestMod)  
+          gsm.SendSms(&GetStrFromFlash(sms_Gas), &NumberRead(E_NUM1_OutOfContr));       // если не включен режим тестирование отправляем смс
+        gsm.Call(&NumberRead(E_NUM1_OutOfContr));                                       // сигнализируем звонком о сработке датчика
+        prAlarmGas = millis();
+        isAlarmGas = false;
+      }
     }
   }
   ///----------------
@@ -651,7 +663,7 @@ void  StartSiren()
 
 void  StopSiren()
 {
-  digitalWrite(SirenLED, LOW);                           // выключаем светодиод о индикации тревоги 
+  if(!isGas) digitalWrite(SirenLED, LOW);                // Если не надо сигнализировать о газе то выключаем светодиод о индикации тревоги 
   digitalWrite(SirenGenerator, HIGH);                    // выключаем сирену через релье
   isSiren = false;   
 }
