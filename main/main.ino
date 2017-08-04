@@ -3,6 +3,7 @@
 /// ВНИМАНИЕ: для корретной работы sms необходимо установить размеры буферов вместо 64 на SERIAL_TX_BUFFER_SIZE 24 и SERIAL_RX_BUFFER_SIZE 170 в файле hardware\arduino\avr\cores\arduino\HardwareSerial.h
 
 #include <EEPROM.h>
+#include "DigitalSensor.h"
 #include "MyGSM.h"
 #include "PowerControl.h"
 #include <avr/pgmspace.h>
@@ -119,7 +120,7 @@ const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
 #define pinMeasureVcc_stub A1                   // нога для заглушки чтения типа питания если резервное пинание не подключено (всегда network)
  
 //Sensores
-#define SH1 A2                                  // нога на растяжку
+#define pinSH1 A2                                  // нога на растяжку
 #define pinPIR1 4                               // нога датчика движения 1
 #define pinPIR2 3                               // нога датчика движения 2
 #define pinGas  6                               // нога датчика газа/дыма 6
@@ -176,30 +177,22 @@ bool isSiren = false;                           // режим сирены
 bool reqSirena = false;                         // уст. в true когда сработал датчик и необходимо включить сирену
 
 unsigned long prSiren = 0;                      // время включения сирены (милисекунды)
-unsigned long prAlarmPIR1 = 0;                  // время последнего СМС датчика движения 1 (милисекунды)
-unsigned long prAlarmPIR2 = 0;                  // время последнего СМС датчика движения 2 (милисекунды)
-unsigned long prAlarmGas = 0;                   // время последнего СМС датчика газа\дыма (милисекунды)
 unsigned long prLastPressBtn = 0;               // время последнего нажатие на кнопку (милисекунды)
 unsigned long prTestBlinkLed = 0;               // время мерцания светодиода при включеном режима тестирования (милисекунды)
 unsigned long prRefreshVcc = 0;                 // время последнего измирения питания (милисекунды)
 unsigned long prReqSirena = 0;                  // время последнего обнаружения, что необходимо включать сирену
-unsigned long prTrigPIR1 = 0;                   // время последнего срабатывания датчика движения 1
-unsigned long prTrigPIR2 = 0;                   // время последнего срабатывания датчика движения 2
-unsigned long prTension = 0;                    // время последнего срабатывания растяжки
-unsigned long prTrigGas = 0;                    // время последнего срабатывания датчика газа/дыма
 
 byte countPressBtn = 0;                         // счетчик нажатий на кнопку
 bool wasRebooted = false;                       // указываем была ли последний раз перезагрузка программным путем
 
-// переменные для определения когда необходимо сигнализировать о срабатывании датчиков
-bool isAlarmTension = false;                    // true если сработал датчик растяжки 
-bool isAlarmPIR1 = false;                       // true если сработал 1-й датчик движения 
-bool isAlarmPIR2 = false;                       // true если сработал 2-й датчик движения 
-bool isAlarmGas = false;                        // true если сработал датчик газа/дыма 
-bool isGas = false;                             // уст. в true когда сработал датчик газа/дыма
-
 MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
 PowerControl powCtr (netVcc, 0.1, pinMeasureVcc);       // контроль питания
+
+// Датчики
+DigitalSensor SenTension(pinSH1);
+DigitalSensor SenPIR1(pinPIR1);
+DigitalSensor SenPIR2(pinPIR2);
+DigitalSensor SenGas(pinGas);
 
 void(* RebootFunc) (void) = 0;                          // объявляем функцию Reboot
 
@@ -214,7 +207,7 @@ void setup()
   pinMode(SirenLED, OUTPUT);
   pinMode(BattPowerLED, OUTPUT);              // LED для сигнализации о работе от резервного питания
   pinMode(pinBOOT, OUTPUT);                   // нога BOOT на модеме
-  pinMode(SH1, INPUT_PULLUP);                 // нога на растяжку
+  pinMode(pinSH1, INPUT_PULLUP);                 // нога на растяжку
   pinMode(pinPIR1, INPUT);                    // нога датчика движения 1
   pinMode(pinPIR2, INPUT);                    // нога датчика движения 2
   pinMode(pinGas, INPUT);                     // нога датчика газа/дыма 
@@ -401,33 +394,34 @@ void loop()
       return;                         
     }
 
-    if (EEPROM.read(E_TensionEnabled) && prTension == 0 && SensorTriggered_TensionCable())   // проверяем растяжку только если она не срабатывала ранее (что б смс и звонки совершались единоразово)
+    if (EEPROM.read(E_TensionEnabled) && !SenTension.isTrig && SenTension.CheckSensor())// проверяем растяжку только если она не срабатывала ранее (что б смс и звонки совершались единоразово)
     {
       digitalWrite(SirenLED, HIGH);                                                          // сигнализируем светодиодом о тревоге
       reqSirena = true;                                                                      // запоминаем когда сработал датчик для отображения статуса датчика
-      prTension = millis();      
+      SenTension.prTrigTime = millis();
+      SenTension.isTrig = true;       
       if (prReqSirena == 1) prReqSirena = millis();
-      isAlarmTension = true;     
+      SenTension.isAlarm = true;     
     }
     
-    if (EEPROM.read(E_IsPIR1Enabled) && SensorTriggered_PIR1())
+    if (EEPROM.read(E_IsPIR1Enabled) && SenPIR1.CheckSensor())
     {       
       digitalWrite(SirenLED, HIGH);                                                          // сигнализируем светодиодом о тревоге
       reqSirena = true;
-      prTrigPIR1 = millis();                                                                 // запоминаем когда сработал датчик для отображения статуса датчика
+      SenPIR1.prTrigTime = millis();                                                         // запоминаем когда сработал датчик для отображения статуса датчика
       if (prReqSirena == 1) prReqSirena = millis();
-      if (GetElapsed(prAlarmPIR1) > timeSmsPIR1 || prAlarmPIR1 == 0)                         // если выдержена пауза после последнего звонка и отправки смс 
-        isAlarmPIR1 = true;
+      if (GetElapsed(SenPIR1.prAlarmTime) > timeSmsPIR1 || SenPIR1.prAlarmTime == 0)         // если выдержена пауза после последнего звонка и отправки смс 
+        SenPIR1.isAlarm = true;
     }
 
-    if (EEPROM.read(E_IsPIR2Enabled) && SensorTriggered_PIR2())
+    if (EEPROM.read(E_IsPIR2Enabled) && SenPIR2.CheckSensor())
     { 
       digitalWrite(SirenLED, HIGH);                                                          // сигнализируем светодиодом о тревоге
       reqSirena = true;
-      prTrigPIR2 = millis();                                                                 // запоминаем когда сработал датчик для отображения статуса датчика
+      SenPIR2.prTrigTime = millis();                                                            // запоминаем когда сработал датчик для отображения статуса датчика
       if (prReqSirena == 1) prReqSirena = millis();
-      if (GetElapsed(prAlarmPIR2) > timeSmsPIR2 || prAlarmPIR2 == 0)                         // если выдержена пауза после последнего звонка и отправки смс
-        isAlarmPIR2 = true;
+      if (GetElapsed(SenPIR2.prAlarmTime) > timeSmsPIR2 || SenPIR2.prAlarmTime == 0)               // если выдержена пауза после последнего звонка и отправки смс
+        SenPIR2.isAlarm = true;
     }   
     
     if (reqSirena 
@@ -443,38 +437,38 @@ void loop()
         prSiren = millis();      
     }      
     
-    if (isAlarmTension)                                                                       // проверяем состояние растяжки и если это первое обнаружение обрыва (TensionTriggered = false) то выполняем аналогичные действие
+    if (SenTension.isAlarm)                                                                       // проверяем состояние растяжки и если это первое обнаружение обрыва (TensionTriggered = false) то выполняем аналогичные действие
     {                                                  
       if (gsm.IsAvailable())
       {
         if (!inTestMod)    
           gsm.SendSms(&GetStrFromFlash(sms_TensionCable), &NumberRead(E_NUM1_OutOfContr)); 
         gsm.Call(&NumberRead(E_NUM1_OutOfContr));      
-        isAlarmTension = false;
+        SenTension.isAlarm = false;
       }                                                    
     }
     
-    if (isAlarmPIR1)                                                                          // проверяем состояние 1-го датчика движения
+    if (SenPIR1.isAlarm)                                                                          // проверяем состояние 1-го датчика движения
     {                                                                 
       if (gsm.IsAvailable())              
       {  
         if (!inTestMod)  
           gsm.SendSms(&GetStrFromFlash(sms_PIR1), &NumberRead(E_NUM1_OutOfContr));            // если не включен режим тестирование отправляем смс
         gsm.Call(&NumberRead(E_NUM1_OutOfContr));                                             // сигнализируем звонком о сработке датчика движения
-        prAlarmPIR1 = millis();
-        isAlarmPIR1 = false;
+        SenPIR1.prAlarmTime = millis();
+        SenPIR1.isAlarm = false;
       }
     }
     
-    if (isAlarmPIR2)                                                                          // проверяем состояние 2-го датчика движения
+    if (SenPIR2.isAlarm)                                                                          // проверяем состояние 2-го датчика движения
     {      
       if (gsm.IsAvailable())
       {  
         if (!inTestMod)
           gsm.SendSms(&GetStrFromFlash(sms_PIR2), &NumberRead(E_NUM1_OutOfContr));
         gsm.Call(&NumberRead(E_NUM1_OutOfContr));
-        prAlarmPIR2 = millis();
-        isAlarmPIR2 = false;
+        SenPIR2.prAlarmTime = millis();
+        SenPIR2.isAlarm = false;
       }
     }
     
@@ -508,37 +502,37 @@ void loop()
   }                                                                                   // end OnContrMod
 
   // обработка датчика газа/дыма
-  if (prTrigGas != 0 && (GetElapsed(prTrigGas)/1000) > 43200)                         // если время последнего срабатывания больше чем 12 часов то обнуляем его 
-    prTrigGas = 0;
+  if (SenGas.prTrigTime != 0 && (GetElapsed(SenGas.prTrigTime)/1000) > 43200)         // если время последнего срабатывания больше чем 12 часов то обнуляем его 
+    SenGas.prTrigTime = 0;
     
-  if (EEPROM.read(E_IsGasEnabled))                                                     // если датчик газа/дыма включен
+  if (EEPROM.read(E_IsGasEnabled))                                                    // если датчик газа/дыма включен
   {
-    if (SensorTriggered_Gas())                                                        // то опрашиваем его                  
+    if (SenGas.CheckSensor())                                                         // то опрашиваем его                  
     {       
       digitalWrite(SirenLED, HIGH);                                                   // сигнализируем светодиодом о тревоге
-      if (!isGas && inTestMod) PlayTone(specerTone, 100);                             // если включен режим тестирование и это первое срабатывание то сигнализируем спикером  
-      isGas = true;
+      if (!SenGas.isTrig && inTestMod) PlayTone(specerTone, 100);                     // если включен режим тестирование и это первое срабатывание то сигнализируем спикером  
+      SenGas.isTrig = true;
       //reqSirena = true;
-      prTrigGas = millis();                                                           // запоминаем когда сработал датчик для отображения статуса датчика
+      SenGas.prTrigTime = millis();                                                   // запоминаем когда сработал датчик для отображения статуса датчика
       //if (prReqSirena == 1) prReqSirena = millis();
-      if (GetElapsed(prAlarmGas) > timeSmsGas || prAlarmGas == 0)                     // если выдержена пауза после последнего звонка и отправки смс 
-        isAlarmGas = true;
+      if (GetElapsed(SenGas.prAlarmTime) > timeSmsGas || SenGas.prAlarmTime == 0)     // если выдержена пауза после последнего звонка и отправки смс 
+        SenGas.isAlarm = true;
     }
-    else if (isGas && !isSiren)
+    else if (SenGas.isTrig && !isSiren)
     {
       digitalWrite(SirenLED, LOW);
-      isGas = false;
+      SenGas.isTrig = false;
     }
   
-    if (isAlarmGas)                                                                      
+    if (SenGas.isAlarm)                                                                      
     {                                                                 
       if (gsm.IsAvailable())              
       {  
         if (!inTestMod)  
-          gsm.SendSms(&GetStrFromFlash(sms_Gas), &NumberRead(E_NUM1_OutOfContr));       // если не включен режим тестирование отправляем смс
-        gsm.Call(&NumberRead(E_NUM1_OutOfContr));                                       // сигнализируем звонком о сработке датчика
-        prAlarmGas = millis();
-        isAlarmGas = false;
+          gsm.SendSms(&GetStrFromFlash(sms_Gas), &NumberRead(E_NUM1_OutOfContr));     // если не включен режим тестирование отправляем смс
+        gsm.Call(&NumberRead(E_NUM1_OutOfContr));                                     // сигнализируем звонком о сработке датчика
+        SenGas.prAlarmTime = millis();
+        SenGas.isAlarm = false;
       }
     }
   }
@@ -549,7 +543,7 @@ void loop()
     SendSms(&gsm.UssdText, &NumberRead(E_NumberAnsUssd));                             // отправляем ответ на Ussd запрос
     gsm.ClearUssd();                                                                  // сбрасываем ответ на gsm команду 
   }
-  if(!isAlarmTension && !isAlarmPIR1 && !isAlarmPIR2 && !isAlarmGas)
+  if(!SenTension.isAlarm && !SenPIR1.isAlarm && !SenPIR2.isAlarm && !SenGas.isAlarm)
     ExecSmsCommand();                                                                 // если нет необработаных датчиков то проверяем доступна ли новая команда по смс и если да то выполняем ее
 }
 
@@ -572,17 +566,11 @@ bool Set_OutOfContrMod()                                // метод для с�
   PlayTone(specerTone, 500);
   mode = OutOfContrMod;                                 // снимаем с охраны
   StopSiren();                                          // выключаем сирену                         
-  prTrigPIR1 = 0;
-  prTrigPIR2 = 0;
-  prTension = 0;
-   
-  prAlarmPIR1 = 0;                                      // сбрасываем счетчики временных пауз в ноль
-  prAlarmPIR2 = 0;
-   
-  isAlarmPIR1 = false;
-  isAlarmPIR2 = false;
-  isAlarmTension = false;
-   
+  
+  SenPIR1.ResetSensor();
+  SenPIR2.ResetSensor();
+  SenTension.ResetSensor();
+     
   reqSirena = false; 
   EEPROM.write(E_mode, mode);                           // пишим режим в еепром, что б при следующем включении устройства, оно оставалось в данном режиме
   return true;
@@ -622,16 +610,9 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
   }
   
   // установка переменных в дефолтное состояние  
-  prTrigPIR1 = 0;
-  prTrigPIR2 = 0;
- 
-  prAlarmPIR1 = 0;
-  prAlarmPIR2 = 0;
-  prTension = 0;
-  
-  isAlarmTension = false;
-  isAlarmPIR1 = false;
-  isAlarmPIR2 = false; 
+  SenPIR1.ResetSensor();
+  SenPIR2.ResetSensor();
+  SenTension.ResetSensor();
   
   //установка на охрану                                                       
   digitalWrite(OutOfContrLED, LOW);
@@ -663,7 +644,7 @@ void  StartSiren()
 
 void  StopSiren()
 {
-  if(!isGas) digitalWrite(SirenLED, LOW);                // Если не надо сигнализировать о газе то выключаем светодиод о индикации тревоги 
+  if(!SenGas.isTrig) digitalWrite(SirenLED, LOW);        // Если не надо сигнализировать о газе то выключаем светодиод о индикации тревоги 
   digitalWrite(SirenGenerator, HIGH);                    // выключаем сирену через релье
   isSiren = false;   
 }
@@ -703,32 +684,6 @@ void PlayTone(byte tone, unsigned int duration)
     delayMicroseconds(tone);
   }
 } 
-
-
-////// Методы датчиков ////// 
-bool SensorTriggered_TensionCable()                                     // метод проверки состояния растяжки
-{
-  if (digitalRead(SH1) == HIGH) return true;
-  else return false;
-}
-
-bool SensorTriggered_PIR1()                                             // метод проверки состояния датчика движения 1
-{
-  if (digitalRead(pinPIR1) == HIGH) return true;
-  else return false;
-}
-
-bool SensorTriggered_PIR2()                                             // метод проверки состояния датчика движения 2
-{ 
-  if (digitalRead(pinPIR2) == HIGH) return true;
-  else return false;
-}
-
-bool SensorTriggered_Gas()                                              // метод проверки состояния датчика газа/дыма
-{ 
-  if (digitalRead(pinGas) == HIGH) return true;
-  else return false;
-}
 
 void BlinkLEDhigh(byte pinLED,  unsigned int millisBefore,  unsigned int millisHIGH,  unsigned int millisAfter)        // метод для включения заданного светодиода на заданное время
 { 
@@ -920,21 +875,21 @@ void ExecSmsCommand()
         SendSms(&GetStrFromFlash(sms_TestModOff), &gsm.SmsNumber);                       // отправляем смс о завершении выполнения даной смс команды                 
       }            
       else
-      if (gsm.SmsText.startsWith(GetStrFromFlash(controlon)))                           // если обнаружена смс команда для установки на охрану
+      if (gsm.SmsText.startsWith(GetStrFromFlash(controlon)))                            // если обнаружена смс команда для установки на охрану
       {        
         digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим
         Set_OnContrMod(false);                                                           // устанавливаем на охрану без паузы                                                
         SendSms(&GetStrFromFlash(sms_OnContrMod), &gsm.SmsNumber);                       // отправляем смс о завершении выполнения даной смс команды                           
       }
       else 
-      if (gsm.SmsText.startsWith(GetStrFromFlash(controloff)))                          // если обнаружена смс команда для снятие с охраны
+      if (gsm.SmsText.startsWith(GetStrFromFlash(controloff)))                           // если обнаружена смс команда для снятие с охраны
       {
         digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим
         Set_OutOfContrMod();                                                             // снимаем с охраны
         SendSms(&GetStrFromFlash(sms_OutOfContrMod), &gsm.SmsNumber);                    // отправляем смс о завершении выполнения даной смс команды
       }      
       else
-      if (gsm.SmsText.startsWith(GetStrFromFlash(redirecton)))                          // если обнаружена смс команда для включения режима "перенапралять входящие смс от незарегистрированных номеров на номер SmsCommand1" 
+      if (gsm.SmsText.startsWith(GetStrFromFlash(redirecton)))                           // если обнаружена смс команда для включения режима "перенапралять входящие смс от незарегистрированных номеров на номер SmsCommand1" 
       {
         PlayTone(specerTone, smsSpecDur);
         EEPROM.write(E_isRedirectSms, true);         
@@ -978,10 +933,10 @@ void ExecSmsCommand()
         String sStatus = "";                  
         if (EEPROM.read(E_IsGasEnabled))
         {
-          if (prTrigGas == 0) sStatus = GetStrFromFlash(idle);
+          if (SenGas.prTrigTime == 0) sStatus = GetStrFromFlash(idle);
           else
           {
-            ltime = GetElapsed(prTrigGas)/1000;
+            ltime = GetElapsed(SenGas.prTrigTime)/1000;
             if (ltime <= 180) sStatus = String(ltime) + GetStrFromFlash(sec);             // < 180 сек. 
             else 
             if (ltime <= 7200) sStatus = String(ltime / 60) + GetStrFromFlash(minut);     // < 120 мин.
@@ -994,10 +949,10 @@ void ExecSmsCommand()
         {
           if (EEPROM.read(E_IsPIR1Enabled))
           {             
-            if (prTrigPIR1 == 0) sStatus = GetStrFromFlash(idle);
+            if (SenPIR1.prTrigTime == 0) sStatus = GetStrFromFlash(idle);
             else
             {
-              ltime = GetElapsed(prTrigPIR1)/1000;
+              ltime = GetElapsed(SenPIR1.prTrigTime)/1000;
               if (ltime <= 180) sStatus = String(ltime) + GetStrFromFlash(sec);             // < 180 сек. 
               else 
               if (ltime <= 7200) sStatus = String(ltime / 60) + GetStrFromFlash(minut);     // < 120 мин.
@@ -1008,10 +963,10 @@ void ExecSmsCommand()
           }
           if (EEPROM.read(E_IsPIR2Enabled))
           {
-            if (prTrigPIR2 == 0) sStatus = GetStrFromFlash(idle);
+            if (SenPIR2.prTrigTime == 0) sStatus = GetStrFromFlash(idle);
             else
             {
-              ltime = GetElapsed(prTrigPIR2)/1000;
+              ltime = GetElapsed(SenPIR2.prTrigTime)/1000;
               if (ltime <= 180) sStatus = String(ltime) + GetStrFromFlash(sec);             // < 180 сек. 
               else 
               if (ltime <= 7200) sStatus = String(ltime / 60) + GetStrFromFlash(minut);     // < 120 мин.
@@ -1022,10 +977,10 @@ void ExecSmsCommand()
           }                    
           if (EEPROM.read(E_TensionEnabled))
           {
-            if (prTension == 0) sStatus = GetStrFromFlash(idle);
+            if (SenTension.prTrigTime == 0) sStatus = GetStrFromFlash(idle);
             else
             {
-              ltime = GetElapsed(prTension)/1000;
+              ltime = GetElapsed(SenTension.prTrigTime)/1000;
               if (ltime <= 180) sStatus = String(ltime) + GetStrFromFlash(sec);             // < 180 сек. 
               else 
               if (ltime <= 7200) sStatus = String(ltime / 60) + GetStrFromFlash(minut);     // < 120 мин.
@@ -1197,7 +1152,7 @@ void ExecSmsCommand()
       {
         PlayTone(specerTone, smsSpecDur);                        
         String str = gsm.SmsText;        
-        bool bConf[4];                                                            // сохраняем настройки по датчикам
+        bool bConf[4];                                                             // сохраняем настройки по датчикам
         for(byte i = 0; i < 4; i++)
         {
           int beginStr = str.indexOf('\'');
