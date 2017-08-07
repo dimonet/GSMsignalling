@@ -96,9 +96,6 @@ const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
 #define countBtnBalance      3                              // количество нажатий на кнопку для запроса баланса счета
 #define countBtnSkimpySiren  4                              // количество нажатий на кнопку для кратковременного включения сирены
 
-//// КОНСТАНТЫ ПИТЯНИЯ ////
-#define netVcc      10.0                        // значения питяния от сети (вольт)
-
 //// КОНСТАНТЫ ДЛЯ ПИНОВ /////
 #define SpecerPin 8
 #define gsmLED 13
@@ -119,7 +116,9 @@ const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
 //Power control 
 #define pinMeasureVcc A0                        // нога чтения типа питания (БП или батарея)
 #define pinMeasureVcc_stub A1                   // нога для заглушки чтения типа питания если резервное пинание не подключено (всегда network)
- 
+#define netVcc      10.0                        // значения питяния от сети (вольт)
+#define battVcc     0.1                         // значения питяния от батареи (вольт)
+
 //Sensores
 #define pinSH1 A2                               // нога на растяжку
 #define pinPIR1 4                               // нога датчика движения 1
@@ -192,7 +191,7 @@ byte countPressBtn = 0;                         // счетчик нажатий
 bool wasRebooted = false;                       // указываем была ли последний раз перезагрузка программным путем
 
 MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
-PowerControl powCtr (netVcc, 0.1, pinMeasureVcc);       // контроль питания
+PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
 
 // Датчики
 DigitalSensor SenTension(pinSH1);
