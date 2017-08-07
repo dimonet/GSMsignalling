@@ -213,11 +213,11 @@ void setup()
   pinMode(SirenLED, OUTPUT);
   pinMode(BattPowerLED, OUTPUT);              // LED для сигнализации о работе от резервного питания
   pinMode(pinBOOT, OUTPUT);                   // нога BOOT на модеме
-  pinMode(pinSH1, INPUT_PULLUP);                 // нога на растяжку
+  pinMode(pinSH1, INPUT_PULLUP);              // нога на растяжку
   pinMode(pinPIR1, INPUT);                    // нога датчика движения 1
   pinMode(pinPIR2, INPUT);                    // нога датчика движения 2
   pinMode(pinGas, INPUT);                     // нога датчика газа/дыма 
-  pinMode(Button, INPUT_PULLUP);              // кнопка для установки режима охраны
+  pinMode(Button, INPUT);                     // кнопка для установки режима охраны
   pinMode(SirenGenerator, OUTPUT);            // нога на сирену
   pinMode(pinMeasureVcc, INPUT);              // нога чтения типа питания (БП или батарея)    
   pinMode(pinMeasureVcc_stub, OUTPUT);        // нога для заглушки определения типа питания если резервное пинание не подключено (всегда network)
@@ -225,12 +225,12 @@ void setup()
   digitalWrite(SirenGenerator, HIGH);         // выключаем сирену через релье
    
   // блок сброса очистки EEPROM (сброс всех настроек)
-  if (digitalRead(Button) == LOW)
+  if (digitalRead(Button) == HIGH)
   { 
     byte count = 0;
     while (count < 100)
     {
-      if (digitalRead(Button) == HIGH) break;
+      if (digitalRead(Button) == LOW) break;
       count++;
       delay(100);
     }
@@ -278,7 +278,7 @@ void setup()
   
   //gsm.Initialize();                                   // инициализация gsm модуля (включения, настройка) 
   
-  attachInterrupt(0, ClickButton, FALLING);             // привязываем 0-е прерывание к функции ClickButton(). 
+  attachInterrupt(0, ClickButton, RISING);              // привязываем 0-е прерывание к функции ClickButton(). 
   interrupt = true;                                     // разрешаем обработку прырывания  
   
   // чтение конфигураций с EEPROM
