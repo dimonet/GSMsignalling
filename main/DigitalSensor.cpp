@@ -1,9 +1,9 @@
 #include "DigitalSensor.h"
 
 DigitalSensor::DigitalSensor(byte pinSensor)
-{
-  analogReference(INTERNAL);
-  _pinSensor = pinSensor; 
+{  
+  _pinSensor = pinSensor;
+  ResetSensor();   
 }
 
 bool DigitalSensor::CheckSensor()
