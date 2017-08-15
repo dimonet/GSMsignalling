@@ -97,6 +97,7 @@ const char GasVal[]              PROGMEM = {"GasVal: "};
 #define  timeAllLeds          1200                         // время горение всех светодиодов во время включения устройства (тестирования светодиодов)
 #define  timeTestBlinkLed     400                          // время мерцания светодиода при включеном режима тестирования
 #define  timeRejectCall       3000                         // время пауза перед збросом звонка
+#define  timeCheckGas         2000                         // время паузы между измирениями датчика газа/дыма (милисекунды)
 
 // Количество нажатий на кнопку для включений режимова
 #define countBtnOnContr      1                              // количество нажатий на кнопку для установки на охрану
@@ -193,6 +194,7 @@ unsigned long prLastPressBtn = 0;               // время последнег
 unsigned long prTestBlinkLed = 0;               // время мерцания светодиода при включеном режима тестирования (милисекунды)
 unsigned long prRefreshVcc = 0;                 // время последнего измирения питания (милисекунды)
 unsigned long prReqSirena = 0;                  // время последнего обнаружения, что необходимо включать сирену
+unsigned long prCheckGas = 0;                   // время последнего измирения датчика газа (милисекунды)
 
 byte countPressBtn = 0;                         // счетчик нажатий на кнопку
 bool wasRebooted = false;                       // указываем была ли последний раз перезагрузка программным путем
@@ -534,7 +536,12 @@ void loop()
     
   if (EEPROM.read(E_IsGasEnabled))                                                    // если датчик газа/дыма включен
   {
-    GasPct = CalcPctForAnalogSensor(SenGas.GetSensorValue());                         // калькулируем и сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения 
+    
+    if (GetElapsed(prCheckGas) > timeCheckGas || prCheckGas == 0)                     // проверяем сколько прошло времени после последнего измирения датчика газа    
+    { 
+      GasPct = CalcPctForAnalogSensor(SenGas.GetSensorValue());                       // калькулируем и сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения 
+      prCheckGas = millis(); 
+    }
     if (GasPct > deltaGasPct)                                                         // если отклонение больше заданой дельты то сигнализируем о прывышении уровня газа/дыма 
     {       
       digitalWrite(SirenLED, HIGH);                                                   // сигнализируем светодиодом о тревоге
@@ -707,8 +714,8 @@ void SkimpySiren()                                                              
 // калькулируем и сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения 
 byte CalcPctForAnalogSensor(int senValue)
 {
-  int calibr = NumberRead(E_gasCalibr).toInt(); 
-  if (senValue <= calibr) 
+  int calibr = ReadFromEEPROM(E_gasCalibr).toInt(); 
+  if (senValue <= calibr)   
     return 0 ;
   else 
     return round(((senValue - calibr)/(1023.0 - calibr)) * 100);
