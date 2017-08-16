@@ -88,7 +88,7 @@ const char BtnOnContr[]          PROGMEM = {"BtnOnContr: "};
 const char BtnInTestMod[]        PROGMEM = {"BtnInTestMod: "};
 const char BtnBalance[]          PROGMEM = {"BtnBalance: "};
 const char BtnSkimpySiren[]      PROGMEM = {"BtnSkimpySiren: "};
-
+const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 
 
 #define deltaGasPct  5                                     // дельта оклонения от нормы датчика газа привышения, которой необходимо сигнализировать об утечки газа
@@ -163,6 +163,7 @@ const char BtnSkimpySiren[]      PROGMEM = {"BtnSkimpySiren: "};
 #define E_BtnInTestMod   33                     // количество нажатий на кнопку для включение/отключения режима тестирования 
 #define E_BtnBalance     34                     // количество нажатий на кнопку для запроса баланса счета
 #define E_BtnSkimpySiren 35                     // количество нажатий на кнопку для кратковременного включения сирены
+#define E_BtnOutOfContr  36
 
 #define E_BalanceUssd      60                   // Ussd код для запроса баланца
 
@@ -218,7 +219,8 @@ DigitalSensor SenPIR1(pinPIR1);
 DigitalSensor SenPIR2(pinPIR2);
 AnalogSensor SenGas(pinGas);
 
-void(* RebootFunc) (void) = 0;                          // объявляем функцию Reboot
+void(* RebootFunc) (void) = 0;  
+// объявляем функцию Reboot
 
 void setup() 
 {
@@ -275,6 +277,7 @@ void setup()
         EEPROM.write(E_BtnInTestMod, 2);
         EEPROM.write(E_BtnBalance, 3);
         EEPROM.write(E_BtnSkimpySiren, 4);        
+        EEPROM.write(E_BtnOutOfContr, 0);
         WriteToEEPROM(E_gasCalibr, &String("1023"));                    
         RebootFunc();                                   // перезагружаем устройство
     }
@@ -343,49 +346,61 @@ void loop()
       
   if (countPressBtn != 0)
   {     
-    if (GetElapsed(prLastPressBtn) > timeAfterPressBtn && mode == OutOfContrMod)
+    if (GetElapsed(prLastPressBtn) > timeAfterPressBtn)
     {       
-      // установка на охрану countBtnOnContrMod
-      if (countPressBtn == EEPROM.read(E_BtnOnContr))                               // если кнопку нажали заданное количество для включение/отключения режима тестирования
+      if (mode == OutOfContrMod)
       {
-        countPressBtn = 0;  
-        Set_OnContrMod(true);       
-      }
-      else
-      // включение/отключения режима тестирования
-      if (countPressBtn == EEPROM.read(E_BtnInTestMod))                             // если кнопку нажали заданное количество для включение/отключения режима тестирования
-      {
-        countPressBtn = 0;  
-        PlayTone(sysTone, 250);                                                     // сигнализируем об этом спикером  
-        inTestMod = !inTestMod;                                                     // включаем/выключаем режим тестирование датчиков        
-        digitalWrite(SirenLED, LOW);                                                // выключаем светодиод
-        EEPROM.write(E_inTestMod, inTestMod);                                       // пишим режим тестирование датчиков в еепром        
-      }
-      else
-      // запрос баланса счета
-      if (countPressBtn == EEPROM.read(E_BtnBalance))                               // если кнопку нажали заданное количество для запроса баланса счета
-      {
-        countPressBtn = 0;  
-        PlayTone(sysTone, 250);                                                     // сигнализируем об этом спикером                        
-        if(gsm.RequestUssd(&ReadFromEEPROM(E_BalanceUssd)))
-          WriteToEEPROM(E_NumberAnsUssd, &NumberRead(E_NUM1_SmsCommand));           // сохраняем номер на который необходимо будет отправить ответ                   
+        // установка на охрану countBtnOnContrMod
+        if (countPressBtn == EEPROM.read(E_BtnOnContr))                               // если кнопку нажали заданное количество для включение/отключения режима тестирования
+        {
+          countPressBtn = 0;  
+          Set_OnContrMod(true);       
+        }
         else
-          SendSms(&GetStrFromFlash(sms_WrongUssd), &NumberRead(E_NUM1_OutOfContr)); // если ответ пустой то отправляем сообщение об ошибке команды         
-      }                                                                                
-      else
-      // кратковременное включение сирены (для тестирования модуля сирены)
-      if (countPressBtn == EEPROM.read(E_BtnSkimpySiren))                      
-      {
-        countPressBtn = 0;  
-        PlayTone(sysTone, 250);                                    
-        SkimpySiren();
+        // включение/отключения режима тестирования
+        if (countPressBtn == EEPROM.read(E_BtnInTestMod))                             // если кнопку нажали заданное количество для включение/отключения режима тестирования
+        {
+          countPressBtn = 0;  
+          PlayTone(sysTone, 250);                                                     // сигнализируем об этом спикером  
+          inTestMod = !inTestMod;                                                     // включаем/выключаем режим тестирование датчиков        
+          digitalWrite(SirenLED, LOW);                                                // выключаем светодиод
+          EEPROM.write(E_inTestMod, inTestMod);                                       // пишим режим тестирование датчиков в еепром        
+        }
+        else
+        // запрос баланса счета
+        if (countPressBtn == EEPROM.read(E_BtnBalance))                               // если кнопку нажали заданное количество для запроса баланса счета
+        {
+          countPressBtn = 0;  
+          PlayTone(sysTone, 250);                                                     // сигнализируем об этом спикером                        
+          if(gsm.RequestUssd(&ReadFromEEPROM(E_BalanceUssd)))
+            WriteToEEPROM(E_NumberAnsUssd, &NumberRead(E_NUM1_SmsCommand));           // сохраняем номер на который необходимо будет отправить ответ                   
+          else
+            SendSms(&GetStrFromFlash(sms_WrongUssd), &NumberRead(E_NUM1_OutOfContr)); // если ответ пустой то отправляем сообщение об ошибке команды         
+        }                                                                                
+        else
+        // кратковременное включение сирены (для тестирования модуля сирены)
+        if (countPressBtn == EEPROM.read(E_BtnSkimpySiren))                      
+        {
+          countPressBtn = 0;  
+          PlayTone(sysTone, 250);                                    
+          SkimpySiren();
+        }
+        else
+        {
+          PlayTone(sysTone, 250);   
+          countPressBtn = 0;  
+        }        
       }
-      else
+      // выключение режима контроля (если настроена для этого кнопка)
+      else 
+      if (mode == OnContrMod && countPressBtn == EEPROM.read(E_BtnOutOfContr) && !isSiren)      
       {
-        PlayTone(sysTone, 250);   
+        delay(200);                                                                  // пайза, что б не сливались звуковые сигналы нажатия кнопки и установки режима
         countPressBtn = 0;  
-      }       
-    }
+        gsm.RejectCall();                                                            // сбрасываем вызов  
+        Set_OutOfContrMod();             
+      }                            
+   }
     else
     // снятие кнопкой с охраны (работает только в тестовом режиме, когда не блокируются прерывания)
     if (mode == OnContrMod)                                                         // в тестовом режиме можно сниамть кнопкой с охраны
@@ -1052,7 +1067,8 @@ void ExecSmsCommand()
         String msg = GetStrFromFlash(BtnOnContr )  + "'" + String((EEPROM.read(E_BtnOnContr)))     + "'" + "\n"
           + GetStrFromFlash(BtnInTestMod)          + "'" + String((EEPROM.read(E_BtnInTestMod)))   + "'" + "\n"
           + GetStrFromFlash(BtnBalance)            + "'" + String((EEPROM.read(E_BtnBalance)))     + "'" + "\n"
-          + GetStrFromFlash(BtnSkimpySiren)        + "'" + String((EEPROM.read(E_BtnSkimpySiren))) + "'";          
+          + GetStrFromFlash(BtnSkimpySiren)        + "'" + String((EEPROM.read(E_BtnSkimpySiren))) + "'" + "\n"
+          + GetStrFromFlash(BtnOutOfContr)         + "'" + String((EEPROM.read(E_BtnOutOfContr)))  + "'";          
         SendSms(&msg, &gsm.SmsNumber);
       }
       else
@@ -1087,7 +1103,8 @@ void ExecSmsCommand()
         String msg = GetStrFromFlash(BtnOnContr )  + "'" + String((EEPROM.read(E_BtnOnContr)))     + "'" + "\n"
           + GetStrFromFlash(BtnInTestMod)          + "'" + String((EEPROM.read(E_BtnInTestMod)))   + "'" + "\n"
           + GetStrFromFlash(BtnBalance)            + "'" + String((EEPROM.read(E_BtnBalance)))     + "'" + "\n"
-          + GetStrFromFlash(BtnSkimpySiren)        + "'" + String((EEPROM.read(E_BtnSkimpySiren))) + "'";
+          + GetStrFromFlash(BtnSkimpySiren)        + "'" + String((EEPROM.read(E_BtnSkimpySiren))) + "'" + "\n"
+          + GetStrFromFlash(BtnOutOfContr)         + "'" + String((EEPROM.read(E_BtnOutOfContr)))  + "'"; 
         SendSms(&msg, &gsm.SmsNumber); 
       }      
       else
