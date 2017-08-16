@@ -9,7 +9,7 @@
 #include "PowerControl.h"
 #include <avr/pgmspace.h>
 
-#define debug Serial
+//#define debug Serial
 
 //// НАСТРОЕЧНЫЕ КОНСТАНТЫ /////
 const char sms_TensionCable[]    PROGMEM = {"ALARM: TensionCable sensor."};                                         // текст смс для растяжки
@@ -223,7 +223,7 @@ void(* RebootFunc) (void) = 0;                          // объявляем ф
 void setup() 
 {
   delay(1000);                                // !! чтобы нечего не повисало при включении
-  debug.begin(19200);
+ // debug.begin(19200);
   pinMode(SpecerPin, OUTPUT);
   pinMode(gsmLED, OUTPUT);
   pinMode(OutOfContrLED, OUTPUT);
@@ -358,11 +358,8 @@ void loop()
         countPressBtn = 0;  
         PlayTone(sysTone, 250);                                                     // сигнализируем об этом спикером  
         inTestMod = !inTestMod;                                                     // включаем/выключаем режим тестирование датчиков        
-        debug.print("Test = ");
-        debug.print(inTestMod);
         digitalWrite(SirenLED, LOW);                                                // выключаем светодиод
-        EEPROM.write(E_inTestMod, inTestMod);                                       // пишим режим тестирование датчиков в еепром
-        debug.println(countPressBtn);
+        EEPROM.write(E_inTestMod, inTestMod);                                       // пишим режим тестирование датчиков в еепром        
       }
       else
       // запрос баланса счета
@@ -396,8 +393,7 @@ void loop()
       delay(200);                                                                   // пайза, что б не сливались звуковые сигналы нажатия кнопки и установки режима
       countPressBtn = 0;  
       gsm.RejectCall();                                                             // сбрасываем вызов      
-      Set_OutOfContrMod();
-      debug.println(countPressBtn);        
+      Set_OutOfContrMod();       
     }                  
   }
 
@@ -604,8 +600,7 @@ void ClickButton()
   {
     static unsigned long millis_prev;
     if(millis()-300 > millis_prev) 
-    {
-      debug.println("ButtonPressed");
+    {     
       BlinkLEDlow(OutOfContrLED,  0, 100, 0);      
       PlayTone(clickTone, 40);    
       countPressBtn++;
@@ -617,7 +612,6 @@ void ClickButton()
 
 bool Set_OutOfContrMod()                                // метод для снятие с охраны
 { 
-  debug.println("OutOfContrMod");
   interrupt = true;                                     // разрешаем обрабатывать прерывания
   digitalWrite(OutOfContrLED, HIGH);
   digitalWrite(OnContrLED, LOW);
@@ -638,8 +632,7 @@ bool Set_OutOfContrMod()                                // метод для с�
 bool Set_OnContrMod(bool IsWaiting)                     // метод для установки на охрану
 { 
   if (IsWaiting == true)                                // если включен режим ожидание перед установкой охраны, выдерживаем заданную паузу, что б успеть покинуть помещение
-  {       
-    debug.println("Set_OnContrMod");
+  { 
     digitalWrite(OutOfContrLED, LOW);   
     byte timeWait = 0;
     if (inTestMod) timeWait = delayOnContrTest;         // если включен режим тестирования, устанавливаем для удобства тестирования меньшую паузу
