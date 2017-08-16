@@ -671,7 +671,8 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
     }
   }
   
-  if (!inTestMod) interrupt = false;                    // если не включен режим тестирования то запрещаем обрабатывать прерывания
+  if (!inTestMod && EEPROM.read(E_BtnOutOfContr)==0)    // если не включен режим тестирования и отключена возможность снимать с охраны кнопкой 
+    interrupt = false;                                  // то запрещаем обрабатывать прерывания
   
   // установка переменных в дефолтное состояние  
   SenPIR1.ResetSensor();
@@ -1087,7 +1088,7 @@ void ExecSmsCommand()
       {
         PlayTone(sysTone, smsSpecDur);                        
         String str = gsm.SmsText; 
-        int iConf[4];                                                             // сохраняем настройки по датчикам
+        int iConf[5];                                                             // сохраняем настройки по датчикам
         for(byte i = 0; i < 5; i++)
         {
           int beginStr = str.indexOf('\'');
@@ -1100,6 +1101,7 @@ void ExecSmsCommand()
         EEPROM.write(E_BtnInTestMod, iConf[1]);    
         EEPROM.write(E_BtnBalance, iConf[2]);
         EEPROM.write(E_BtnSkimpySiren, iConf[3]);  
+        EEPROM.write(E_BtnOutOfContr, iConf[4]);  
         String msg = GetStrFromFlash(BtnOnContr )  + "'" + String((EEPROM.read(E_BtnOnContr)))     + "'" + "\n"
           + GetStrFromFlash(BtnInTestMod)          + "'" + String((EEPROM.read(E_BtnInTestMod)))   + "'" + "\n"
           + GetStrFromFlash(BtnBalance)            + "'" + String((EEPROM.read(E_BtnBalance)))     + "'" + "\n"
