@@ -386,7 +386,7 @@ void loop()
       
       // выключение режима контроля (если настроена для этого кнопка)
       else 
-      if (mode == OnContrMod && countPressBtn == EEPROM.read(E_BtnOutOfContr) && !isSiren)      
+      if (mode == OnContrMod && countPressBtn == EEPROM.read(E_BtnOutOfContr))      
       {
         delay(200);                                                                  // пайза, что б не сливались звуковые сигналы нажатия кнопки и установки режима
         countPressBtn = 0;  
@@ -478,6 +478,7 @@ void loop()
     if (reqSirena 
       && (inTestMod || GetElapsed(prReqSirena)/1000 >= EEPROM.read(E_delaySiren) || prReqSirena == 0))      
     {     
+      interrupt = false;                                                                      // блокируем обработку прерывания от кнопки (кнопку можно нажимать только до включения сирены)
       reqSirena = false;            
       if (!isSiren)
       {
@@ -488,7 +489,7 @@ void loop()
         prSiren = millis();      
     }      
     
-    if (SenTension.isAlarm)                                                                       // проверяем состояние растяжки и если это первое обнаружение обрыва (TensionTriggered = false) то выполняем аналогичные действие
+    if (SenTension.isAlarm)                                                                   // проверяем состояние растяжки и если это первое обнаружение обрыва (TensionTriggered = false) то выполняем аналогичные действие
     {                                                  
       if (gsm.IsAvailable())
       {
