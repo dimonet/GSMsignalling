@@ -260,7 +260,7 @@ void setup()
         EEPROM.write(E_SirenEnabled, true);             // сирена по умолчанию включена
         EEPROM.write(E_IsPIR1Enabled, true);            
         EEPROM.write(E_IsPIR2Enabled, true);
-        EEPROM.write(E_IsGasEnabled, true);
+        EEPROM.write(E_IsGasEnabled, false);
         EEPROM.write(E_TensionEnabled, true);
         WriteToEEPROM(E_gasCalibr, &String("1023"));                    
         RebootFunc();                                   // перезагружаем устройство
