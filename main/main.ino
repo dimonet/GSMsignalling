@@ -478,7 +478,7 @@ void loop()
     if (reqSirena 
       && (inTestMod || GetElapsed(prReqSirena)/1000 >= EEPROM.read(E_delaySiren) || prReqSirena == 0))      
     {     
-      interrupt = false;                                                                      // блокируем обработку прерывания от кнопки (кнопку можно нажимать только до включения сирены)
+      if(!inTestMod) interrupt = false;                                                       // если не режим тестирования то блокируем обработку прерывания от кнопки (кнопку можно нажимать только до включения сирены)
       reqSirena = false;            
       if (!isSiren)
       {
