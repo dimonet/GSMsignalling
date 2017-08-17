@@ -91,7 +91,7 @@ const char BtnSkimpySiren[]      PROGMEM = {"BtnSkimpySiren: "};
 const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 
 
-#define deltaGasPct  5                                     // дельта оклонения от нормы датчика газа привышения, которой необходимо сигнализировать об утечки газа
+#define deltaGasPct        10                              // дельта оклонения от нормы датчика газа привышения, которой необходимо сигнализировать об утечки газа
 #define numSize            15                              // количество символов в строке телефонного номера
 
 // паузы
@@ -160,10 +160,10 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 
 // Количество нажатий на кнопку для включений режимова
 #define E_BtnOnContr     32                     // количество нажатий на кнопку для установки на охрану
-#define E_BtnInTestMod   33                     // количество нажатий на кнопку для включение/отключения режима тестирования 
-#define E_BtnBalance     34                     // количество нажатий на кнопку для запроса баланса счета
-#define E_BtnSkimpySiren 35                     // количество нажатий на кнопку для кратковременного включения сирены
-#define E_BtnOutOfContr  36
+#define E_BtnInTestMod   34                     // количество нажатий на кнопку для включение/отключения режима тестирования 
+#define E_BtnBalance     36                     // количество нажатий на кнопку для запроса баланса счета
+#define E_BtnSkimpySiren 38                     // количество нажатий на кнопку для кратковременного включения сирены
+#define E_BtnOutOfContr  40
 
 #define E_BalanceUssd      60                   // Ussd код для запроса баланца
 
@@ -587,7 +587,7 @@ void loop()
       if (gsm.IsAvailable())              
       {  
         if (!inTestMod)  
-          gsm.SendSms(&GetStrFromFlash(sms_Gas), &NumberRead(E_NUM1_OutOfContr));     // если не включен режим тестирование отправляем смс
+          gsm.SendSms(&(GetStrFromFlash(sms_Gas)+ "\n" + GetStrFromFlash(GasVal) + String(GasPct) + GetStrFromFlash(pct)), &NumberRead(E_NUM1_OutOfContr));     // если не включен режим тестирование отправляем смс
         gsm.Call(&NumberRead(E_NUM1_OutOfContr));                                     // сигнализируем звонком о сработке датчика
         SenGas.prAlarmTime = millis();
         SenGas.isAlarm = false;
