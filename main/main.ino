@@ -208,7 +208,7 @@ unsigned long prCheckGas = 0;                   // время последнег
 
 byte countPressBtn = 0;                         // счетчик нажатий на кнопку
 bool wasRebooted = false;                       // указываем была ли последний раз перезагрузка программным путем
-byte GasPct = 0;                                // хранит отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения
+int GasPct = 0;                                // хранит отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения
 
 MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
 PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
@@ -733,15 +733,15 @@ void SkimpySiren()                                                              
   digitalWrite(SirenGenerator, HIGH);                                                     // выключаем сирену через релье  
 }
 // калькулируем и сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения 
-byte CalcPctForAnalogSensor(int senValue)
+int CalcPctForAnalogSensor(int senValue)
 {
   int calibr = ReadFromEEPROM(E_gasCalibr).toInt(); 
   int value; 
   if (senValue >= calibr)  
-    value = senValue;
+    value = senValue - calibr;
   else
-    value = ((calibr - senValue) + calibr);
-  value = round(((value - calibr)/(1023.0 - calibr)) * 100); 
+    value = calibr - senValue;
+  value = round((value/(1023.0 - calibr)) * 100); 
   if (senValue < calibr)   
     value = value * -1; 
   return value;
