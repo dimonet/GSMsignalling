@@ -362,7 +362,8 @@ void loop()
         PlayTone(sysTone, 250);                                                     // сигнализируем об этом спикером  
         inTestMod = !inTestMod;                                                     // включаем/выключаем режим тестирование датчиков        
         digitalWrite(SirenLED, LOW);                                                // выключаем светодиод
-        EEPROM.write(E_inTestMod, inTestMod);                                       // пишим режим тестирование датчиков в еепром        
+        EEPROM.write(E_inTestMod, inTestMod);                                       // пишим режим тестирование датчиков в еепром  
+        SenGas.ResetSensor();                                                       // сбрасываем все показания датчика газа, что бы при срабатывании датчика немедленно осуществлялся звонок     
       }
       else
       // запрос баланса счета
@@ -826,6 +827,7 @@ void ExecSmsCommand()
         PlayTone(sysTone, smsSpecDur); 
         inTestMod = true;
         EEPROM.write(E_inTestMod, true);                                                 // пишим режим тестирование датчиков в еепром 
+        SenGas.ResetSensor();                                                            // сбрасываем все показания датчика газа, что бы при срабатывании датчика немедленно осуществлялся звонок   
         SendSms(&GetStrFromFlash(sms_TestModOn), &gsm.SmsNumber);                        // отправляем смс о завершении выполнения даной смс команды                                                         
       }
       else
@@ -835,6 +837,7 @@ void ExecSmsCommand()
         PlayTone(sysTone, smsSpecDur); 
         inTestMod = false;
         EEPROM.write(E_inTestMod, false);                                                // пишим режим тестирование датчиков в еепром 
+        SenGas.ResetSensor();                                                            // сбрасываем все показания датчика газа, что бы при срабатывании датчика немедленно осуществлялся звонок   
         SendSms(&GetStrFromFlash(sms_TestModOff), &gsm.SmsNumber);                       // отправляем смс о завершении выполнения даной смс команды                 
       }            
       else
