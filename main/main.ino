@@ -736,10 +736,15 @@ void SkimpySiren()                                                              
 byte CalcPctForAnalogSensor(int senValue)
 {
   int calibr = ReadFromEEPROM(E_gasCalibr).toInt(); 
-  if (senValue <= calibr)   
-    return 0 ;
-  else 
-    return round(((senValue - calibr)/(1023.0 - calibr)) * 100);
+  int value; 
+  if (senValue >= calibr)  
+    value = senValue;
+  else
+    value = ((calibr - senValue) + calibr);
+  value = round(((value - calibr)/(1023.0 - calibr)) * 100); 
+  if (senValue < calibr)   
+    value = value * -1; 
+  return value;
 }
 
 // читаем смс и если доступна новая команда по смс то выполняем ее
