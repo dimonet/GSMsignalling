@@ -13,7 +13,6 @@ PowerControl::PowerControl(byte netVcc, byte  battVcc, byte pinMeasureVcc)
   _netVccDelta = (_netVcc - _battVcc)*0.7; //дельта высчитывается как 70% от разници между питаниями
 }
 
-// Инициализация gsm модуля (включения, настройка)
 void PowerControl::Refresh()
 {
   IsBattPowerPrevious = IsBattPower;

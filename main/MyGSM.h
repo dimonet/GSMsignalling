@@ -29,5 +29,6 @@ class MyGSM
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
     void SetString(String *source, String *target);
     int _gsmLED;
-    int _pinBOOT;                                   // нога BOOT или K на модеме       
+    int _pinBOOT;                                   // нога BOOT или K на модеме   
+    String GetStrFromFlash(char* addr);    
 };
