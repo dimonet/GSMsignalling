@@ -563,7 +563,9 @@ void loop()
     
     if (GetElapsed(prCheckGas) > timeCheckGas || prCheckGas == 0)                     // проверяем сколько прошло времени после последнего измирения датчика газа    
     { 
-      GasPct = CalcPctForAnalogSensor(SenGas.GetSensorValue());                       // калькулируем и сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения 
+                             
+      int calibr = ReadFromEEPROM(E_gasCalibr).toInt(); 
+      GasPct = round(((SenGas.GetSensorValue() - calibr)/(1023.0 - calibr)) * 100);   // калькулируем и сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения      
       prCheckGas = millis(); 
     }
     if (GasPct > deltaGasPct)                                                         // если отклонение больше заданой дельты то сигнализируем о прывышении уровня газа/дыма 
@@ -733,20 +735,7 @@ void SkimpySiren()                                                              
   digitalWrite(SirenLED, LOW);
   digitalWrite(SirenGenerator, HIGH);                                                     // выключаем сирену через релье  
 }
-// калькулируем и сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения 
-int CalcPctForAnalogSensor(int senValue)
-{
-  int calibr = ReadFromEEPROM(E_gasCalibr).toInt(); 
-  int value; 
-  if (senValue >= calibr)  
-    value = senValue - calibr;
-  else
-    value = calibr - senValue;
-  value = round((value/(1023.0 - calibr)) * 100); 
-  if (senValue < calibr)   
-    value = value * -1; 
-  return value;
-}
+
 
 // читаем смс и если доступна новая команда по смс то выполняем ее
 void ExecSmsCommand()
