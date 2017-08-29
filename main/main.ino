@@ -139,7 +139,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 
 //// КОНСТАНТЫ РЕЖИМОВ РАБОТЫ //// 
 #define OutOfContrMod  1                        // снята с охраны
-#define OnContrMod     3                        // установлена охрана
+#define OnContrMod     2                        // установлена охрана
 
 //// КОНСТАНТЫ EEPROM ////
 #define E_mode           0                      // адресс для сохранения режимов работы 
@@ -148,9 +148,9 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define E_wasRebooted    3                      // адресс для сохранения факта перезагрузки устройства по смс команде
 
 #define E_delaySiren     4                      // адресс для сохранения длины паузы между срабатыванием датяиков и включением сирены (в сикундах)
-#define E_delayOnContr   6                      // время паузы от нажатия кнопки до установки режима охраны (в сикундах)
-#define E_intervalVcc    8                      // интервал между измерениями питания (в сикундах)
-#define E_gasCalibr      10                     // калибровка датчика газа. Значение от датчика, которое воспринимать как 0 (отсутствие утечки газа)
+#define E_delayOnContr   5                      // время паузы от нажатия кнопки до установки режима охраны (в сикундах)
+#define E_intervalVcc    6                      // интервал между измерениями питания (в сикундах)
+#define E_gasCalibr      7                      // калибровка датчика газа. Значение от датчика, которое воспринимать как 0 (отсутствие утечки газа)
 
 #define E_SirenEnabled   27
 #define E_IsPIR1Enabled  28                     
@@ -160,10 +160,10 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 
 // Количество нажатий на кнопку для включений режимова
 #define E_BtnOnContr     32                     // количество нажатий на кнопку для установки на охрану
-#define E_BtnInTestMod   34                     // количество нажатий на кнопку для включение/отключения режима тестирования 
-#define E_BtnBalance     36                     // количество нажатий на кнопку для запроса баланса счета
-#define E_BtnSkimpySiren 38                     // количество нажатий на кнопку для кратковременного включения сирены
-#define E_BtnOutOfContr  40
+#define E_BtnInTestMod   33                     // количество нажатий на кнопку для включение/отключения режима тестирования 
+#define E_BtnBalance     34                     // количество нажатий на кнопку для запроса баланса счета
+#define E_BtnSkimpySiren 35                     // количество нажатий на кнопку для кратковременного включения сирены
+#define E_BtnOutOfContr  36
 
 #define E_BalanceUssd      60                   // Ussd код для запроса баланца
 
@@ -188,8 +188,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 
 // константы режимов работы
 byte mode = OutOfContrMod;                      // 1 - снята с охраны                                  
-                                                // 2 - в ожидании перед установкой на охрану
-                                                // 3 - установлено на охрану
+                                                // 2 - установлено на охрану                                                
                                                 // при добавлении не забываем посмотреть рездел 
                                                 
                                                
@@ -208,7 +207,7 @@ unsigned long prCheckGas = 0;                   // время последнег
 
 byte countPressBtn = 0;                         // счетчик нажатий на кнопку
 bool wasRebooted = false;                       // указываем была ли последний раз перезагрузка программным путем
-int GasPct = 0;                                // хранит отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения
+int GasPct = 0;                                 // хранит отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения
 
 MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
 PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
@@ -429,8 +428,7 @@ void loop()
       }
       else gsm.RejectCall();                                // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)      
     gsm.ClearRing();                                        // очищаем обнаруженный входящий звонок    
-    }
-    
+    }    
   }                                                         // end OutOfContrMod 
   else
   
@@ -441,7 +439,7 @@ void loop()
     {
       int cSiren;
       if (!inTestMod) cSiren = timeSiren;                             // если выключен режим тестирования то сохраняем установленное время работы сирены
-        else cSiren = timeSiren / 10;                                  // если включен режим тестирования то время работы сирены сокращаем в десять раза для удобства проверки датчиков
+        else cSiren = timeSiren / 10;                                 // если включен режим тестирования то время работы сирены сокращаем в десять раза для удобства проверки датчиков
       if (GetElapsed(prSiren) > cSiren)                               // если включена сирена и сирена работает больше установленного времени то выключаем ее
         StopSiren();
     }   
@@ -470,9 +468,9 @@ void loop()
     { 
       digitalWrite(SirenLED, HIGH);                                                          // сигнализируем светодиодом о тревоге
       reqSirena = true;
-      SenPIR2.prTrigTime = millis();                                                            // запоминаем когда сработал датчик для отображения статуса датчика
+      SenPIR2.prTrigTime = millis();                                                         // запоминаем когда сработал датчик для отображения статуса датчика
       if (prReqSirena == 1) prReqSirena = millis();
-      if (GetElapsed(SenPIR2.prAlarmTime) > timeSmsPIR2 || SenPIR2.prAlarmTime == 0)               // если выдержена пауза после последнего звонка и отправки смс
+      if (GetElapsed(SenPIR2.prAlarmTime) > timeSmsPIR2 || SenPIR2.prAlarmTime == 0)         // если выдержена пауза после последнего звонка и отправки смс
         SenPIR2.isAlarm = true;
     }   
     
@@ -1084,20 +1082,20 @@ void ExecSmsCommand()
       {
         PlayTone(sysTone, smsSpecDur);                        
         String str = gsm.SmsText; 
-        int iConf[5];                                                             // сохраняем настройки по датчикам
+        byte bConf[5];                                                             // сохраняем настройки по датчикам
         for(byte i = 0; i < 5; i++)
         {
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
           int duration = str.indexOf('\'');  
-          iConf[i] = (str.substring(0, duration)).toInt();      
+          bConf[i] = (str.substring(0, duration)).toInt();      
           str = str.substring(duration +1);         
         }        
-        EEPROM.write(E_BtnOnContr, iConf[0]);
-        EEPROM.write(E_BtnInTestMod, iConf[1]);    
-        EEPROM.write(E_BtnBalance, iConf[2]);
-        EEPROM.write(E_BtnSkimpySiren, iConf[3]);  
-        EEPROM.write(E_BtnOutOfContr, iConf[4]);  
+        EEPROM.write(E_BtnOnContr, bConf[0]);
+        EEPROM.write(E_BtnInTestMod, bConf[1]);    
+        EEPROM.write(E_BtnBalance, bConf[2]);
+        EEPROM.write(E_BtnSkimpySiren, bConf[3]);  
+        EEPROM.write(E_BtnOutOfContr, bConf[4]);  
         String msg = GetStrFromFlash(BtnOnContr )  + "'" + String((EEPROM.read(E_BtnOnContr)))     + "'" + "\n"
           + GetStrFromFlash(BtnInTestMod)          + "'" + String((EEPROM.read(E_BtnInTestMod)))   + "'" + "\n"
           + GetStrFromFlash(BtnBalance)            + "'" + String((EEPROM.read(E_BtnBalance)))     + "'" + "\n"
@@ -1128,9 +1126,9 @@ void ExecSmsCommand()
           }               
           str = str.substring(duration + 1);         
         }        
-        EEPROM.write(E_delaySiren, sConf[0].toInt());
-        EEPROM.write(E_delayOnContr, sConf[1].toInt());        
-        EEPROM.write(E_intervalVcc, sConf[2].toInt());
+        EEPROM.write(E_delaySiren, (byte)sConf[0].toInt());
+        EEPROM.write(E_delayOnContr, (byte)sConf[1].toInt());        
+        EEPROM.write(E_intervalVcc, (byte)sConf[2].toInt());
         WriteToEEPROM(E_BalanceUssd, &sConf[3]);       
         EEPROM.write(E_SirenEnabled, bSirEnab);
 
