@@ -308,13 +308,13 @@ void setup()
   
   attachInterrupt(0, ClickButton, FALLING);             // привязываем 0-е прерывание к функции ClickButton(). 
   interrupt = true;                                     // разрешаем обработку прырывания  
+
+  inTestMod = EEPROM.read(E_inTestMod);                 // читаем тестовый режим из еепром
+  wasRebooted = EEPROM.read(E_wasRebooted);             // читаем был ли последний раз перезагрузка программным путем 
   
   // чтение конфигураций с EEPROM
   if (EEPROM.read(E_mode) == OnContrMod) Set_OnContrMod(true);  // читаем режим из еепром      
-    else Set_OutOfContrMod();
-   
-  inTestMod = EEPROM.read(E_inTestMod);                         // читаем тестовый режим из еепром
-  wasRebooted = EEPROM.read(E_wasRebooted);                     // читаем был ли последний раз перезагрузка программным путем 
+    else Set_OutOfContrMod();  
 }
 
 
