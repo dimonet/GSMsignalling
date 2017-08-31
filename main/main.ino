@@ -68,7 +68,7 @@ const char delSiren[]            PROGMEM = {"DelaySiren: "};
 const char PIR1[]                PROGMEM = {"PIR1: "}; 
 const char PIR2[]                PROGMEM = {"PIR2: "};
 const char Gas[]                 PROGMEM = {"Gas: "}; 
-const char GasCalibr[]           PROGMEM = {"GasCalibr: "};
+const char _GasCalibr[]          PROGMEM = {"GasCalibr: "};
 const char GasCurr[]             PROGMEM = {"GasCurr: "};
 const char tension[]             PROGMEM = {"Tension: "};
 const char infOnContr[]          PROGMEM = {"InfOnContr: "};
@@ -200,6 +200,7 @@ bool inTestMod = false;                         // режим тестирова
 bool isSiren = false;                           // режим сирены
 bool reqSirena = false;                         // уст. в true когда сработал датчик и необходимо включить сирену
 bool isRun = true;                              // флаг для управления выполнения блока кода в loop только при старте устройства
+int  gasCalibr = 1023;                          // калибровка датчика газа. Значение от датчика, которое воспринимать как 0 (отсутствие утечки газа)
 
 unsigned long prSiren = 0;                      // время включения сирены (милисекунды)
 unsigned long prLastPressBtn = 0;               // время последнего нажатие на кнопку (милисекунды)
@@ -314,6 +315,7 @@ void setup()
 
   inTestMod = EEPROM.read(E_inTestMod);                 // читаем тестовый режим из еепром
   wasRebooted = EEPROM.read(E_wasRebooted);             // читаем был ли последний раз перезагрузка программным путем 
+  gasCalibr = EEPROM.read(E_gasCalibr);                // читаем значения калибровки датчика газа/дыма
   
   // чтение конфигураций с EEPROM
   if (EEPROM.read(E_mode) == OnContrMod) Set_OnContrMod(true);                              // читаем режим из еепром      
@@ -564,19 +566,19 @@ void loop()
     if (GetElapsed(prCheckGas) > timeCheckGas || prCheckGas == 0)                         // проверяем сколько прошло времени после последнего измирения датчика газа    
     { 
                              
-      int calibr =  ReadIntEEPROM(E_gasCalibr); 
-      GasPct = round(((SenGas.GetSensorValue() - calibr)/(1023.0 - calibr)) * 100);      // калькулируем и сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения      
+      
+      GasPct = round(((SenGas.GetSensorValue() - gasCalibr)/(1023.0 - gasCalibr)) * 100); // калькулируем и сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения      
       prCheckGas = millis(); 
     }
-    if (GasPct > deltaGasPct)                                                            // если отклонение больше заданой дельты то сигнализируем о прывышении уровня газа/дыма 
+    if (GasPct > deltaGasPct)                                                             // если отклонение больше заданой дельты то сигнализируем о прывышении уровня газа/дыма 
     {       
-      digitalWrite(SirenLED, HIGH);                                                      // сигнализируем светодиодом о тревоге
-      if (!SenGas.isTrig && inTestMod) PlayTone(sysTone, 100);                           // если включен режим тестирование и это первое срабатывание то сигнализируем спикером  
+      digitalWrite(SirenLED, HIGH);                                                       // сигнализируем светодиодом о тревоге
+      if (!SenGas.isTrig && inTestMod) PlayTone(sysTone, 100);                            // если включен режим тестирование и это первое срабатывание то сигнализируем спикером  
       SenGas.isTrig = true;
       //reqSirena = true;
-      SenGas.prTrigTime = millis();                                                      // запоминаем когда сработал датчик для отображения статуса датчика
+      SenGas.prTrigTime = millis();                                                       // запоминаем когда сработал датчик для отображения статуса датчика
       //if (prReqSirena == 1) prReqSirena = millis();
-      if (GetElapsed(SenGas.prAlarmTime) > timeSmsGas || SenGas.prAlarmTime == 0)        // если выдержена пауза после последнего звонка и отправки смс 
+      if (GetElapsed(SenGas.prAlarmTime) > timeSmsGas || SenGas.prAlarmTime == 0)         // если выдержена пауза после последнего звонка и отправки смс 
         SenGas.isAlarm = true;
     }
     else if (SenGas.isTrig && !isSiren)
@@ -1081,7 +1083,7 @@ void ExecSmsCommand()
            + GetStrFromFlash(PIR2)                 + "'" + String((EEPROM.read(E_IsPIR2Enabled))  ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(Gas)                  + "'" + String((EEPROM.read(E_IsGasEnabled))   ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(tension)              + "'" + String((EEPROM.read(E_TensionEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(GasCalibr)            + "'" + String(ReadIntEEPROM(E_gasCalibr)) + "'" + "\n"
+           + GetStrFromFlash(_GasCalibr)           + "'" + String(gasCalibr) + "'" + "\n"
            + GetStrFromFlash(GasCurr)              + "'" + SenGas.GetSensorValue() + "'";
         SendSms(&msg, &gsm.SmsNumber);
       }
@@ -1157,8 +1159,7 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith(GetStrFromFlash(_PIR1)))                          // если обнаружена команда с настройками датчиков
       {
         PlayTone(sysTone, smsSpecDur);                        
-        String str = gsm.SmsText; 
-        int iGasCalibr;
+        String str = gsm.SmsText;        
         bool bConf[4];                                                             // сохраняем настройки по датчикам
         for(byte i = 0; i < 5; i++)
         {
@@ -1173,19 +1174,19 @@ void ExecSmsCommand()
               bConf[i] = true; 
           }               
           else if (i == 4)
-            iGasCalibr = (str.substring(0, duration)).toInt();          
+            gasCalibr = (str.substring(0, duration)).toInt();          
           str = str.substring(duration +1);         
         }
         EEPROM.write(E_IsPIR1Enabled, bConf[0]);
         EEPROM.write(E_IsPIR2Enabled, bConf[1]);
         EEPROM.write(E_IsGasEnabled,  bConf[2]);
         EEPROM.write(E_TensionEnabled, bConf[3]);
-        WriteIntEEPROM(E_gasCalibr, iGasCalibr);      
+        WriteIntEEPROM(E_gasCalibr, gasCalibr); 
         String msg = GetStrFromFlash(PIR1)         + "'" + String((EEPROM.read(E_IsPIR1Enabled))  ? "on" : "off") + "'" + "\n"
            + GetStrFromFlash(PIR2)                 + "'" + String((EEPROM.read(E_IsPIR2Enabled))  ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(Gas)                  + "'" + String((EEPROM.read(E_IsGasEnabled))   ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(tension)              + "'" + String((EEPROM.read(E_TensionEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(GasCalibr)            + "'" + String(ReadIntEEPROM(E_gasCalibr)) + "'" + "\n"
+           + GetStrFromFlash(_GasCalibr)            + "'" + String(ReadIntEEPROM(E_gasCalibr)) + "'" + "\n"
            + GetStrFromFlash(GasCurr)              + "'" + SenGas.GetSensorValue() + "'";
         SendSms(&msg, &gsm.SmsNumber);  
       }
