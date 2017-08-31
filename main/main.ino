@@ -271,6 +271,7 @@ void setup()
         EEPROM.write(E_intervalVcc, 0);                 // интервал между измерениями питания (0 секунд)
         EEPROM.write(E_BalanceUssd, "***");             // Ussd код для запроса баланца
         EEPROM.write(E_SirenEnabled, 1);                // сирена по умолчанию включена
+        EEPROM.write(E_infOnContr, 0);                  // информирование о снятии с охраны по смс по умолчанию отключено
         EEPROM.write(E_IsPIR1Enabled, 1);            
         EEPROM.write(E_IsPIR2Enabled, 1);
         EEPROM.write(E_IsGasEnabled, 0);
