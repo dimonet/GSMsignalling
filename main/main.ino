@@ -315,7 +315,7 @@ void setup()
 
   inTestMod = EEPROM.read(E_inTestMod);                 // читаем тестовый режим из еепром
   wasRebooted = EEPROM.read(E_wasRebooted);             // читаем был ли последний раз перезагрузка программным путем 
-  gasCalibr = EEPROM.read(E_gasCalibr);                // читаем значения калибровки датчика газа/дыма
+  gasCalibr = ReadIntEEPROM(E_gasCalibr);               // читаем значения калибровки датчика газа/дыма
   
   // чтение конфигураций с EEPROM
   if (EEPROM.read(E_mode) == OnContrMod) Set_OnContrMod(true);                              // читаем режим из еепром      
