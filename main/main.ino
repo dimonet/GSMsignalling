@@ -260,18 +260,18 @@ void setup()
           EEPROM.write(i, 0);                           // стираем все данные с EEPROM
         // установка дефолтных параметров
         EEPROM.write(E_mode, OutOfContrMod);            // устанавливаем по умолчанию режим не на охране
-        EEPROM.write(E_inTestMod, false);               // режим тестирования по умолчанию выключен
-        EEPROM.write(E_isRedirectSms, false);           // режим перенаправления всех смс по умолчанию выключен
-        EEPROM.write(E_wasRebooted, false);             // факт перезагрузки устройства по умолчанию выключено (устройство не перезагружалось)
+        EEPROM.write(E_inTestMod, 0);                   // режим тестирования по умолчанию выключен
+        EEPROM.write(E_isRedirectSms, 0);               // режим перенаправления всех смс по умолчанию выключен
+        EEPROM.write(E_wasRebooted, 0);                 // факт перезагрузки устройства по умолчанию выключено (устройство не перезагружалось)
         EEPROM.write(E_delaySiren, 0);                  // пауза между сработкой датчиков и включением сирены отключена (0 секунд) 
         EEPROM.write(E_delayOnContr, 25);               // пауза от нажатия кнопки до установки режима охраны (25 сек)
         EEPROM.write(E_intervalVcc, 0);                 // интервал между измерениями питания (0 секунд)
         EEPROM.write(E_BalanceUssd, "***");             // Ussd код для запроса баланца
-        EEPROM.write(E_SirenEnabled, true);             // сирена по умолчанию включена
-        EEPROM.write(E_IsPIR1Enabled, true);            
-        EEPROM.write(E_IsPIR2Enabled, true);
-        EEPROM.write(E_IsGasEnabled, false);
-        EEPROM.write(E_TensionEnabled, true);
+        EEPROM.write(E_SirenEnabled, 1);                // сирена по умолчанию включена
+        EEPROM.write(E_IsPIR1Enabled, 1);            
+        EEPROM.write(E_IsPIR2Enabled, 1);
+        EEPROM.write(E_IsGasEnabled, 0);
+        EEPROM.write(E_TensionEnabled, 0);
         EEPROM.write(E_BtnOnContr, 1);
         EEPROM.write(E_BtnInTestMod, 2);
         EEPROM.write(E_BtnBalance, 3);
