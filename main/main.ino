@@ -170,7 +170,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 
 #define E_BalanceUssd      60                   // Ussd код для запроса баланца
 
-#define E_NumberAnsUssd    80                   // для промежуточного хранения номера телефона, от которого получено gsm код и которому необходимо отправить ответ (баланс и т.д.)
+#define E_NUM_RebootAns    80                   // для промежуточного хранения номера телефона, на который необходимо будет отправить после перезагрузки сообщение о перезагрузке устройства 
 
 #define E_NUM1_OutOfContr  100                  // 1-й номер для снятие с охраны
 #define E_NUM2_OutOfContr  117                  // 2-й номер для снятие с охраны
@@ -201,6 +201,8 @@ bool isSiren = false;                           // режим сирены
 bool reqSirena = false;                         // уст. в true когда сработал датчик и необходимо включить сирену
 bool isRun = true;                              // флаг для управления выполнения блока кода в loop только при старте устройства
 int  gasCalibr = 1023;                          // калибровка датчика газа. Значение от датчика, которое воспринимать как 0 (отсутствие утечки газа)
+String numberAnsUssd = "";                      // для промежуточного хранения номера телефона, от которого получено gsm код и которому необходимо отправить ответ (баланс и т.д.)
+
 
 unsigned long prSiren = 0;                      // время включения сирены (милисекунды)
 unsigned long prLastPressBtn = 0;               // время последнего нажатие на кнопку (милисекунды)
@@ -335,7 +337,7 @@ void loop()
 
   if(wasRebooted)
   {    
-    SendSms(&GetStrFromFlash(sms_WasRebooted), &NumberRead(E_NUM1_OutOfContr));
+    SendSms(&GetStrFromFlash(sms_WasRebooted), &NumberRead(E_NUM_RebootAns));
     wasRebooted = false;
     EEPROM.write(E_wasRebooted, false);
   }
@@ -377,7 +379,7 @@ void loop()
         countPressBtn = 0;  
         PlayTone(sysTone, 250);                                                             // сигнализируем об этом спикером                        
         if(gsm.RequestUssd(&ReadStrEEPROM(E_BalanceUssd)))
-          WriteStrEEPROM(E_NumberAnsUssd, &NumberRead(E_NUM1_SmsCommand));                  // сохраняем номер на который необходимо будет отправить ответ                   
+          numberAnsUssd = NumberRead(E_NUM1_OutOfContr);                                    // сохраняем номер на который необходимо будет отправить ответ          
         else
           SendSms(&GetStrFromFlash(sms_WrongUssd), &NumberRead(E_NUM1_OutOfContr));         // если ответ пустой то отправляем сообщение об ошибке команды         
       }                                                                                
@@ -603,7 +605,7 @@ void loop()
   
   if (gsm.NewUssd)                                                                       // если доступный новый ответ на Ussd запрос
   {
-    SendSms(&gsm.UssdText, &NumberRead(E_NumberAnsUssd));                                // отправляем ответ на Ussd запрос
+    SendSms(&gsm.UssdText, &numberAnsUssd);                                              // отправляем ответ на Ussd запрос
     gsm.ClearUssd();                                                                     // сбрасываем ответ на gsm команду 
   }
   if(!SenTension.isAlarm && !SenPIR1.isAlarm && !SenPIR2.isAlarm && !SenGas.isAlarm)
@@ -769,7 +771,7 @@ void ExecSmsCommand()
       {
         PlayTone(sysTone, smsSpecDur); 
         if (gsm.RequestUssd(&gsm.SmsText))                                               // отправляем Ussd запрос и если он валидный (запрос заканчиваться на #)             
-          WriteStrEEPROM(E_NumberAnsUssd, &gsm.SmsNumber);                               // то сохраняем номер на который необходимо будет отправить ответ от Ussd запроса                                                    
+          numberAnsUssd = gsm.SmsNumber;                                                 // то сохраняем номер на который необходимо будет отправить ответ от Ussd запроса             
         else
           SendSms(&GetStrFromFlash(sms_WrongUssd), &gsm.SmsNumber);                      // иначе отправляем сообщение об инвалидном Ussd запросе 
       }
@@ -812,7 +814,7 @@ void ExecSmsCommand()
         digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим
         PlayTone(sysTone, smsSpecDur); 
         if(gsm.RequestUssd(&ReadStrEEPROM(E_BalanceUssd)))                               // отправляем Ussd запрос для получения баланса и если он валидный (запрос заканчиваться на #)    
-          WriteStrEEPROM(E_NumberAnsUssd, &gsm.SmsNumber);                               // то сохраняем номер на который необходимо будет отправить баланс                 
+          numberAnsUssd = gsm.SmsNumber;                                                 // то сохраняем номер на который необходимо будет отправить баланс                                                      
         else
           SendSms(&GetStrFromFlash(sms_WrongUssd), &gsm.SmsNumber);                      // иначе отправляем сообщение об инвалидном Ussd запросе 
       }
@@ -875,6 +877,7 @@ void ExecSmsCommand()
       {
         PlayTone(sysTone, smsSpecDur);
         EEPROM.write(E_wasRebooted, true);                                               // записываем статус, что устройство перезагружается        
+        WriteStrEEPROM(E_NUM_RebootAns, &gsm.SmsNumber);                                 // то сохраняем номер на который необходимо будет отправить после перезагрузки сообщение о перезагрузке устройства 
         gsm.Shutdown();                                                                  // выключаем gsm модуль
         RebootFunc();                                                                    // вызываем Reboot arduino платы
       }      
