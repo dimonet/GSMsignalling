@@ -167,19 +167,18 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define E_PIR1Siren      24                     
 #define E_PIR2Siren      25
 #define E_TensionSiren   26
-#define E_GasSiren       27                 
 
-#define E_IsPIR1Enabled  28                     
-#define E_IsPIR2Enabled  29
-#define E_IsGasEnabled   30                   
-#define E_TensionEnabled 31
+#define E_IsPIR1Enabled  27                     
+#define E_IsPIR2Enabled  28
+#define E_IsGasEnabled   29                   
+#define E_TensionEnabled 30
 
 // Количество нажатий на кнопку для включений режимова
-#define E_BtnOnContr     32                     // количество нажатий на кнопку для установки на охрану
-#define E_BtnInTestMod   33                     // количество нажатий на кнопку для включение/отключения режима тестирования 
-#define E_BtnBalance     34                     // количество нажатий на кнопку для запроса баланса счета
-#define E_BtnSkimpySiren 35                     // количество нажатий на кнопку для кратковременного включения сирены
-#define E_BtnOutOfContr  36
+#define E_BtnOnContr     31                     // количество нажатий на кнопку для установки на охрану
+#define E_BtnInTestMod   32                     // количество нажатий на кнопку для включение/отключения режима тестирования 
+#define E_BtnBalance     33                     // количество нажатий на кнопку для запроса баланса счета
+#define E_BtnSkimpySiren 34                     // количество нажатий на кнопку для кратковременного включения сирены
+#define E_BtnOutOfContr  35
 
 #define E_BalanceUssd      60                   // Ussd код для запроса баланца
 
@@ -300,8 +299,7 @@ void setup()
         EEPROM.write(E_SirenEnabled, 1);                // сирена по умолчанию включена
         EEPROM.write(E_PIR1Siren, 1);                   // сирена при срабатывании датчика движения 1 по умолчанию включена
         EEPROM.write(E_PIR2Siren, 1);                   // сирена при срабатывании датчика движения 2 по умолчанию включена
-        EEPROM.write(E_TensionSiren, 1);                // сирена при срабатывании растяжки по умолчанию включена
-        EEPROM.write(E_GasSiren, 0);                    // сирена при срабатывании датчика газа/дыма по умолчанию выключена        
+        EEPROM.write(E_TensionSiren, 1);                // сирена при срабатывании растяжки по умолчанию включена             
         RebootFunc();                                   // перезагружаем устройство
     }
   }  
@@ -1112,8 +1110,7 @@ void ExecSmsCommand()
         String msg = GetStrFromFlash(E_SirenEnabled)      + "'" + String((EEPROM.read(E_SirenEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(E_PIR1Siren)                 + "'" + String((EEPROM.read(E_PIR1Siren))    ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(E_PIR2Siren)                 + "'" + String((EEPROM.read(E_PIR2Siren))    ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(E_TensionSiren)              + "'" + String((EEPROM.read(E_TensionSiren)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(E_GasSiren)                  + "'" + String((EEPROM.read(E_GasSiren))     ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'";           
+           + GetStrFromFlash(E_TensionSiren)              + "'" + String((EEPROM.read(E_TensionSiren)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'";                   
         SendSms(&msg, &gsm.SmsNumber);
       }
       else  
@@ -1216,8 +1213,8 @@ void ExecSmsCommand()
       {
         PlayTone(sysTone, smsSpecDur);                        
         String str = gsm.SmsText;        
-        bool bConf[5];                                                                // сохраняем настройки по сирене
-        for(byte i = 0; i < 6; i++)
+        bool bConf[4];                                                                // сохраняем настройки по сирене
+        for(byte i = 0; i < 5; i++)
         {
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
@@ -1232,13 +1229,11 @@ void ExecSmsCommand()
         EEPROM.write(E_PIR1Siren, bConf[1]);
         EEPROM.write(E_PIR2Siren,  bConf[2]);
         EEPROM.write(E_TensionSiren, bConf[3]);
-        EEPROM.write(E_GasSiren, bConf[4]);
 
         String msg = GetStrFromFlash(E_SirenEnabled)      + "'" + String((EEPROM.read(E_SirenEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(E_PIR1Siren)                 + "'" + String((EEPROM.read(E_PIR1Siren))    ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(E_PIR2Siren)                 + "'" + String((EEPROM.read(E_PIR2Siren))    ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(E_TensionSiren)              + "'" + String((EEPROM.read(E_TensionSiren)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(E_GasSiren)                  + "'" + String((EEPROM.read(E_GasSiren))     ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'";           
+           + GetStrFromFlash(E_TensionSiren)              + "'" + String((EEPROM.read(E_TensionSiren)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'";                  
         SendSms(&msg, &gsm.SmsNumber);
       }
       else                                                                              // если смс команда не распознана      
