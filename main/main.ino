@@ -20,7 +20,7 @@ const char sms_Gas[]             PROGMEM = {"ALARM: Gas sensor."};              
 const char sms_BattPower[]       PROGMEM = {"POWER: Backup Battery is used for powering system."};                  // текст смс для оповещения о том, что исчезло сетевое питание
 const char sms_NetPower[]        PROGMEM = {"POWER: Network power has been restored."};                             // текст смс для оповещения о том, что сетевое питание возобновлено
 
-const char sms_ErrorCommand[]    PROGMEM = {"SendSMS,\nBalance,\nTestOn(Off),\nControlOn(Off),\nRedirectOn(Off),\nSkimpy,\nStatus,\nReboot,\nButton,\nSettings,\nSensors,\nOutOfContr,\nOnContr,\nSmsCommand."};  // смс команда не распознана
+const char sms_ErrorCommand[]    PROGMEM = {"SendSMS,\nBalance,\nTestOn(Off),\nControlOn(Off),\nRedirectOn(Off),\nSkimpy,\nStatus,\nReboot,\nButton,\nSettings,\nSensors,\nSiren,\nOutOfContr,\nOnContr,\nSmsCommand."};  // смс команда не распознана
 const char sms_InfOnContr[]      PROGMEM = {"Inform: Control mode has been turned off."};                           // информирование о снятии с охраны
 const char sms_TestModOn[]       PROGMEM = {"Command: Test mode has been turned on."};                              // выполнена команда для включения тестового режима для тестирования датчиков
 const char sms_TestModOff[]      PROGMEM = {"Command: Test mode has been turned off."};                             // выполнена команда для выключения тестового режима для тестирования датчиков
@@ -74,11 +74,11 @@ const char GasCurr[]             PROGMEM = {"GasCurr: "};
 const char tension[]             PROGMEM = {"Tension: "};
 const char infOnContr[]          PROGMEM = {"InfOnContr: "};
 
-const char SirenEnabled[]        PROGMEM = {"SirenEnabled: "};
-const char PIR1Siren[]           PROGMEM = {"PIR1Siren: "};
-const char PIR2Siren[]           PROGMEM = {"PIR2Siren: "};
-const char GasSiren[]            PROGMEM = {"GasSiren: "};
-const char TensionSiren[]        PROGMEM = {"TensionSiren: "};
+const char _SirenEnabled[]        PROGMEM = {"SirenEnabled: "};
+const char _PIR1Siren[]           PROGMEM = {"PIR1Siren: "};
+const char _PIR2Siren[]           PROGMEM = {"PIR2Siren: "};
+const char _GasSiren[]            PROGMEM = {"GasSiren: "};
+const char _TensionSiren[]        PROGMEM = {"TensionSiren: "};
 
 const char idle[]                PROGMEM = {"Idle"};
 const char on[]                  PROGMEM = {"on"};
@@ -210,6 +210,13 @@ byte mode = OutOfContrMod;                      // 1 - снята с охран�
 bool interrupt = false;                         // разрешить/запретить обработку прырывания (по умолчанию запретить, что б небыло ложного срабатывания при старте устройства)
 bool inTestMod = false;                         // режим тестирования датчиков (не срабатывает сирена и не отправляются СМС)
 bool isSiren = false;                           // режим сирены
+
+bool SirenEnabled = false;                      // включена/выключена сирена глобально
+bool TensionSiren = false;                      // включена/выключена сирена для растяжки
+bool PIR1Siren = false;                         // включена/выключена сирену для датчика движения 1
+bool PIR2Siren = false;                         // включена/выключена сирену для датчика движения 2
+
+bool isAlarm = false;                           // режим тревоги
 bool reqSirena = false;                         // уст. в true когда сработал датчик и необходимо включить сирену
 bool isRun = true;                              // флаг для управления выполнения блока кода в loop только при старте устройства
 int  gasCalibr = 1023;                          // калибровка датчика газа. Значение от датчика, которое воспринимать как 0 (отсутствие утечки газа)
@@ -217,6 +224,7 @@ String numberAnsUssd = "";                      // для промежуточн
 
 
 unsigned long prSiren = 0;                      // время включения сирены (милисекунды)
+unsigned long prAlarm = 0;                      // время включения светодиода тревоги (милисекунды)
 unsigned long prLastPressBtn = 0;               // время последнего нажатие на кнопку (милисекунды)
 unsigned long prTestBlinkLed = 0;               // время мерцания светодиода при включеном режима тестирования (милисекунды)
 unsigned long prRefreshVcc = 0;                 // время последнего измирения питания (милисекунды)
@@ -333,6 +341,10 @@ void setup()
   inTestMod = EEPROM.read(E_inTestMod);                 // читаем тестовый режим из еепром
   wasRebooted = EEPROM.read(E_wasRebooted);             // читаем был ли последний раз перезагрузка программным путем 
   gasCalibr = ReadIntEEPROM(E_gasCalibr);               // читаем значения калибровки датчика газа/дыма
+  SirenEnabled = EEPROM.read(E_SirenEnabled);           // читаем включена или выключена сирена глобально
+  TensionSiren = EEPROM.read(E_TensionSiren);           // читаем включена или выключена сирена для растяжки
+  PIR1Siren = EEPROM.read(E_PIR1Siren);                 // читаем включена или выключена сирена для датчика движения 1
+  PIR2Siren = EEPROM.read(E_PIR2Siren);                 // читаем включена или выключена сирена для датчика движения 2
   
   // чтение конфигураций с EEPROM
   if (EEPROM.read(E_mode) == OnContrMod) Set_OnContrMod(true);                              // читаем режим из еепром      
@@ -457,19 +469,23 @@ void loop()
   ////// IN CONTROL MODE ///////  
   if (mode == OnContrMod)                                                                  // если в режиме охраны
   {
-    if (isSiren)
+    if (!inTestMod && isSiren)
     {
-      int cSiren;
-      if (!inTestMod) cSiren = timeSiren;                                                  // если выключен режим тестирования то сохраняем установленное время работы сирены
-        else cSiren = timeSiren / 10;                                                      // если включен режим тестирования то время работы сирены сокращаем в десять раза для удобства проверки датчиков
-      if (GetElapsed(prSiren) > cSiren)                                                    // если включена сирена и сирена работает больше установленного времени то выключаем ее
+      if (GetElapsed(prSiren) > timeSiren)                                                    // если включена сирена и сирена работает больше установленного времени то выключаем ее
         StopSiren();
-    }   
-
+    } 
+    if (isAlarm)
+    {
+      int cAlarm;
+      if (!inTestMod) cAlarm = timeSiren;                                                  // если выключен режим тестирования то сохраняем установленное время тревоги
+        else cAlarm = timeSiren / 10;                                                      // если включен режим тестирования то время тревоги сокращаем в десять раза для удобства проверки датчиков
+      if (GetElapsed(prSiren) > cAlarm)                                                    // если тревога больше установленного времени то выключаем светодиод тревоги
+        StopAlarm();  
+    }  
     if (EEPROM.read(E_TensionEnabled) && !SenTension.isTrig && SenTension.CheckSensor())   // проверяем растяжку только если она не срабатывала ранее (что б смс и звонки совершались единоразово)
     {
-      digitalWrite(SirenLED, HIGH);                                                        // сигнализируем светодиодом о тревоге
-      reqSirena = true;                                                                    // запоминаем когда сработал датчик для отображения статуса датчика
+      StartAlarm();                                                                        // сигнализируем светодиодом о тревоге
+      if (!inTestMod && TensionSiren) reqSirena = true;                                    // запоминаем когда сработал датчик для отображения статуса датчика
       SenTension.prTrigTime = millis();
       SenTension.isTrig = true;       
       if (prReqSirena == 1) prReqSirena = millis();
@@ -478,8 +494,8 @@ void loop()
     
     if (EEPROM.read(E_IsPIR1Enabled) && SenPIR1.CheckSensor())
     {       
-      digitalWrite(SirenLED, HIGH);                                                        // сигнализируем светодиодом о тревоге
-      reqSirena = true;
+      StartAlarm();                                                                        // сигнализируем светодиодом о тревоге
+      if (!inTestMod && PIR1Siren) reqSirena = true;
       SenPIR1.prTrigTime = millis();                                                       // запоминаем когда сработал датчик для отображения статуса датчика
       if (prReqSirena == 1) prReqSirena = millis();
       if (GetElapsed(SenPIR1.prAlarmTime) > timeSmsPIR1 || SenPIR1.prAlarmTime == 0)       // если выдержена пауза после последнего звонка и отправки смс 
@@ -488,8 +504,8 @@ void loop()
 
     if (EEPROM.read(E_IsPIR2Enabled) && SenPIR2.CheckSensor())
     { 
-      digitalWrite(SirenLED, HIGH);                                                        // сигнализируем светодиодом о тревоге
-      reqSirena = true;
+      StartAlarm();                                                                        // сигнализируем светодиодом о тревоге
+      if (!inTestMod && PIR2Siren) reqSirena = true;
       SenPIR2.prTrigTime = millis();                                                       // запоминаем когда сработал датчик для отображения статуса датчика
       if (prReqSirena == 1) prReqSirena = millis();
       if (GetElapsed(SenPIR2.prAlarmTime) > timeSmsPIR2 || SenPIR2.prAlarmTime == 0)       // если выдержена пауза после последнего звонка и отправки смс
@@ -497,9 +513,9 @@ void loop()
     }   
     
     if (reqSirena 
-      && (inTestMod || GetElapsed(prReqSirena)/1000 >= EEPROM.read(E_delaySiren) || prReqSirena == 0))      
+      && (GetElapsed(prReqSirena)/1000 >= EEPROM.read(E_delaySiren) || prReqSirena == 0))      
     {     
-      if(!inTestMod) interrupt = false;                                                    // если не режим тестирования то блокируем обработку прерывания от кнопки (кнопку можно нажимать только до включения сирены)
+      interrupt = false;                                                                   // блокируем обработку прерывания от кнопки (кнопку можно нажимать только до включения сирены)
       reqSirena = false;            
       if (!isSiren)
       {
@@ -564,8 +580,8 @@ void loop()
           !isSiren
           )                // если найден зарегистрированный звонок то снимаем с охраны
       {
-        reqSirena = false;        
-        StartSiren();     
+        reqSirena = false;                        
+        StartSiren();            
         prReqSirena = 0;                                                                  // устанавливаем в 0 для отключения паузы между следующим срабатыванием датчиков и включением сирены   
       }
       else gsm.RejectCall();                                                              // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)
@@ -582,8 +598,6 @@ void loop()
     
     if (GetElapsed(prCheckGas) > timeCheckGas || prCheckGas == 0)                         // проверяем сколько прошло времени после последнего измирения датчика газа    
     { 
-                             
-      
       GasPct = round(((SenGas.GetSensorValue() - gasCalibr)/(1023.0 - gasCalibr)) * 100); // калькулируем и сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения      
       prCheckGas = millis(); 
     }
@@ -598,7 +612,7 @@ void loop()
       if (GetElapsed(SenGas.prAlarmTime) > timeSmsGas || SenGas.prAlarmTime == 0)         // если выдержена пауза после последнего звонка и отправки смс 
         SenGas.isAlarm = true;
     }
-    else if (SenGas.isTrig && !isSiren)
+    else if (SenGas.isTrig && !isAlarm)
     {
       digitalWrite(SirenLED, LOW);
       SenGas.isTrig = false;
@@ -719,24 +733,34 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
 
 void  StartSiren()
 {  
-  digitalWrite(SirenLED, HIGH);                         // сигнализируем светодиодом о тревоге
-  if (!inTestMod)                                       // если не включен тестовый режим
-  {
-    if (EEPROM.read(E_SirenEnabled))                    // и сирена не отключена в конфигурации
-      digitalWrite(SirenGenerator, LOW);                // включаем сирену через релье
-  }
-  else
-    PlayTone(sysTone, 100);                             // если включен режим тестирование то сигнализируем только спикером
+  if (SirenEnabled)                                     // и сирена не отключена в конфигурации
+    digitalWrite(SirenGenerator, LOW);                  // включаем сирену через релье  
   isSiren = true; 
-  prSiren = millis();  
+  prSiren = millis(); 
+  prAlarm = millis();                                   // время работы светодиода тривоги увеличивается до времени сирены (сирена и светодиод должны выключаться одновременно)
 }
-
 
 void  StopSiren()
 {
-  if(!SenGas.isTrig) digitalWrite(SirenLED, LOW);       // Если не надо сигнализировать о газе то выключаем светодиод о индикации тревоги 
   digitalWrite(SirenGenerator, HIGH);                   // выключаем сирену через релье
   isSiren = false;   
+}
+
+void StartAlarm()
+{
+  digitalWrite(SirenLED, HIGH);                         // сигнализируем светодиодом о тревоге
+  if (inTestMod)                                        // если не включен тестовый режим
+  {
+    PlayTone(sysTone, 100);                             // если включен режим тестирование то сигнализируем еще и спикером
+  }
+  isAlarm = true;
+  prAlarm = millis(); 
+}
+
+void StopAlarm()
+{
+  if(!SenGas.isTrig) digitalWrite(SirenLED, LOW);       // Если не надо сигнализировать о газе то выключаем светодиод о индикации тревоги 
+  isAlarm = false;  
 }
 
 void PowerControl()                                                                       // метод для обработки событий питания системы (переключение на батарею или на сетевое)
@@ -906,7 +930,7 @@ void ExecSmsCommand()
                    + GetStrFromFlash(power)            + String((powCtr.IsBattPower) ? GetStrFromFlash(battery) : GetStrFromFlash(network)) + "\n"
                    + GetStrFromFlash(delSiren)         + String(EEPROM.read(E_delaySiren)) + GetStrFromFlash(sec);
         
-        if (!EEPROM.read(E_SirenEnabled))
+        if (!SirenEnabled)
           msg = msg + "\n" + GetStrFromFlash(siren) + GetStrFromFlash(off);
           
         unsigned long ltime;
@@ -1107,10 +1131,10 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText.startsWith(GetStrFromFlash(siren)))               // если обнаружена команда для возврата сетингов датчиков
       {
-        String msg = GetStrFromFlash(E_SirenEnabled)      + "'" + String((EEPROM.read(E_SirenEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(E_PIR1Siren)                 + "'" + String((EEPROM.read(E_PIR1Siren))    ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(E_PIR2Siren)                 + "'" + String((EEPROM.read(E_PIR2Siren))    ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(E_TensionSiren)              + "'" + String((EEPROM.read(E_TensionSiren)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'";                   
+        String msg = GetStrFromFlash(_SirenEnabled)      + "'" + String((SirenEnabled) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
+           + GetStrFromFlash(_PIR1Siren)                 + "'" + String((PIR1Siren)    ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
+           + GetStrFromFlash(_PIR2Siren)                 + "'" + String((PIR2Siren)    ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
+           + GetStrFromFlash(_TensionSiren)              + "'" + String((TensionSiren) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'";                   
         SendSms(&msg, &gsm.SmsNumber);
       }
       else  
@@ -1209,7 +1233,7 @@ void ExecSmsCommand()
         SendSms(&msg, &gsm.SmsNumber);  
       }
       else
-      if (gsm.SmsText.startsWith(GetStrFromFlash(SirenEnabled)))                      // если обнаружена команда с настройками сирены
+      if (gsm.SmsText.startsWith(GetStrFromFlash(_SirenEnabled)))                      // если обнаружена команда с настройками сирены
       {
         PlayTone(sysTone, smsSpecDur);                        
         String str = gsm.SmsText;        
@@ -1224,16 +1248,20 @@ void ExecSmsCommand()
           else if (str.substring(0, duration) == "on")
             bConf[i] = true;                               
           str = str.substring(duration +1);         
-        }
-        EEPROM.write(E_SirenEnabled, bConf[0]);
-        EEPROM.write(E_PIR1Siren, bConf[1]);
-        EEPROM.write(E_PIR2Siren,  bConf[2]);
-        EEPROM.write(E_TensionSiren, bConf[3]);
+        }        
+        SirenEnabled = bConf[0];
+        PIR1Siren = bConf[1];
+        PIR2Siren = bConf[2];
+        TensionSiren = bConf[3];
+        EEPROM.write(E_SirenEnabled, SirenEnabled);
+        EEPROM.write(E_PIR1Siren, PIR1Siren);
+        EEPROM.write(E_PIR2Siren, PIR2Siren);
+        EEPROM.write(E_TensionSiren, TensionSiren);
 
-        String msg = GetStrFromFlash(E_SirenEnabled)      + "'" + String((EEPROM.read(E_SirenEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(E_PIR1Siren)                 + "'" + String((EEPROM.read(E_PIR1Siren))    ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(E_PIR2Siren)                 + "'" + String((EEPROM.read(E_PIR2Siren))    ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(E_TensionSiren)              + "'" + String((EEPROM.read(E_TensionSiren)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'";                  
+        String msg = GetStrFromFlash(_SirenEnabled)      + "'" + String((EEPROM.read(E_SirenEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
+           + GetStrFromFlash(_PIR1Siren)                 + "'" + String((EEPROM.read(E_PIR1Siren))    ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
+           + GetStrFromFlash(_PIR2Siren)                 + "'" + String((EEPROM.read(E_PIR2Siren))    ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
+           + GetStrFromFlash(_TensionSiren)              + "'" + String((EEPROM.read(E_TensionSiren)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'";                  
         SendSms(&msg, &gsm.SmsNumber);
       }
       else                                                                              // если смс команда не распознана      
