@@ -59,10 +59,10 @@ String GetStrFromFlash(char* addr)
   return buffstr;
 }
 
-void WriteToEEPROM(byte e_addr, String *number)
+void WriteStrEEPROM(byte e_addr, String *str)
 {
   char charStr[numSize+1];
-  number->toCharArray(charStr, numSize+1);
+  str->toCharArray(charStr, numSize+1);
   EEPROM.put(e_addr, charStr);
 }
 
@@ -75,13 +75,33 @@ String NumberRead(byte e_add)
  else return "***";
 }
 
-String ReadFromEEPROM(byte e_add)
+String ReadStrEEPROM(byte e_add)
 {
  char charread[numSize+1];
  EEPROM.get(e_add, charread);
  String str(charread);
  return str;
 }
+
+// чтение int с EEPROM
+int ReadIntEEPROM(int e_add) 
+{   
+  byte raw[2];
+  for(byte i = 0; i < 2; i++) 
+    raw[i] = EEPROM.read(e_add + i);
+  int &val = (int&)raw;
+  return val;
+}
+ 
+// запись int в EEPROM
+void WriteIntEEPROM(int e_add, int val) 
+{
+  byte raw[2];
+  (int&)raw = val;
+  for(byte i = 0; i < 2; i++) 
+    EEPROM.write(e_add + i, raw[i]);
+}
+
 
 bool SendSms(String *text, String *phone)      // собственный метод отправки СМС (возвращает true если смс отправлена успешно) создан для инкапсуляции сигнализации об отправки смс
 {
