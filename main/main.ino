@@ -293,21 +293,21 @@ void setup()
         EEPROM.write(E_delayOnContr, 25);               // пауза от нажатия кнопки до установки режима охраны (25 сек)
         EEPROM.write(E_intervalVcc, 0);                 // интервал между измерениями питания (0 секунд)
         EEPROM.write(E_BalanceUssd, "***");             // Ussd код для запроса баланца
-        EEPROM.write(E_infOnContr, 0);                  // информирование о снятии с охраны по смс по умолчанию отключено
-        EEPROM.write(E_IsPIR1Enabled, 1);            
-        EEPROM.write(E_IsPIR2Enabled, 1);
-        EEPROM.write(E_IsGasEnabled, 0);
-        EEPROM.write(E_TensionEnabled, 0);
+        EEPROM.write(E_infOnContr, false);              // информирование о снятии с охраны по смс по умолчанию отключено
+        EEPROM.write(E_IsPIR1Enabled, true);            
+        EEPROM.write(E_IsPIR2Enabled, true);
+        EEPROM.write(E_IsGasEnabled, false);
+        EEPROM.write(E_TensionEnabled, false);
         EEPROM.write(E_BtnOnContr, 1);
         EEPROM.write(E_BtnInTestMod, 2);
         EEPROM.write(E_BtnBalance, 3);
         EEPROM.write(E_BtnSkimpySiren, 4);        
         EEPROM.write(E_BtnOutOfContr, 0);
         WriteIntEEPROM(E_gasCalibr, 1023);                    
-        EEPROM.write(E_SirenEnabled, 1);                // сирена по умолчанию включена
-        EEPROM.write(E_PIR1Siren, 1);                   // сирена при срабатывании датчика движения 1 по умолчанию включена
-        EEPROM.write(E_PIR2Siren, 1);                   // сирена при срабатывании датчика движения 2 по умолчанию включена
-        EEPROM.write(E_TensionSiren, 1);                // сирена при срабатывании растяжки по умолчанию включена             
+        EEPROM.write(E_SirenEnabled, true);             // сирена по умолчанию включена
+        EEPROM.write(E_PIR1Siren, true);                // сирена при срабатывании датчика движения 1 по умолчанию включена
+        EEPROM.write(E_PIR2Siren, true);                // сирена при срабатывании датчика движения 2 по умолчанию включена
+        EEPROM.write(E_TensionSiren, true);             // сирена при срабатывании растяжки по умолчанию включена             
         RebootFunc();                                   // перезагружаем устройство
     }
   }  
@@ -479,7 +479,7 @@ void loop()
       int cAlarm;
       if (!inTestMod) cAlarm = timeSiren;                                                  // если выключен режим тестирования то сохраняем установленное время тревоги
         else cAlarm = timeSiren / 10;                                                      // если включен режим тестирования то время тревоги сокращаем в десять раза для удобства проверки датчиков
-      if (GetElapsed(prSiren) > cAlarm)                                                    // если тревога больше установленного времени то выключаем светодиод тревоги
+      if (GetElapsed(prAlarm) > cAlarm)                                                    // если тревога больше установленного времени то выключаем светодиод тревоги
         StopAlarm();  
     }  
     if (EEPROM.read(E_TensionEnabled) && !SenTension.isTrig && SenTension.CheckSensor())   // проверяем растяжку только если она не срабатывала ранее (что б смс и звонки совершались единоразово)
@@ -1179,9 +1179,9 @@ void ExecSmsCommand()
           else if (i == 4)
           {
             if (str.substring(0, duration) == "off")
-              EEPROM.write(E_infOnContr, 0);      
+              EEPROM.write(E_infOnContr, false);      
             else if (str.substring(0, duration) == "on")
-              EEPROM.write(E_infOnContr, 1); 
+              EEPROM.write(E_infOnContr, true); 
           }                        
           str = str.substring(duration + 1);         
         }        
@@ -1238,7 +1238,7 @@ void ExecSmsCommand()
         PlayTone(sysTone, smsSpecDur);                        
         String str = gsm.SmsText;        
         bool bConf[4];                                                                // сохраняем настройки по сирене
-        for(byte i = 0; i < 5; i++)
+        for(byte i = 0; i < 4; i++)
         {
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
@@ -1261,8 +1261,7 @@ void ExecSmsCommand()
         String msg = GetStrFromFlash(_SirenEnabled)      + "'" + String((EEPROM.read(E_SirenEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(_PIR1Siren)                 + "'" + String((EEPROM.read(E_PIR1Siren))    ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(_PIR2Siren)                 + "'" + String((EEPROM.read(E_PIR2Siren))    ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(_TensionSiren)              + "'" + String((EEPROM.read(E_TensionSiren)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'";                  
-        SendSms(&msg, &gsm.SmsNumber);
+           + GetStrFromFlash(_TensionSiren)              + "'" + String((EEPROM.read(E_TensionSiren)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'";                          
       }
       else                                                                              // если смс команда не распознана      
       {
