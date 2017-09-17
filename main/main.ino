@@ -758,8 +758,7 @@ void  StartSiren()
 void StopSiren()
 {
   digitalWrite(SirenGenerator, HIGH);                   // выключаем сирену через релье
-  isSiren = false; 
-  StopAlarm();  
+  isSiren = false;   
 }
 
 void StartAlarm()
