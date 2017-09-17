@@ -1,5 +1,5 @@
 // подсчет сколько прошло милисикунд после последнего срабатывания события (сирена, звонок и т.д.)
-unsigned long GetElapsed(unsigned long &prEventMillis)
+unsigned long GetElapsed(unsigned long prEventMillis)
 {
   unsigned long tm = millis();
   return (tm >= prEventMillis) ? tm - prEventMillis : 0xFFFFFFFF - prEventMillis + tm + 1;  //возвращаем милисикунды после последнего события

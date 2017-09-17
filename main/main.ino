@@ -94,6 +94,7 @@ const char delOnContr[]          PROGMEM = {"DelayOnContr: "};
 const char intervalVcc[]         PROGMEM = {"IntervalVcc: "};
 const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
 const char GasVal[]              PROGMEM = {"GasVal: "};
+const char GasNotReady[]         PROGMEM = {"NotReady"};
 const char BtnOnContr[]          PROGMEM = {"BtnOnContr: "};
 const char BtnInTestMod[]        PROGMEM = {"BtnInTestMod: "};
 const char BtnBalance[]          PROGMEM = {"BtnBalance: "};
@@ -102,7 +103,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 
 
 
-#define deltaGasPct        10                              // дельта оклонения от нормы датчика газа привышения, которой необходимо сигнализировать об утечки газа
+#define deltaGasPct        10                              // дельта отклонения от нормы датчика газа привышения, которой необходимо сигнализировать об утечки газа
 #define numSize            15                              // количество символов в строке телефонного номера
 
 // паузы
@@ -117,6 +118,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define  timeTestBlinkLed     400                          // время мерцания светодиода при включеном режима тестирования
 #define  timeRejectCall       3000                         // время пауза перед збросом звонка
 #define  timeCheckGas         2000                         // время паузы между измирениями датчика газа/дыма (милисекунды)
+#define  timeGasReady         60000                        // время паузы для прогрева датчика газа/дыма после включения устройства (милисекунды)
 
 
 //// КОНСТАНТЫ ДЛЯ ПИНОВ /////
@@ -216,6 +218,8 @@ bool SirEnabled = false;                        // включена/выключ
 bool TensionSir = false;                        // включена/выключена сирена для растяжки
 bool PIR1Sir = false;                           // включена/выключена сирену для датчика движения 1
 bool PIR2Sir = false;                           // включена/выключена сирену для датчика движения 2
+
+bool isGasReady = false;                        // указывает прогрет ли датчика газа и готов ли к опрашиванию
 
 bool isAlarm = false;                           // режим тревоги
 bool reqSirena = false;                         // уст. в true когда сработал датчик и необходимо включить сирену
@@ -605,8 +609,9 @@ void loop()
     
   if (EEPROM.read(E_IsGasEnabled))                                                        // если датчик газа/дыма включен
   {
+    if (!isGasReady && GetElapsed(0) > timeGasReady) isGasReady = true;                   // если прошло достаточно времени для прогревания датчика газа/дыма после включения устройства то указываем что он готов к опрашиванию.    
     
-    if (GetElapsed(prCheckGas) > timeCheckGas || prCheckGas == 0)                         // проверяем сколько прошло времени после последнего измирения датчика газа    
+    if (isGasReady && GetElapsed(prCheckGas) > timeCheckGas || prCheckGas == 0)           // проверяем сколько прошло времени после последнего измирения датчика газа    
     { 
       GasPct = round(((SenGas.GetSensorValue() - gasClbr)/(1023.0 - gasClbr)) * 100);     // калькулируем и сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения      
       prCheckGas = millis(); 
@@ -952,6 +957,8 @@ void ExecSmsCommand()
           else
           {
             ltime = GetElapsed(SenGas.prTrigTime)/1000;
+            if (!isGasReady) sStatus = GetStrFromFlash(GasNotReady);                        // если датчик газа/дыма еще не прогрет то информируем об этом
+            else
             if (ltime <= 180) sStatus = String(ltime) + GetStrFromFlash(sec);               // < 180 сек. 
             else 
             if (ltime <= 7200) sStatus = String(ltime / 60) + GetStrFromFlash(minut);       // < 120 мин.
