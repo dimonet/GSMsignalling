@@ -14,10 +14,10 @@ bool DigitalSensor::CheckSensor()
 
 void DigitalSensor::ResetSensor()
 {
-  isTrig = false; 
-  isAlarm = false; 
-  prTrigTime = 0; 
-  prAlarmTime = 0;  
+  IsTrig = false; 
+  IsAlarm = false; 
+  PrTrigTime = 0; 
+  PrAlarmTime = 0;  
 }
 ;
 
