@@ -113,7 +113,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define  timeSmsPIR1          120000                       // время паузы после последнего СМС датчика движения 1 (милисекунды)
 #define  timeSmsPIR2          120000                       // время паузы после последнего СМС датчика движения 2 (милисекунды)
 #define  timeSmsGas           120000                       // время паузы после последнего СМС датчика газа/дыма (милисекунды)
-#define  timeSkimpySiren      300                          // время короткого срабатывания модуля сирены
+#define  timeSkimpySiren      400                          // время короткого срабатывания модуля сирены
 #define  timeAllLeds          1200                         // время горение всех светодиодов во время включения устройства (тестирования светодиодов)
 #define  timeTestBlinkLed     400                          // время мерцания светодиода при включеном режима тестирования
 #define  timeRejectCall       3000                         // время пауза перед збросом звонка
@@ -800,11 +800,11 @@ void PowerControl()                                                             
 
 void SkimpySiren()                                                                        // метод для кратковременного включения сирены (для теститования сирены)
 {
-  digitalWrite(SirenLED, HIGH);
-  digitalWrite(SirenGenerator, LOW);                                                      // включаем сирену через релье
+  digitalWrite(SirenLED, HIGH);                                                           // включаем светодиод тревоги
+  digitalWrite(SirenGenerator, HIGH);                                                     // включаем сирену                                 
   delay(timeSkimpySiren);                                                                 // кратковременный период на который включается сирена
-  digitalWrite(SirenLED, LOW);
-  digitalWrite(SirenGenerator, HIGH);                                                     // выключаем сирену через релье  
+  digitalWrite(SirenGenerator, LOW);                                                      // выключаем сирену через релье  
+  if (!isAlarm) digitalWrite(SirenLED, LOW);                                              // выключаем светодиод если нет необходимости сигнализировать о тревоге
 }
 
 
