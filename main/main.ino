@@ -109,7 +109,8 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 // паузы
 #define  delayOnContrTest     7                            // время паузы от нажатие кнопки до установки режима охраны в режиме тестирования
 #define  timeAfterPressBtn    3000                         // время выполнения операций после единичного нажатия на кнопку
-#define  timeSiren            20000                        // время работы сирены (милисекунды).
+#define  timeSiren            20000                        // время работы сирены/тревоги в штатном режиме (милисекунды).
+#define  timeSirenT           1000                         // время работы сирены/тревоги в тестовом режиме (милисекунды).
 #define  timeSmsPIR1          120000                       // время паузы после последнего СМС датчика движения 1 (милисекунды)
 #define  timeSmsPIR2          120000                       // время паузы после последнего СМС датчика движения 2 (милисекунды)
 #define  timeSmsGas           120000                       // время паузы после последнего СМС датчика газа/дыма (милисекунды)
@@ -126,7 +127,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define gsmLED 13
 #define OutOfContrLED 12
 #define OnContrLED 11
-#define SirenLED 10
+#define AlarmLED 10
 #define BattPowerLED 9                          // LED для сигнализации о работе от резервного питания
 
 #define pinBOOT 5                               // нога BOOT или K на модеме 
@@ -260,7 +261,7 @@ void setup()
   pinMode(gsmLED, OUTPUT);
   pinMode(OutOfContrLED, OUTPUT);
   pinMode(OnContrLED, OUTPUT);
-  pinMode(SirenLED, OUTPUT);
+  pinMode(AlarmLED, OUTPUT);
   pinMode(BattPowerLED, OUTPUT);              // LED для сигнализации о работе от резервного питания
   pinMode(pinBOOT, OUTPUT);                   // нога BOOT на модеме
   pinMode(pinSH1, INPUT_PULLUP);              // нога на растяжку
@@ -324,13 +325,13 @@ void setup()
   digitalWrite(gsmLED, HIGH);
   digitalWrite(OutOfContrLED, HIGH);
   digitalWrite(OnContrLED, HIGH);
-  digitalWrite(SirenLED, HIGH);
+  digitalWrite(AlarmLED, HIGH);
   digitalWrite(BattPowerLED, HIGH);
   delay(timeAllLeds);
   digitalWrite(gsmLED, LOW);
   digitalWrite(OutOfContrLED, LOW);
   digitalWrite(OnContrLED, LOW);
-  digitalWrite(SirenLED, LOW);
+  digitalWrite(AlarmLED, LOW);
   digitalWrite(BattPowerLED, LOW);
 
   analogReference(INTERNAL);
@@ -381,11 +382,11 @@ void loop()
     EEPROM.write(E_wasRebooted, false);
   }
   
-  if (inTestMod && !isSiren)                                                                // если включен режим тестирования и не сирена
+  if (inTestMod && !isAlarm)                                                                // если включен режим тестирования и не тревога
   {
     if (GetElapsed(prTestBlinkLed) > timeTestBlinkLed)   
     {
-      digitalWrite(SirenLED, digitalRead(SirenLED) == LOW);                                 // то мигаем светодиодом
+      digitalWrite(AlarmLED, digitalRead(AlarmLED) == LOW);                                 // то мигаем светодиодом
       prTestBlinkLed = millis();
     }
   }
@@ -407,7 +408,7 @@ void loop()
         countPressBtn = 0;  
         PlayTone(sysTone, 250);                                                             // сигнализируем об этом спикером  
         inTestMod = !inTestMod;                                                             // включаем/выключаем режим тестирование датчиков        
-        digitalWrite(SirenLED, LOW);                                                        // выключаем светодиод
+        digitalWrite(AlarmLED, LOW);                                                        // выключаем светодиод
         EEPROM.write(E_inTestMod, inTestMod);                                               // пишим режим тестирование датчиков в еепром  
         SenGas.ResetSensor();                                                               // сбрасываем все показания датчика газа, что бы при срабатывании датчика немедленно осуществлялся звонок     
       }
@@ -467,7 +468,7 @@ void loop()
           NumberRead(E_NUM3_OnContr).indexOf(gsm.RingNumber) > -1           
          )      
       {               
-        digitalWrite(SirenLED, LOW);                                                       // на время выключаем мигание светодиода сирены если включен режим тестирования
+        digitalWrite(AlarmLED, LOW);                                                       // на время выключаем мигание светодиода сирены если включен режим тестирования
         delay(timeRejectCall);                                                             // пауза перед збросом звонка        
         gsm.RejectCall();                                                                  // сбрасываем вызов               
         Set_OnContrMod(false);                                                             // устанавливаем на охрану без паузы              
@@ -490,7 +491,7 @@ void loop()
     {
       int cAlarm;
       if (!inTestMod) cAlarm = timeSiren;                                                  // если выключен режим тестирования то сохраняем установленное время тревоги
-        else cAlarm = timeSiren / 10;                                                      // если включен режим тестирования то время тревоги сокращаем в десять раза для удобства проверки датчиков
+        else cAlarm = timeSirenT;                                                          // если включен режим тестирования то время тревоги сокращаем для удобства тестирования
       if (GetElapsed(prAlarm) > cAlarm)                                                    // если тревога больше установленного времени то выключаем светодиод тревоги
         StopAlarm();  
     }  
@@ -626,7 +627,7 @@ void loop()
     }
     if (GasPct > deltaGasPct)                                                             // если отклонение больше заданой дельты то сигнализируем о прывышении уровня газа/дыма 
     {       
-      digitalWrite(SirenLED, HIGH);                                                       // сигнализируем светодиодом о тревоге
+      digitalWrite(AlarmLED, HIGH);                                                       // сигнализируем светодиодом о тревоге
       if (!SenGas.IsTrig && inTestMod) PlayTone(sysTone, 100);                            // если включен режим тестирование и это первое срабатывание то сигнализируем спикером  
       SenGas.IsTrig = true;
       //reqSirena = true;
@@ -637,7 +638,7 @@ void loop()
     }
     else if (SenGas.IsTrig && !isAlarm)
     {
-      digitalWrite(SirenLED, LOW);
+      digitalWrite(AlarmLED, LOW);
       SenGas.IsTrig = false;
     }
   
@@ -686,7 +687,7 @@ bool Set_OutOfContrMod(bool infOnContr)                 // метод для с�
 { 
   interrupt = true;                                     // разрешаем обрабатывать прерывания
   digitalWrite(OnContrLED, LOW);
-  digitalWrite(SirenLED, LOW);
+  digitalWrite(AlarmLED, LOW);
   digitalWrite(OutOfContrLED, HIGH);
   PlayTone(sysTone, 500);
   mode = OutOfContrMod;                                 // снимаем с охраны
@@ -711,7 +712,7 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
   if (IsWaiting == true)                                // если включен режим ожидание перед установкой охраны, выдерживаем заданную паузу, что б успеть покинуть помещение
   { 
     digitalWrite(OutOfContrLED, LOW);   
-    digitalWrite(SirenLED, LOW);
+    digitalWrite(AlarmLED, LOW);
     byte timeWait = 0;
     if (inTestMod) timeWait = delayOnContrTest;         // если включен режим тестирования, устанавливаем для удобства тестирования меньшую паузу
     else timeWait = EEPROM.read(E_delayOnContr);        // если режим тестирования выклюяен, используем обычную паузу
@@ -746,7 +747,7 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
   mode = OnContrMod;                                    // ставим на охрану                                                    
   digitalWrite(OutOfContrLED, LOW);
   digitalWrite(OnContrLED, HIGH);
-  digitalWrite(SirenLED, LOW);  
+  digitalWrite(AlarmLED, LOW);  
   PlayTone(sysTone, 500);  
   EEPROM.write(E_mode, mode);                           // пишим режим в еепром, что б при следующем включении устройства, оно оставалось в данном режиме
   delay (2500);                                         // дополнительная пауза так как датчик держит лог. единицу 2,5
@@ -773,7 +774,7 @@ void StartAlarm()
 {
   if (!isAlarm)                                         // если еще невклюена тревога то включаем ее (проверяем для того что бы не выполнять лишний раз метод)
   {
-    digitalWrite(SirenLED, HIGH);                       // сигнализируем светодиодом о тревоге
+    digitalWrite(AlarmLED, HIGH);                       // сигнализируем светодиодом о тревоге
     if (inTestMod)                                      // если не включен тестовый режим и это первое 
     {
       PlayTone(sysTone, 100);                           // если включен режим тестирование то сигнализируем еще и спикером
@@ -785,7 +786,7 @@ void StartAlarm()
 
 void StopAlarm()
 {
-  if(!SenGas.IsTrig) digitalWrite(SirenLED, LOW);       // Если не надо сигнализировать о газе то выключаем светодиод о индикации тревоги 
+  if(!SenGas.IsTrig) digitalWrite(AlarmLED, LOW);       // Если не надо сигнализировать о газе то выключаем светодиод о индикации тревоги 
   isAlarm = false;  
 }
 
@@ -803,11 +804,11 @@ void PowerControl()                                                             
 
 void SkimpySiren()                                                                        // метод для кратковременного включения сирены (для теститования сирены)
 {
-  digitalWrite(SirenLED, HIGH);                                                           // включаем светодиод тревоги
+  digitalWrite(AlarmLED, HIGH);                                                           // включаем светодиод тревоги
   digitalWrite(SirenGenerator, HIGH);                                                     // включаем сирену                                 
   delay(timeSkimpySiren);                                                                 // кратковременный период на который включается сирена
   digitalWrite(SirenGenerator, LOW);                                                      // выключаем сирену через релье  
-  if (!isAlarm) digitalWrite(SirenLED, LOW);                                              // выключаем светодиод если нет необходимости сигнализировать о тревоге
+  if (!isAlarm) digitalWrite(AlarmLED, LOW);                                              // выключаем светодиод если нет необходимости сигнализировать о тревоге
 }
 
 
@@ -876,7 +877,7 @@ void ExecSmsCommand()
       else      
       if (gsm.SmsText == GetStrFromFlash(balance))                                       // если обнаружена смс команда для запроса баланса
       {        
-        digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим
+        digitalWrite(AlarmLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим
         PlayTone(sysTone, smsSpecDur); 
         if(gsm.RequestUssd(&ReadStrEEPROM(E_BalanceUssd)))                               // отправляем Ussd запрос для получения баланса и если он валидный (запрос заканчиваться на #)    
           numberAnsUssd = gsm.SmsNumber;                                                 // то сохраняем номер на который необходимо будет отправить баланс                                                      
@@ -886,7 +887,7 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText == GetStrFromFlash(teston))                                        // если обнаружена смс команда для включения тестового режима для тестирования датчиков
       {        
-        digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим
+        digitalWrite(AlarmLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим
         PlayTone(sysTone, smsSpecDur); 
         inTestMod = true;
         EEPROM.write(E_inTestMod, true);                                                 // пишим режим тестирование датчиков в еепром 
@@ -896,7 +897,7 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText == GetStrFromFlash(testoff))                                       // если обнаружена смс команда для выключения тестового режима для тестирования датчиков
       {
-        digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим                                                 
+        digitalWrite(AlarmLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим                                                 
         PlayTone(sysTone, smsSpecDur); 
         inTestMod = false;
         EEPROM.write(E_inTestMod, false);                                                // пишим режим тестирование датчиков в еепром 
@@ -906,14 +907,14 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText == GetStrFromFlash(controlon))                                     // если обнаружена смс команда для установки на охрану
       {        
-        digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим
+        digitalWrite(AlarmLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим
         Set_OnContrMod(false);                                                           // устанавливаем на охрану без паузы                                                
         SendSms(&GetStrFromFlash(sms_OnContrMod), &gsm.SmsNumber);                       // отправляем смс о завершении выполнения даной смс команды                           
       }
       else 
       if (gsm.SmsText == GetStrFromFlash(controloff))                                    // если обнаружена смс команда для снятие с охраны
       {
-        digitalWrite(SirenLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим
+        digitalWrite(AlarmLED, LOW);                                                     // выключаем светодиод, который может моргать если включен тестовый режим
         Set_OutOfContrMod(0);                                                            // снимаем с охраны
         SendSms(&GetStrFromFlash(sms_OutOfContrMod), &gsm.SmsNumber);                    // отправляем смс о завершении выполнения даной смс команды
       }      
@@ -963,12 +964,12 @@ void ExecSmsCommand()
         String sStatus = "";                  
         if (EEPROM.read(E_IsGasEnabled))
         {
+          if (!SenGas.IsReady) sStatus = GetStrFromFlash(GasNotReady);                      // если датчик газа/дыма еще не прогрет то информируем об этом
+          else
           if (SenGas.PrTrigTime == 0) sStatus = GetStrFromFlash(idle);
           else
           {
-            ltime = GetElapsed(SenGas.PrTrigTime)/1000;
-            if (!SenGas.IsReady) sStatus = GetStrFromFlash(GasNotReady);                    // если датчик газа/дыма еще не прогрет то информируем об этом
-            else
+            ltime = GetElapsed(SenGas.PrTrigTime)/1000;            
             if (ltime <= 180) sStatus = String(ltime) + GetStrFromFlash(sec);               // < 180 сек. 
             else 
             if (ltime <= 7200) sStatus = String(ltime / 60) + GetStrFromFlash(minut);       // < 120 мин.
@@ -1054,7 +1055,7 @@ void ExecSmsCommand()
            + GetStrFromFlash(Gas)                  + "'" + String((EEPROM.read(E_IsGasEnabled))   ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(tension)              + "'" + String((EEPROM.read(E_TensionEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(GasCalibr)            + "'" + String(gasClbr) + "'" + "\n"
-           + GetStrFromFlash(GasCurr)              + "'" + SenGas.GetSensorValue() + "'";
+           + GetStrFromFlash(GasCurr)              + "'" + String((SenGas.IsReady) ? String(SenGas.GetSensorValue()) : GetStrFromFlash(GasNotReady)) + "'";
         SendSms(&msg, &gsm.SmsNumber);
       }
       else
@@ -1186,6 +1187,7 @@ void ExecSmsCommand()
         else if (!bConf[2])                                                                                              // если выключают датчик газа/дыма                 
         {
            analogWrite(pinGasPower, 0);                                                                                  // то выключаем ему питание 
+           SenGas.IsReady = false;                                                                                       // устанавливаем его свойство в не готов
         }
         EEPROM.write(E_IsPIR1Enabled, bConf[0]);
         EEPROM.write(E_IsPIR2Enabled, bConf[1]);
@@ -1197,7 +1199,7 @@ void ExecSmsCommand()
            + GetStrFromFlash(Gas)                  + "'" + String((EEPROM.read(E_IsGasEnabled))   ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(tension)              + "'" + String((EEPROM.read(E_TensionEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(GasCalibr)            + "'" + String(ReadIntEEPROM(E_gasCalibr)) + "'" + "\n"
-           + GetStrFromFlash(GasCurr)              + "'" + SenGas.GetSensorValue() + "'";
+           + GetStrFromFlash(GasCurr)              + "'" + String((SenGas.IsReady) ? String(SenGas.GetSensorValue()) : GetStrFromFlash(GasNotReady)) + "'";
         SendSms(&msg, &gsm.SmsNumber);  
       }
       else

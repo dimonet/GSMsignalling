@@ -4,7 +4,6 @@ AnalogSensor::AnalogSensor(byte pinSensor)
 {  
   _pinSensor = pinSensor;
   ResetSensor();
-  IsReady = true;   
 }
 
 int AnalogSensor::GetSensorValue()
