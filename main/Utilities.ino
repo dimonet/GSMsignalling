@@ -59,14 +59,14 @@ String GetStrFromFlash(char* addr)
   return buffstr;
 }
 
-void WriteStrEEPROM(byte e_addr, String *str)
+void WriteStrEEPROM(int e_addr, String *str)
 {
   char charStr[numSize+1];
   str->toCharArray(charStr, numSize+1);
   EEPROM.put(e_addr, charStr);
 }
 
-String NumberRead(byte e_add)
+String NumberRead(int e_add)
 {
  char charread[numSize+1];
  EEPROM.get(e_add, charread);
@@ -75,7 +75,7 @@ String NumberRead(byte e_add)
  else return "***";
 }
 
-String ReadStrEEPROM(byte e_add)
+String ReadStrEEPROM(int e_add)
 {
  char charread[numSize+1];
  EEPROM.get(e_add, charread);
