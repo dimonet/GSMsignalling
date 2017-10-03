@@ -3,7 +3,7 @@
 AnalogSensor::AnalogSensor(byte pinSensor)
 {  
   _pinSensor = pinSensor;
-  ResetSensor();   
+  ResetSensor();
 }
 
 int AnalogSensor::GetSensorValue()
@@ -13,10 +13,10 @@ int AnalogSensor::GetSensorValue()
 
 void AnalogSensor::ResetSensor()
 {
-  isTrig = false; 
-  isAlarm = false; 
-  prTrigTime = 0; 
-  prAlarmTime = 0;  
+  IsTrig = false; 
+  IsAlarm = false; 
+  PrTrigTime = 0; 
+  PrAlarmTime = 0;  
 }
 ;
 

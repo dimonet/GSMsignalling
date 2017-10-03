@@ -1,5 +1,5 @@
 // подсчет сколько прошло милисикунд после последнего срабатывания события (сирена, звонок и т.д.)
-unsigned long GetElapsed(unsigned long &prEventMillis)
+unsigned long GetElapsed(unsigned long prEventMillis)
 {
   unsigned long tm = millis();
   return (tm >= prEventMillis) ? tm - prEventMillis : 0xFFFFFFFF - prEventMillis + tm + 1;  //возвращаем милисикунды после последнего события
@@ -59,14 +59,14 @@ String GetStrFromFlash(char* addr)
   return buffstr;
 }
 
-void WriteStrEEPROM(byte e_addr, String *str)
+void WriteStrEEPROM(int e_addr, String *str)
 {
   char charStr[numSize+1];
   str->toCharArray(charStr, numSize+1);
   EEPROM.put(e_addr, charStr);
 }
 
-String NumberRead(byte e_add)
+String NumberRead(int e_add)
 {
  char charread[numSize+1];
  EEPROM.get(e_add, charread);
@@ -75,7 +75,7 @@ String NumberRead(byte e_add)
  else return "***";
 }
 
-String ReadStrEEPROM(byte e_add)
+String ReadStrEEPROM(int e_add)
 {
  char charread[numSize+1];
  EEPROM.get(e_add, charread);
