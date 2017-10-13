@@ -17,7 +17,7 @@ const char sms_PIR1[]            PROGMEM = {"ALARM: PIR1 sensor."};             
 const char sms_PIR2[]            PROGMEM = {"ALARM: PIR2 sensor."};                                                 // текст смс для датчика движения 2
 const char sms_Gas[]             PROGMEM = {"ALARM: Gas sensor."};                                                  // текст смс для датчика газа/дыма
 
-const char sms_BattPower[]       PROGMEM = {"POWER: Backup Battery is used for powering system."};                  // текст смс для оповещения о том, что исчезло сетевое питание
+const char sms_BattPower[]       PROGMEM = {"POWER: Battery is used for powering system."};                         // текст смс для оповещения о том, что исчезло сетевое питание
 const char sms_NetPower[]        PROGMEM = {"POWER: Network power has been restored."};                             // текст смс для оповещения о том, что сетевое питание возобновлено
 
 const char sms_ErrorCommand[]    PROGMEM = {"SendSMS,\nBalance,\nTestOn(Off),\nControlOn(Off),\nRedirectOn(Off),\nSkimpy,\nStatus,\nReboot,\nButton,\nSetting,\nSensor,\nSiren,\nOutOfContr,\nOnContr,\nSmsCommand."};  // смс команда не распознана
@@ -74,6 +74,7 @@ const char GasCalibr[]           PROGMEM = {"GasCalibr: "};
 const char GasCurr[]             PROGMEM = {"GasCurr: "};
 const char tension[]             PROGMEM = {"Tension: "};
 const char infOnContr[]          PROGMEM = {"InfOnContr: "};
+const char sirenoff[]            PROGMEM = {"Siren Off: "};
 
 const char SirenEnabled[]        PROGMEM = {"SirenEnabled: "};
 const char PIR1Siren[]           PROGMEM = {"PIR1Siren: "};
@@ -390,6 +391,15 @@ void loop()
       prTestBlinkLed = millis();
     }
   }
+
+  if (isAlarm)                                                                              // если тревога и если прошло заданное время отключаем тревогу
+  {
+    int cAlarm;
+    if (!inTestMod) cAlarm = timeSiren;                                                     // если выключен режим тестирования то сохраняем установленное время тревоги
+      else cAlarm = timeSirenT;                                                             // если включен режим тестирования то время тревоги сокращаем для удобства тестирования
+    if (!SenGas.IsTrig && (GetElapsed(prAlarm) > cAlarm || prAlarm == 0))                   // если тревога больше установленного времени и не надо сигнализировать о газе то выключаем светодиод о индикации тревоги
+      StopAlarm();
+  }
       
   if (countPressBtn != 0)
   {     
@@ -487,14 +497,7 @@ void loop()
       if (GetElapsed(prSiren) > timeSiren)                                                 // если включена сирена и сирена работает больше установленного времени то выключаем ее
         StopSiren();
     } 
-    if (isAlarm)                                                                           // если тревога и если прошло заданное время отключаем тревогу
-    {
-      int cAlarm;
-      if (!inTestMod) cAlarm = timeSiren;                                                  // если выключен режим тестирования то сохраняем установленное время тревоги
-        else cAlarm = timeSirenT;                                                          // если включен режим тестирования то время тревоги сокращаем для удобства тестирования
-      if (GetElapsed(prAlarm) > cAlarm)                                                    // если тревога больше установленного времени то выключаем светодиод тревоги
-        StopAlarm();  
-    }  
+      
     if (EEPROM.read(E_TensionEnabled) && !SenTension.IsTrig && SenTension.CheckSensor())   // проверяем растяжку только если она не срабатывала ранее (что б смс и звонки совершались единоразово)
     {
       StartAlarm();                                                                        // сигнализируем светодиодом о тревоге
@@ -614,11 +617,11 @@ void loop()
   // обработка датчика газа/дыма
   if (SenGas.PrTrigTime != 0 && (GetElapsed(SenGas.PrTrigTime)/1000) > 43200)             // если время последнего срабатывания больше чем 12 часов то обнуляем его 
     SenGas.PrTrigTime = 0;
-    
+
   if (EEPROM.read(E_IsGasEnabled))                                                        // если датчик газа/дыма включен
   {
     if (!SenGas.IsReady && GetElapsed(prGasTurnOn) > timeGasReady)                        // если прошло достаточно времени для прогревания датчика газа/дыма после включения устройства то указываем что он готов к опрашиванию.     
-      SenGas.IsReady = true;                                                              // то указываем что он готов к опрашиванию. 
+      SenGas.IsReady = true;                                                              // то указываем что он готов к опрашиванию.    
     
     if (SenGas.IsReady && GetElapsed(prCheckGas) > timeCheckGas || prCheckGas == 0)       // если датчик газа прогрет и готов к опрашиванию то проверяем сколько прошло времени после последнего измирения датчика газа    
     { 
@@ -627,20 +630,14 @@ void loop()
     }
     if (GasPct > deltaGasPct)                                                             // если отклонение больше заданой дельты то сигнализируем о прывышении уровня газа/дыма 
     {       
-      digitalWrite(AlarmLED, HIGH);                                                       // сигнализируем светодиодом о тревоге
+      StartAlarm();                                                                       // сигнализируем светодиодом о тревоге
       if (!SenGas.IsTrig && inTestMod) PlayTone(sysTone, 100);                            // если включен режим тестирование и это первое срабатывание то сигнализируем спикером  
       SenGas.IsTrig = true;
-      //reqSirena = true;
       SenGas.PrTrigTime = millis();                                                       // запоминаем когда сработал датчик для отображения статуса датчика
-      //if (prReqSirena == 1) prReqSirena = millis();
       if (GetElapsed(SenGas.PrAlarmTime) > timeSmsGas || SenGas.PrAlarmTime == 0)         // если выдержена пауза после последнего звонка и отправки смс 
         SenGas.IsAlarm = true;
     }
-    else if (SenGas.IsTrig && !isAlarm)
-    {
-      digitalWrite(AlarmLED, LOW);
-      SenGas.IsTrig = false;
-    }
+    else SenGas.IsTrig = false;    
   
     if (SenGas.IsAlarm)                                                                      
     {                                                                 
@@ -755,7 +752,7 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
   return true;
 }
 
-void  StartSiren()
+void StartSiren()
 {  
   if (SirEnabled)                                       // и сирена не отключена в конфигурации
     digitalWrite(SirenGenerator, HIGH);                 // включаем сирену через через транзистор или релье  
@@ -786,7 +783,7 @@ void StartAlarm()
 
 void StopAlarm()
 {
-  if(!SenGas.IsTrig) digitalWrite(AlarmLED, LOW);       // Если не надо сигнализировать о газе то выключаем светодиод о индикации тревоги 
+  digitalWrite(AlarmLED, LOW);                          // Если не надо сигнализировать о газе то выключаем светодиод о индикации тревоги 
   isAlarm = false;  
 }
 
@@ -958,7 +955,7 @@ void ExecSmsCommand()
                    + GetStrFromFlash(delSiren)         + String(EEPROM.read(E_delaySiren)) + GetStrFromFlash(sec);
         
         if (!SirEnabled)
-          msg = msg + "\n" + GetStrFromFlash(siren) + GetStrFromFlash(off);
+          msg = msg + "\n" + GetStrFromFlash(sirenoff);
           
         unsigned long ltime;
         String sStatus = "";                  
