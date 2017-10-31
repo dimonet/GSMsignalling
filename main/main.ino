@@ -961,20 +961,22 @@ void ExecSmsCommand()
         String sStatus = "";                  
         if (EEPROM.read(E_IsGasEnabled))
         {
-          if (!SenGas.IsReady) sStatus = GetStrFromFlash(GasNotReady);                      // если датчик газа/дыма еще не прогрет то информируем об этом
-          else
-          if (SenGas.PrTrigTime == 0) sStatus = GetStrFromFlash(idle);
+          if (!SenGas.IsReady) sStatus = GetStrFromFlash(GasNotReady);                        // если датчик газа/дыма еще не прогрет то информируем об этом
           else
           {
-            ltime = GetElapsed(SenGas.PrTrigTime)/1000;            
-            if (ltime <= 180) sStatus = String(ltime) + GetStrFromFlash(sec);               // < 180 сек. 
-            else 
-            if (ltime <= 7200) sStatus = String(ltime / 60) + GetStrFromFlash(minut);       // < 120 мин.
-            else 
-            sStatus = String(ltime / 3600) + GetStrFromFlash(hour);                       
-          }            
-          msg = msg + "\n" + GetStrFromFlash(Gas) + sStatus + "\n"
-                    + GetStrFromFlash(GasVal) + String(GasPct) + GetStrFromFlash(pct);
+            if (SenGas.PrTrigTime == 0) sStatus = GetStrFromFlash(idle);
+            else
+            {
+              ltime = GetElapsed(SenGas.PrTrigTime)/1000;            
+              if (ltime <= 180) sStatus = String(ltime) + GetStrFromFlash(sec);               // < 180 сек. 
+              else 
+              if (ltime <= 7200) sStatus = String(ltime / 60) + GetStrFromFlash(minut);       // < 120 мин.
+              else 
+              sStatus = String(ltime / 3600) + GetStrFromFlash(hour);                       
+            }            
+            msg = msg + "\n" + GetStrFromFlash(Gas) + sStatus + "\n"
+                      + GetStrFromFlash(GasVal) + String(GasPct) + GetStrFromFlash(pct);
+          }
         }         
         if (mode == OnContrMod)
         {
