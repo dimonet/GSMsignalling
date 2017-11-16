@@ -4,7 +4,7 @@
 
 #include <EEPROM.h>
 #include "DigitalSensor.h"
-#include "AnalogSensor.h"
+#include "GasSensor.h"
 #include "MyGSM.h"
 #include "PowerControl.h"
 #include <avr/pgmspace.h>
@@ -31,7 +31,7 @@ const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection has been t
 const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren has been turned on."};                           // выполнена команда для коротковременного включения сирены
 const char sms_WasRebooted[]     PROGMEM = {"Command: Device was rebooted."};                                       // выполнена команда для коротковременного включения сирены
 const char sms_WrongUssd[]       PROGMEM = {"Command: Wrong USSD code."};                                           // сообщение о неправельной USSD коде
-const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format of command should be next:\nSendSMS 'number' 'text'"}; // выполнена команда для отправки смс другому абоненту
+const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format should be next:\nSendSMS 'number' 'text'"}; // выполнена команда для отправки смс другому абоненту
 const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};                                              // выполнена команда для отправки смс другому абоненту
 
 // Строки для смс команд
@@ -84,8 +84,6 @@ const char TensionSiren[]        PROGMEM = {"TensionSiren: "};
 const char idle[]                PROGMEM = {"Idle"};
 const char on[]                  PROGMEM = {"on"};
 const char off[]                 PROGMEM = {"off"};
-const char battery[]             PROGMEM = {"battery"};
-const char network[]             PROGMEM = {"network"};
 const char sec[]                 PROGMEM = {" sec."};
 const char minut[]               PROGMEM = {" min."};
 const char hour[]                PROGMEM = {" hours."};
@@ -225,7 +223,6 @@ bool PIR2Sir = false;                           // включена/выключ
 bool isAlarm = false;                           // режим тревоги
 bool reqSirena = false;                         // уст. в true когда сработал датчик и необходимо включить сирену
 bool isRun = true;                              // флаг для управления выполнения блока кода в loop только при старте устройства
-int  gasClbr = 1023;                            // калибровка датчика газа. Значение от датчика, которое воспринимать как 0 (отсутствие утечки газа)
 String numberAnsUssd = "";                      // для промежуточного хранения номера телефона, от которого получено gsm код и которому необходимо отправить ответ (баланс и т.д.)
 
 
@@ -235,8 +232,6 @@ unsigned long prLastPressBtn = 0;               // время последнег
 unsigned long prTestBlinkLed = 0;               // время мерцания светодиода при включеном режима тестирования (милисекунды)
 unsigned long prRefreshVcc = 0;                 // время последнего измирения питания (милисекунды)
 unsigned long prReqSirena = 0;                  // время последнего обнаружения, что необходимо включать сирену
-unsigned long prCheckGas = 0;                   // время последнего измирения датчика газа (милисекунды)
-unsigned long prGasTurnOn = 0;                  // время включения датчика газа/дыма (милисекунды)
 
 byte countPressBtn = 0;                         // счетчик нажатий на кнопку
 bool wasRebooted = false;                       // указываем была ли последний раз перезагрузка программным путем
@@ -249,7 +244,7 @@ PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль пи
 DigitalSensor SenTension(pinSH1);
 DigitalSensor SenPIR1(pinPIR1);
 DigitalSensor SenPIR2(pinPIR2);
-AnalogSensor SenGas(pinGas);
+GasSensor SenGas(pinGas, pinGasPower);
 
 void(* RebootFunc) (void) = 0;  
 // объявляем функцию Reboot
@@ -348,17 +343,15 @@ void setup()
 
   inTestMod = EEPROM.read(E_inTestMod);                 // читаем тестовый режим из еепром
   wasRebooted = EEPROM.read(E_wasRebooted);             // читаем был ли последний раз перезагрузка программным путем 
-  gasClbr = ReadIntEEPROM(E_gasCalibr);                 // читаем значения калибровки датчика газа/дыма
+  SenGas.gasClbr = ReadIntEEPROM(E_gasCalibr);          // читаем значения калибровки датчика газа/дыма
   SirEnabled = EEPROM.read(E_SirenEnabled);             // читаем включена или выключена сирена глобально
   TensionSir = EEPROM.read(E_TensionSiren);             // читаем включена или выключена сирена для растяжки
   PIR1Sir = EEPROM.read(E_PIR1Siren);                   // читаем включена или выключена сирена для датчика движения 1
   PIR2Sir = EEPROM.read(E_PIR2Siren);                   // читаем включена или выключена сирена для датчика движения 2
   
   if (EEPROM.read(E_IsGasEnabled))                      // если включен датчик газа/дыма
-    analogWrite(pinGasPower, 255);                      // включаем питание датчика газа/дыма подавая питание на ногу pinGasPower и используя Мосфет транзистор 
-  else analogWrite(pinGasPower, 0);                     // иначе выключаем питание датчика газа/дыма
-  SenGas.IsReady = false;                               // указывает, что при старте устройства датчик газа не готов к опрашиванию пока он не будет прогрет
-  prGasTurnOn = millis();                               // запоминаем время включения датчика
+    SenGas.TurnOnPower();                               // включаем питание датчика газа/дыма 
+  else SenGas.TurnOffPower();                           // иначе выключаем питание датчика газа/дыма  
   
   // чтение конфигураций с EEPROM
   if (EEPROM.read(E_mode) == OnContrMod) Set_OnContrMod(true);                              // читаем режим из еепром      
@@ -620,13 +613,13 @@ void loop()
 
   if (EEPROM.read(E_IsGasEnabled))                                                        // если датчик газа/дыма включен
   {
-    if (!SenGas.IsReady && GetElapsed(prGasTurnOn) > timeGasReady)                        // если прошло достаточно времени для прогревания датчика газа/дыма после включения устройства то указываем что он готов к опрашиванию.     
+    if (!SenGas.IsReady && GetElapsed(SenGas.PrGasTurnOn) > timeGasReady)                 // если прошло достаточно времени для прогревания датчика газа/дыма после включения устройства то указываем что он готов к опрашиванию.     
       SenGas.IsReady = true;                                                              // то указываем что он готов к опрашиванию.    
     
-    if (SenGas.IsReady && GetElapsed(prCheckGas) > timeCheckGas || prCheckGas == 0)       // если датчик газа прогрет и готов к опрашиванию то проверяем сколько прошло времени после последнего измирения датчика газа    
+    if (SenGas.IsReady && GetElapsed(SenGas.PrCheckGas) > timeCheckGas || SenGas.PrCheckGas == 0)       // если датчик газа прогрет и готов к опрашиванию то проверяем сколько прошло времени после последнего измирения датчика газа    
     { 
-      GasPct = round(((SenGas.GetSensorValue() - gasClbr)/(1023.0 - gasClbr)) * 100);     // калькулируем и сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения      
-      prCheckGas = millis(); 
+      GasPct = SenGas.GetPctFromNorm();                                                   // сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения 
+      SenGas.PrCheckGas = millis(); 
     }
     if (GasPct > deltaGasPct)                                                             // если отклонение больше заданой дельты то сигнализируем о прывышении уровня газа/дыма 
     {       
@@ -951,7 +944,7 @@ void ExecSmsCommand()
         String msg = GetStrFromFlash(control)          + String((mode == OnContrMod) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "\n"
                    + GetStrFromFlash(test)             + String((inTestMod) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "\n" 
                    + GetStrFromFlash(redirSms)         + String((EEPROM.read(E_isRedirectSms)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "\n"
-                   + GetStrFromFlash(power)            + String((powCtr.IsBattPower) ? GetStrFromFlash(battery) : GetStrFromFlash(network)) + "\n"
+                   + GetStrFromFlash(power)            + ((powCtr.IsBattPower) ? "battery" : "network") + "\n"
                    + GetStrFromFlash(delSiren)         + String(EEPROM.read(E_delaySiren)) + GetStrFromFlash(sec);
         
         if (!SirEnabled)
@@ -1053,7 +1046,7 @@ void ExecSmsCommand()
            + GetStrFromFlash(PIR2)                 + "'" + String((EEPROM.read(E_IsPIR2Enabled))  ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(Gas)                  + "'" + String((EEPROM.read(E_IsGasEnabled))   ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(tension)              + "'" + String((EEPROM.read(E_TensionEnabled)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
-           + GetStrFromFlash(GasCalibr)            + "'" + String(gasClbr) + "'" + "\n"
+           + GetStrFromFlash(GasCalibr)            + "'" + String(SenGas.gasClbr) + "'" + "\n"
            + GetStrFromFlash(GasCurr)              + "'" + String((SenGas.IsReady) ? String(SenGas.GetSensorValue()) : GetStrFromFlash(GasNotReady)) + "'";
         SendSms(&msg, &gsm.SmsNumber);
       }
@@ -1174,25 +1167,22 @@ void ExecSmsCommand()
               bConf[i] = true; 
           }               
           else if (i == 4)
-            gasClbr = (str.substring(0, duration)).toInt();          
+            SenGas.gasClbr = (str.substring(0, duration)).toInt();          
           str = str.substring(duration +1);         
         }
         if (!EEPROM.read(E_IsGasEnabled) && bConf[2])                                                                    // если датчик газа был выключен и теперь его вклчают 
         { 
-          analogWrite(pinGasPower, 255);                                                                                 // включаем питание датчика газа/дыма подавая питание на ногу pinGasPower и используя Мосфет транзистор
-          prGasTurnOn = millis();                                                                                        // запоминаем время включения датчика для выдержки паузы перед опрашиванием датчика (для его прогрева)
-          SenGas.IsReady = false;
+          SenGas.TurnOnPower();                                                                                          // включаем питание датчика газа/дыма подавая питание на ногу pinGasPower и используя Мосфет транзистор         
         }
         else if (!bConf[2])                                                                                              // если выключают датчик газа/дыма                 
         {
-           analogWrite(pinGasPower, 0);                                                                                  // то выключаем ему питание 
-           SenGas.IsReady = false;                                                                                       // устанавливаем его свойство в не готов
+           SenGas.TurnOffPower();                                                                                        // то выключаем ему питание            
         }
         EEPROM.write(E_IsPIR1Enabled, bConf[0]);
         EEPROM.write(E_IsPIR2Enabled, bConf[1]);
         EEPROM.write(E_IsGasEnabled,  bConf[2]);
         EEPROM.write(E_TensionEnabled, bConf[3]);
-        WriteIntEEPROM(E_gasCalibr, gasClbr); 
+        WriteIntEEPROM(E_gasCalibr, SenGas.gasClbr); 
         String msg = GetStrFromFlash(PIR1)         + "'" + String((EEPROM.read(E_IsPIR1Enabled))  ? "on" : "off") + "'" + "\n"
            + GetStrFromFlash(PIR2)                 + "'" + String((EEPROM.read(E_IsPIR2Enabled))  ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(Gas)                  + "'" + String((EEPROM.read(E_IsGasEnabled))   ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
