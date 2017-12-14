@@ -29,8 +29,9 @@ void GasSensor::TurnOnPower()
 
 void GasSensor::TurnOffPower()
 {
-   analogWrite(_pinPower, 0);                    // выключение питание датчика подавая логической 0 на ногу pinGasPower
+   analogWrite(_pinPower, 0);                       // выключение питание датчика подавая логической 0 на ногу pinGasPower
    IsReady = false;                                 // устанавливаем его свойство в не готов
+   ResetSensor();                                   // сбрасываем все переменные датчика
 }
 
 void GasSensor::ResetSensor()

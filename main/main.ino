@@ -31,7 +31,7 @@ const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection has been t
 const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren has been turned on."};                           // выполнена команда для коротковременного включения сирены
 const char sms_WasRebooted[]     PROGMEM = {"Command: Device was rebooted."};                                       // выполнена команда для коротковременного включения сирены
 const char sms_WrongUssd[]       PROGMEM = {"Command: Wrong USSD code."};                                           // сообщение о неправельной USSD коде
-const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format should be next:\nSendSMS 'number' 'text'"}; // выполнена команда для отправки смс другому абоненту
+const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format should be next:\nSendSMS 'number' 'text'"};            // выполнена команда для отправки смс другому абоненту
 const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};                                              // выполнена команда для отправки смс другому абоненту
 
 // Строки для смс команд
@@ -87,8 +87,6 @@ const char off[]                 PROGMEM = {"off"};
 const char sec[]                 PROGMEM = {" sec."};
 const char minut[]               PROGMEM = {" min."};
 const char hour[]                PROGMEM = {" hours."};
-const char pct[]                 PROGMEM = {"%"};
-const char s[]                   PROGMEM = {"s"};
 const char delOnContr[]          PROGMEM = {"DelayOnContr: "};
 const char intervalVcc[]         PROGMEM = {"IntervalVcc: "};
 const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
@@ -637,7 +635,7 @@ void loop()
       if (gsm.IsAvailable())              
       {  
         if (!inTestMod)  
-          gsm.SendSms(&(GetStrFromFlash(sms_Gas)+ "\n" + GetStrFromFlash(GasVal) + String(GasPct) + GetStrFromFlash(pct)), &NumberRead(E_NUM1_OutOfContr));     // если не включен режим тестирование отправляем смс
+          gsm.SendSms(&(GetStrFromFlash(sms_Gas)+ "\n" + GetStrFromFlash(GasVal) + String(GasPct) + "%"), &NumberRead(E_NUM1_OutOfContr));     // если не включен режим тестирование отправляем смс
         gsm.Call(&NumberRead(E_NUM1_OutOfContr));                                        // сигнализируем звонком о сработке датчика
         SenGas.PrAlarmTime = millis();
         SenGas.IsAlarm = false;
@@ -968,7 +966,7 @@ void ExecSmsCommand()
               sStatus = String(ltime / 3600) + GetStrFromFlash(hour);                       
             }            
             msg = msg + "\n" + GetStrFromFlash(Gas) + sStatus + "\n"
-                      + GetStrFromFlash(GasVal) + String(GasPct) + GetStrFromFlash(pct);
+                      + GetStrFromFlash(GasVal) + String(GasPct) + "%";
           }
         }         
         if (mode == OnContrMod)
@@ -1019,7 +1017,7 @@ void ExecSmsCommand()
         SendSms(&msg, &gsm.SmsNumber);          
       }     
       else
-      if (gsm.SmsText == GetStrFromFlash(setting) || gsm.SmsText == (GetStrFromFlash(setting)+GetStrFromFlash(s)))       //  если обнаружена команда для возврата сетингов (команда setting или settings)
+      if (gsm.SmsText == GetStrFromFlash(setting) || gsm.SmsText == (GetStrFromFlash(setting)+"s"))       //  если обнаружена команда для возврата сетингов (команда setting или settings)
       {
         PlayTone(sysTone, smsSpecDur);                                
         String msg = GetStrFromFlash(delSiren)     + "'" + String(EEPROM.read(E_delaySiren)) + "'" + GetStrFromFlash(sec) + "\n"
@@ -1030,7 +1028,7 @@ void ExecSmsCommand()
         SendSms(&msg, &gsm.SmsNumber);   
       }
       else
-      if (gsm.SmsText == GetStrFromFlash(button) || gsm.SmsText == (GetStrFromFlash(button)+GetStrFromFlash(s)))         // если обнаружена команда для возврата сетингов кнопки
+      if (gsm.SmsText == GetStrFromFlash(button) || gsm.SmsText == (GetStrFromFlash(button)+"s"))         // если обнаружена команда для возврата сетингов кнопки
       {
         String msg = GetStrFromFlash(BtnOnContr )  + "'" + String((EEPROM.read(E_BtnOnContr)))     + "'" + "\n"
           + GetStrFromFlash(BtnInTestMod)          + "'" + String((EEPROM.read(E_BtnInTestMod)))   + "'" + "\n"
@@ -1040,7 +1038,7 @@ void ExecSmsCommand()
         SendSms(&msg, &gsm.SmsNumber);
       }
       else
-      if (gsm.SmsText == GetStrFromFlash(sensor) || gsm.SmsText == (GetStrFromFlash(sensor)+GetStrFromFlash(s)))         // если обнаружена команда для возврата сетингов датчиков
+      if (gsm.SmsText == GetStrFromFlash(sensor) || gsm.SmsText == (GetStrFromFlash(sensor)+"s"))         // если обнаружена команда для возврата сетингов датчиков
       {
         String msg = GetStrFromFlash(PIR1)         + "'" + String((EEPROM.read(E_IsPIR1Enabled))  ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
            + GetStrFromFlash(PIR2)                 + "'" + String((EEPROM.read(E_IsPIR2Enabled))  ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "'" + "\n"
