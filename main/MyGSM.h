@@ -3,7 +3,7 @@
 class MyGSM
 {
   public: 
-    MyGSM(byte gsmLED, byte pinBOOT);
+    MyGSM(byte gsmLED, byte boardLED, byte pinBOOT);
     void Initialize();    
     bool NewRing;
     bool NewSms;
@@ -28,7 +28,8 @@ class MyGSM
     bool WaitingAvailable();                        // ожидание готовности gsm модуля
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
     void SetString(String *source, String *target);
-    int _gsmLED;
-    int _pinBOOT;                                   // нога BOOT или K на модеме   
+    byte _gsmLED;
+    byte _boardLED;
+    byte _pinBOOT;                                   // нога BOOT или K на модеме   
     String GetStrFromFlash(char* addr);    
 };

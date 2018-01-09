@@ -22,9 +22,10 @@ const char CMT[]         PROGMEM = {"+CMT"};
 const char CUSD[]        PROGMEM = {"+CUSD"};
 const char ATCPWROFF[]   PROGMEM = {"AT+CPWROFF"};
 
-MyGSM::MyGSM(byte gsmLED, byte pinBOOT)
+MyGSM::MyGSM(byte gsmLED, byte boardLED, byte pinBOOT)
 {
   _gsmLED = gsmLED;
+  _boardLED = boardLED;
   _pinBOOT = pinBOOT;
   ClearRing();
   ClearSms();
@@ -36,7 +37,8 @@ void MyGSM::Initialize()
 {
   serial.begin(9600);                                                 // незабываем указать скорость работы UART модема
   delay(1000);                            
-  digitalWrite(_gsmLED, HIGH);                                        // на время включаем лед  
+  digitalWrite(_gsmLED, HIGH);                                        // на время включаем лед на панели
+  digitalWrite(_boardLED, HIGH);                                     // на время включаем лед на плате
   digitalWrite(_pinBOOT, LOW);                                        // включаем модем   
   delay(2000);                                                        // нужно дождатся включения модема и соединения с сетью
   
@@ -144,10 +146,13 @@ bool MyGSM::RequestUssd(String *code)
 void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter)
 { 
   digitalWrite(_gsmLED, LOW);                          
+  digitalWrite(_boardLED, LOW);
   delay(millisBefore);  
   digitalWrite(_gsmLED, HIGH);                                      // блымаем светодиодом
+  digitalWrite(_boardLED, HIGH);
   delay(millisHIGH); 
   digitalWrite(_gsmLED, LOW);
+  digitalWrite(_boardLED, LOW);
   delay(millisAfter);
 }
 
