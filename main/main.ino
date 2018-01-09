@@ -21,14 +21,14 @@ const char sms_BattPower[]       PROGMEM = {"POWER: Battery is used for powering
 const char sms_NetPower[]        PROGMEM = {"POWER: Network power has been restored."};                             // текст смс для оповещения о том, что сетевое питание возобновлено
 
 const char sms_ErrorCommand[]    PROGMEM = {"SendSMS,\nBalance,\nTestOn(Off),\nControlOn(Off),\nRedirectOn(Off),\nSkimpy,\nStatus,\nReboot,\nButton,\nSetting,\nSensor,\nSiren,\nOutOfContr,\nOnContr,\nSmsCommand."};  // смс команда не распознана
-const char sms_InfOnContr[]      PROGMEM = {"Inform: Control mode has been turned off."};                           // информирование о снятии с охраны
-const char sms_TestModOn[]       PROGMEM = {"Command: Test mode has been turned on."};                              // выполнена команда для включения тестового режима для тестирования датчиков
-const char sms_TestModOff[]      PROGMEM = {"Command: Test mode has been turned off."};                             // выполнена команда для выключения тестового режима для тестирования датчиков
-const char sms_OnContrMod[]      PROGMEM = {"Command: Control mode has been turned on."};                           // выполнена команда для установку на охрану
-const char sms_OutOfContrMod[]   PROGMEM = {"Command: Control mode has been turned off."};                          // выполнена команда для снятие с охраны
-const char sms_RedirectOn[]      PROGMEM = {"Command: SMS redirection has been turned on."};                        // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
-const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection has been turned off."};                       // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
-const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren has been turned on."};                           // выполнена команда для коротковременного включения сирены
+const char sms_InfOnContr[]      PROGMEM = {"Inform: Control mode was turned off."};                                // информирование о снятии с охраны
+const char sms_TestModOn[]       PROGMEM = {"Command: Test mode is turned on."};                                    // выполнена команда для включения тестового режима для тестирования датчиков
+const char sms_TestModOff[]      PROGMEM = {"Command: Test mode is turned off."};                                   // выполнена команда для выключения тестового режима для тестирования датчиков
+const char sms_OnContrMod[]      PROGMEM = {"Command: Control mode is turned on."};                                 // выполнена команда для установку на охрану
+const char sms_OutOfContrMod[]   PROGMEM = {"Command: Control mode is turned off."};                                // выполнена команда для снятие с охраны
+const char sms_RedirectOn[]      PROGMEM = {"Command: SMS redirection is turned on."};                              // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
+const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection is turned off."};                             // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
+const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren was turned on."};                                // выполнена команда для коротковременного включения сирены
 const char sms_WasRebooted[]     PROGMEM = {"Command: Device was rebooted."};                                       // выполнена команда для коротковременного включения сирены
 const char sms_WrongUssd[]       PROGMEM = {"Command: Wrong USSD code."};                                           // сообщение о неправельной USSD коде
 const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format should be next:\nSendSMS 'number' 'text'"};            // выполнена команда для отправки смс другому абоненту
@@ -117,7 +117,8 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define  timeRejectCall       3000                         // время пауза перед збросом звонка
 #define  timeCheckGas         2000                         // время паузы между измирениями датчика газа/дыма (милисекунды)
 #define  timeGasReady         60000                        // время паузы для прогрева датчика газа/дыма после включения устройства или датчика (милисекунды)
-
+#define  timeTestBoardLed     3000                         // время мерцания внутреннего светодиода на плате при включеном режима тестирования
+#define  timeTrigSensor       1000                         // во избежании ложного срабатывании датчика тревога включается только если датчик срабатывает больше чем указанное время (импл. только для расстяжки)
 
 //// КОНСТАНТЫ ДЛЯ ПИНОВ /////
 #define SpecerPin 8
@@ -126,6 +127,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define OnContrLED 11
 #define AlarmLED 10
 #define BattPowerLED 9                          // LED для сигнализации о работе от резервного питания
+#define boardLED 6                              // LED для сигнализации текущего режима с помошью внутреннего светодиода на плате
 
 #define pinBOOT 5                               // нога BOOT или K на модеме 
 #define Button 2                                // нога на кнопку
@@ -138,7 +140,6 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 
 //Power control 
 #define pinMeasureVcc A0                        // нога чтения типа питания (БП или батарея)
-#define pinMeasureVcc_stub A1                   // нога для заглушки чтения типа питания если резервное пинание не подключено (всегда network)
 #define netVcc      10.0                        // значения питяния от сети (вольт)
 #define battVcc     0.1                         // значения питяния от батареи (вольт)
 
@@ -235,7 +236,7 @@ byte countPressBtn = 0;                         // счетчик нажатий
 bool wasRebooted = false;                       // указываем была ли последний раз перезагрузка программным путем
 int GasPct = 0;                                 // хранит отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения
 
-MyGSM gsm(gsmLED, pinBOOT);                             // GSM модуль
+MyGSM gsm(gsmLED, boardLED, pinBOOT);           // GSM модуль
 PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
 
 // Датчики
@@ -257,6 +258,7 @@ void setup()
   pinMode(OnContrLED, OUTPUT);
   pinMode(AlarmLED, OUTPUT);
   pinMode(BattPowerLED, OUTPUT);              // LED для сигнализации о работе от резервного питания
+  pinMode(boardLED, OUTPUT);                  // LED для сигнализации текущего режима с помошью внутреннего светодиода на плате
   pinMode(pinBOOT, OUTPUT);                   // нога BOOT на модеме
   pinMode(pinSH1, INPUT_PULLUP);              // нога на растяжку
   pinMode(pinPIR1, INPUT);                    // нога датчика движения 1
@@ -265,8 +267,7 @@ void setup()
   pinMode(pinGasPower, OUTPUT);               // нога управления питанием датчика газа/дыма 
   pinMode(Button, INPUT_PULLUP);              // кнопка для установки режима охраны
   pinMode(SirenGenerator, OUTPUT);            // нога на сирену
-  pinMode(pinMeasureVcc, INPUT);              // нога чтения типа питания (БП или батарея)    
-  pinMode(pinMeasureVcc_stub, OUTPUT);        // нога для заглушки определения типа питания если резервное пинание не подключено (всегда network)
+  pinMode(pinMeasureVcc, INPUT);              // нога чтения типа питания (БП или батарея)      
 
   StopSiren();                                // при включении устройства сирена должна быть по умолчанию выключена
    
@@ -330,7 +331,6 @@ void setup()
 
   analogReference(INTERNAL);
   
-  analogWrite(pinMeasureVcc_stub, 255);                 // запитываем ногу заглушку питания для заглушки определения типа питания если резервное пинание не подключено (всегда network)
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
   digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
   
@@ -489,18 +489,25 @@ void loop()
         StopSiren();
     } 
       
-    if (EEPROM.read(E_TensionEnabled) && !SenTension.IsTrig && SenTension.CheckSensor())   // проверяем растяжку только если она не срабатывала ранее (что б смс и звонки совершались единоразово)
+    if (EEPROM.read(E_TensionEnabled) && !SenTension.IsTrig && SenTension.CheckSensor())    // проверяем растяжку только если она не срабатывала ранее (что б смс и звонки совершались единоразово)
     {
-      StartAlarm();                                                                        // сигнализируем светодиодом о тревоге
-      if (!inTestMod && TensionSir) 
+      if (SenTension.PrTrigTime == 0) SenTension.PrTrigTime = millis();                     // если это первое срабатывание то запоминаем когда сработал датчик
+      if (GetElapsed(SenTension.PrTrigTime) > timeTrigSensor)                               // реагируем на сработку датчика только если он срабатывает больше заданного времени (во избежании ложных срабатываний)
       {
-        reqSirena = true;             
-        if (prReqSirena == 1) prReqSirena = millis();                         
-      }
-      SenTension.PrTrigTime = millis();                                                    // запоминаем когда сработал датчик для отображения статуса датчика
-      SenTension.IsTrig = true;            
-      SenTension.IsAlarm = true;     
+        StartAlarm();                                                                       // сигнализируем светодиодом о тревоге
+        if (!inTestMod && TensionSir) 
+        {
+          reqSirena = true;             
+          if (prReqSirena == 1) prReqSirena = millis();                         
+        }
+        SenTension.PrTrigTime = millis();                                                   // запоминаем когда сработал датчик для отображения статуса датчика
+        SenTension.IsTrig = true;            
+        SenTension.IsAlarm = true;     
+      }    
     }
+    if (SenTension.PrTrigTime != 0 && !SenTension.IsTrig && !SenTension.CheckSensor())    // проверяем если были ложные срабатывания расстяжки то сбрасываем счетчик времени
+      SenTension.PrTrigTime = 0;
+    
     
     if (EEPROM.read(E_IsPIR1Enabled) && SenPIR1.CheckSensor())
     {       
@@ -677,6 +684,7 @@ bool Set_OutOfContrMod(bool infOnContr)                 // метод для с�
   digitalWrite(OnContrLED, LOW);
   digitalWrite(AlarmLED, LOW);
   digitalWrite(OutOfContrLED, HIGH);
+  digitalWrite(boardLED, LOW);
   PlayTone(sysTone, 500);
   mode = OutOfContrMod;                                 // снимаем с охраны
   StopSiren();                                          // выключаем сирену                         
@@ -734,6 +742,7 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
   //установка на охрану     
   mode = OnContrMod;                                    // ставим на охрану                                                    
   digitalWrite(OutOfContrLED, LOW);
+  digitalWrite(boardLED, HIGH);
   digitalWrite(OnContrLED, HIGH);
   digitalWrite(AlarmLED, LOW);  
   PlayTone(sysTone, 500);  

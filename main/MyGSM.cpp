@@ -6,21 +6,13 @@
 #define GSM_TIMEOUT 60000                       // врем ожидание готовности модема (милсек)  
 #define SMS_LIMIT   150                         // максимальное куличество символов в смс (большео лимита все символы обрезается)
 
-const char ATE0[]        PROGMEM = {"ATE0"};
-const char ATCLIP1[]     PROGMEM = {"AT+CLIP=1"};
-const char ATCMGF1[]     PROGMEM = {"AT+CMGF=1"};
-const char ATCSCSGSM[]   PROGMEM = {"AT+CSCS=\"GSM\""};
-const char ATIFC11[]     PROGMEM = {"AT+IFC=1, 1"};
-const char ATCPBSSM[]    PROGMEM = {"AT+CPBS=\"SM\""};
-const char ATCNMI12210[] PROGMEM = {"AT+CNMI=1,2,2,1,0"};
-const char ATCMGD14[]    PROGMEM = {"AT+CMGD=1,4"};
-const char ATCOPS[]      PROGMEM = {"AT+COPS?"};
 const char ATCPAS[]      PROGMEM = {"AT+CPAS"};
 const char ATH0[]        PROGMEM = {"ATH0"};
 const char RING[]        PROGMEM = {"RING"};
 const char CMT[]         PROGMEM = {"+CMT"};
 const char CUSD[]        PROGMEM = {"+CUSD"};
 const char ATCPWROFF[]   PROGMEM = {"AT+CPWROFF"};
+const char ATCOPS[]      PROGMEM = {"AT+COPS?"};
 
 MyGSM::MyGSM(byte gsmLED, byte boardLED, byte pinBOOT)
 {
@@ -38,34 +30,34 @@ void MyGSM::Initialize()
   serial.begin(9600);                                                 // незабываем указать скорость работы UART модема
   delay(1000);                            
   digitalWrite(_gsmLED, HIGH);                                        // на время включаем лед на панели
-  digitalWrite(_boardLED, HIGH);                                     // на время включаем лед на плате
+  digitalWrite(_boardLED, HIGH);                                      // на время включаем лед на плате
   digitalWrite(_pinBOOT, LOW);                                        // включаем модем   
   delay(2000);                                                        // нужно дождатся включения модема и соединения с сетью
   
-  serial.println(GetStrFromFlash(ATE0));        //ATE0                // выключаем эхо  
+  serial.println("ATE0");                                             // выключаем эхо  
   delay(100);
   
-  serial.println(GetStrFromFlash(ATCLIP1));     //AT+CLIP=1           // включаем АОН
+  serial.println("AT+CLIP=1");                                        // включаем АОН
   delay(100);
     
   // настройка смс
-  serial.println(GetStrFromFlash(ATCMGF1));    //AT+CMGF=1            // режим кодировки СМС - обычный (для англ.)
+  serial.println("AT+CMGF=1");                                        // режим кодировки СМС - обычный (для англ.)
   delay(200);
-  serial.println(GetStrFromFlash(ATCSCSGSM));  //AT+CSCS=\"GSM\"      // режим кодировки текста
+  serial.println("AT+CSCS=\"GSM\"");                                  // режим кодировки текста
   delay(200);
-  serial.println(GetStrFromFlash(ATIFC11));    //AT+IFC=1, 1          // устанавливает программный контроль потоком передачи данных
+  serial.println("AT+IFC=1, 1");                                      // устанавливает программный контроль потоком передачи данных
   delay(200);
-  serial.println(GetStrFromFlash(ATCPBSSM));   //AT+CPBS=\"SM\"       // открывает доступ к данным телефонной книги SIM-карты
+  serial.println("AT+CPBS=\"SM\"");                                   // открывает доступ к данным телефонной книги SIM-карты
   delay(200);
-  serial.println(GetStrFromFlash(ATCNMI12210));//AT+CNMI=1,2,2,1,0    // включает оповещение о новых сообщениях
+  serial.println("AT+CNMI=1,2,2,1,0");                                // включает оповещение о новых сообщениях
   delay(200);
-  serial.println(GetStrFromFlash(ATCMGD14));   //AT+CMGD=1,4          // удаление всех старых смс
+  serial.println("AT+CMGD=1,4");                                      // удаление всех старых смс
   delay(500); 
     
   while(1)                                                            // ждем подключение модема к сети
   {                             
-    serial.println(GetStrFromFlash(ATCOPS));   //AT+COPS?
-    if (serial.find("+COPS: 0")) //+COPS: 0
+    serial.println(GetStrFromFlash(ATCOPS));   //AT+COPS? 
+    if (serial.find("+COPS: 0"))    
     {
       BlinkLED(500, 150, 0);                                          // блымаем светодиодом 
       BlinkLED(150, 150, 200);                                        // блымаем светодиодом 
