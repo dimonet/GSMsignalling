@@ -322,12 +322,14 @@ void setup()
   digitalWrite(OnContrLED, HIGH);
   digitalWrite(AlarmLED, HIGH);
   digitalWrite(BattPowerLED, HIGH);
+  digitalWrite(boardLED, HIGH);
   delay(timeAllLeds);
   digitalWrite(gsmLED, LOW);
   digitalWrite(OutOfContrLED, LOW);
   digitalWrite(OnContrLED, LOW);
   digitalWrite(AlarmLED, LOW);
   digitalWrite(BattPowerLED, LOW);
+  digitalWrite(boardLED, LOW);
 
   analogReference(INTERNAL);
   
@@ -378,7 +380,9 @@ void loop()
   {
     if (GetElapsed(prTestBlinkLed) > timeTestBlinkLed)   
     {
-      digitalWrite(AlarmLED, digitalRead(AlarmLED) == LOW);                                 // то мигаем светодиодом
+      digitalWrite(AlarmLED, digitalRead(AlarmLED) == LOW);                                 // то мигаем внешним светодиодом
+      if(mode == OutOfContrMod)
+        digitalWrite(boardLED, digitalRead(boardLED) == LOW);                               // то мигаем внутренним светодиодом на плате
       prTestBlinkLed = millis();
     }
   }
