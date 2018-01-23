@@ -324,12 +324,12 @@ void setup()
   PORTB |= 1 << BattPowerLED;
   PORTB |= 1 << boardLED;
   delay(timeAllLeds);
-  PORTD &= ~(1 << gsmLED);
-  PORTD &= ~(1 << OutOfContrLED);
-  PORTD &= ~(1 << OnContrLED);
-  PORTD &= ~(1 << AlarmLED);
-  PORTD &= ~(1 << BattPowerLED);
-  PORTD &= ~(1 << boardLED);
+  PORTB &= ~(1 << gsmLED);
+  PORTB &= ~(1 << OutOfContrLED);
+  PORTB &= ~(1 << OnContrLED);
+  PORTB &= ~(1 << AlarmLED);
+  PORTB &= ~(1 << BattPowerLED);
+  PORTB &= ~(1 << boardLED);
 
   analogReference(INTERNAL);
   
