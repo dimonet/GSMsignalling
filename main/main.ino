@@ -317,26 +317,20 @@ void setup()
   // блок тестирования спикера и всех светодиодов
   PlayTone(sysTone, 100);                          
   delay(500);
- /* digitalWrite(gsmLED, HIGH);
-  digitalWrite(OutOfContrLED, HIGH);
-  digitalWrite(OnContrLED, HIGH);
-  digitalWrite(AlarmLED, HIGH);
-  digitalWrite(BattPowerLED, HIGH);
-  digitalWrite(boardLED, HIGH);
+  PORTB |= 1 << gsmLED;
+  PORTB |= 1 << OutOfContrLED;
+  PORTB |= 1 << OnContrLED;
+  PORTB |= 1 << AlarmLED;
+  PORTB |= 1 << BattPowerLED;
+  PORTB |= 1 << boardLED;
   delay(timeAllLeds);
-  digitalWrite(gsmLED, LOW);
-  digitalWrite(OutOfContrLED, LOW);
-  digitalWrite(OnContrLED, LOW);
-  digitalWrite(AlarmLED, LOW);
-  digitalWrite(BattPowerLED, LOW);
-  digitalWrite(boardLED, LOW);*/
-
-  PORTB = B11111111;
-  PORTD |= 1 << boardLED;
-  delay(timeAllLeds);
-  PORTB = B00000000;
+  PORTD &= ~(1 << gsmLED);
+  PORTD &= ~(1 << OutOfContrLED);
+  PORTD &= ~(1 << OnContrLED);
+  PORTD &= ~(1 << AlarmLED);
+  PORTD &= ~(1 << BattPowerLED);
   PORTD &= ~(1 << boardLED);
-  
+
   analogReference(INTERNAL);
   
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
