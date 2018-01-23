@@ -490,6 +490,7 @@ void loop()
           NumberRead(E_NUM3_OnContr).indexOf(gsm.RingNumber) > -1           
          )      
       {               
+        PORTB &= ~(1 << AlarmLED);                                                         // на время выключаем мигание светодиода сирены если включен режим тестирования
         delay(timeRejectCall);                                                             // пауза перед збросом звонка        
         gsm.RejectCall();                                                                  // сбрасываем вызов               
         Set_OnContrMod(false);                                                             // устанавливаем на охрану без паузы              
