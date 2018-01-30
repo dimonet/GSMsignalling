@@ -623,7 +623,12 @@ void loop()
   if (EEPROM.read(E_IsGasEnabled))                                                        // если датчик газа/дыма включен
   {
     if (!SenGas.IsReady && GetElapsed(SenGas.PrGasTurnOn) > timeGasReady)                 // если прошло достаточно времени для прогревания датчика газа/дыма после включения устройства то указываем что он готов к опрашиванию.     
+    {
       SenGas.IsReady = true;                                                              // то указываем что он готов к опрашиванию.    
+      PlayTone(sysTone, 75);                                                              // сигнализируем спикером (двойным сигналом) о готовности к опрашиванию датчика газа/дыма
+      delay(75);
+      PlayTone(sysTone, 75);                                                                       
+    }
     
     if (SenGas.IsReady && (GetElapsed(SenGas.PrCheckGas) > timeCheckGas || SenGas.PrCheckGas == 0))       // если датчик газа прогрет и готов к опрашиванию то проверяем сколько прошло времени после последнего измирения датчика газа    
     { 
