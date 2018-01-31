@@ -64,6 +64,7 @@ void MyGSM::Initialize()
       break;
     }    
     BlinkLED(0, 500, 0);                                              // блымаем светодиодом  
+    digitalWrite(_boardLED, digitalRead(_boardLED) == LOW);           // блымаем внутренним светодиодом
   }    
 }
 
@@ -138,13 +139,10 @@ bool MyGSM::RequestUssd(String *code)
 void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter)
 { 
   digitalWrite(_gsmLED, LOW);                          
-  digitalWrite(_boardLED, LOW);
   delay(millisBefore);  
   digitalWrite(_gsmLED, HIGH);                                      // блымаем светодиодом
-  digitalWrite(_boardLED, HIGH);
   delay(millisHIGH); 
-  digitalWrite(_gsmLED, LOW);
-  digitalWrite(_boardLED, LOW);
+  digitalWrite(_gsmLED, LOW);  
   delay(millisAfter);
 }
 
