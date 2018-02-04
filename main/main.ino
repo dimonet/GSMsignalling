@@ -693,8 +693,8 @@ bool Set_OutOfContrMod(bool infOnContr)                 // метод для с�
     StopAlarm(); 
   digitalWrite(OutOfContrLED, HIGH);
   digitalWrite(boardLED, LOW);
-  PlayTone(sysTone, 500);
   mode = OutOfContrMod;                                 // снимаем с охраны
+  PlayTone(sysTone, 500);
   StopSiren();                                          // выключаем сирену                         
   reqSirena = false; 
     
@@ -739,7 +739,10 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
       }         
     }
   }
-  
+
+  //установка на охрану     
+  mode = OnContrMod;                                    // ставим на охрану 
+
   if (!inTestMod && EEPROM.read(E_BtnOutOfContr)==0)    // если не включен режим тестирования и отключена возможность снимать с охраны кнопкой 
     interrupt = false;                                  // то запрещаем обрабатывать прерывания
   
@@ -747,9 +750,7 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
   SenPIR1.ResetSensor();
   SenPIR2.ResetSensor();
   SenTension.ResetSensor();
-  
-  //установка на охрану     
-  mode = OnContrMod;                                    // ставим на охрану                                                    
+                                                 
   digitalWrite(OutOfContrLED, LOW);
   digitalWrite(boardLED, HIGH);
   digitalWrite(OnContrLED, HIGH);
@@ -779,12 +780,12 @@ void StartAlarm()
 {
   if (!isAlarm)                                         // если еще невклюена тревога то включаем ее (проверяем для того что бы не выполнять лишний раз метод)
   {
+    isAlarm = true;
     digitalWrite(AlarmLED, HIGH);                       // сигнализируем светодиодом о тревоге
     if (inTestMod)                                      // если не включен тестовый режим и это первое 
     {
       PlayTone(sysTone, 100);                           // если включен режим тестирование то сигнализируем еще и спикером
-    }
-    isAlarm = true;
+    }   
   } 
   prAlarm = millis(); 
 }
