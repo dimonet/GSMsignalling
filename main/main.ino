@@ -687,13 +687,13 @@ void ClickButton()
 
 bool Set_OutOfContrMod(bool infOnContr)                 // метод для снятие с охраны
 { 
+  mode = OutOfContrMod;                                 // снимаем с охраны
   interrupt = true;                                     // разрешаем обрабатывать прерывания
   digitalWrite(OnContrLED, LOW);
   if (!SenGas.IsTrig)
     StopAlarm(); 
   digitalWrite(OutOfContrLED, HIGH);
   digitalWrite(boardLED, LOW);
-  mode = OutOfContrMod;                                 // снимаем с охраны
   PlayTone(sysTone, 500);
   StopSiren();                                          // выключаем сирену                         
   reqSirena = false; 
