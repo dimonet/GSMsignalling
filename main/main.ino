@@ -672,12 +672,12 @@ void loop()
 //// ------------------------------- Functions --------------------------------- ////
 void ClickButton()
 { 
-  if (interrupt)
+  if (digitalRead (Button) == LOW)                      // защита от ложного срабатывания при касании проводником к контактам
   {
-    if (digitalRead (Button) == LOW)                    // защита от ложного срабатывания при касании проводником к контактам
+    if (interrupt)                    
     {    
       static unsigned long millis_prev;
-      if(millis()-300 > millis_prev) 
+      if(millis() - 100 > millis_prev) 
       {          
         PlayTone(clickTone, 40);    
         countPressBtn++;
