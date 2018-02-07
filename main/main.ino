@@ -674,14 +674,17 @@ void ClickButton()
 { 
   if (interrupt)
   {
-    static unsigned long millis_prev;
-    if(millis()-300 > millis_prev) 
-    {          
-      PlayTone(clickTone, 40);    
-      countPressBtn++;
-      prLastPressBtn = millis();         
-    }       
-    millis_prev = millis();           
+    if (digitalRead (Button) == LOW)                    // защита от ложного срабатывания при касании проводником к контактам
+    {    
+      static unsigned long millis_prev;
+      if(millis()-300 > millis_prev) 
+      {          
+        PlayTone(clickTone, 40);    
+        countPressBtn++;
+        prLastPressBtn = millis();         
+      }       
+      millis_prev = millis();           
+    }
   }      
 }
 
