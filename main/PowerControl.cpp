@@ -1,8 +1,8 @@
 #include "Arduino.h"
 #include "PowerControl.h"
 
-const float R1 = 690.0;
-const float R2 = 67.0;
+const float R1 = 100000;
+const float R2 = 10000;
 
 PowerControl::PowerControl(byte netVcc, byte  battVcc, byte pinMeasureVcc)
 {

@@ -333,14 +333,14 @@ void setup()
 
   analogReference(INTERNAL);
   
+  gsm.Initialize();                                     // инициализация gsm модуля (включения, настройка) 
+  
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
   digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
   
   if (EEPROM.read(E_IsGasEnabled))                      // если включен датчик газа/дыма
     SenGas.TurnOnPower();                               // включаем питание датчика газа/дыма 
   else SenGas.TurnOffPower();                           // иначе выключаем питание датчика газа/дыма  
-  
-  gsm.Initialize();                                     // инициализация gsm модуля (включения, настройка) 
   
   attachInterrupt(0, ClickButton, FALLING);             // привязываем 0-е прерывание к функции ClickButton(). 
   interrupt = true;                                     // разрешаем обработку прырывания  
@@ -728,17 +728,20 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
     {               
       if (countPressBtn > 0)                            // если пользователь нажал на кнопку то установка на охрану прерывается
       {
-        countPressBtn = 0;
-        delay(200);                                     // пайза, что б не сливались звуковые сигналы нажатия кнопки и установки режима
-        Set_OutOfContrMod(0);
+        countPressBtn = 0;        
+        digitalWrite(OnContrLED, LOW);  
+        digitalWrite(OutOfContrLED, HIGH);
         return false;
       }        
       if (i < (timeWait * 0.7))                         // первых 70% паузы моргаем медленным темпом
-        BlinkLEDSpecer(OnContrLED, 0, 500, 500);              
+      {
+        BlinkLEDSpecer(OnContrLED, 0, 500, 0);               
+        if (countPressBtn == 0) delay(500);
+      }
       else                                              // последних 30% паузы ускоряем темп
       {
         BlinkLEDSpecer(OnContrLED, 0, 250, 250); 
-        BlinkLEDSpecer(OnContrLED, 0, 250, 250);              
+        if (countPressBtn == 0) BlinkLEDSpecer(OnContrLED, 0, 250, 250);              
       }         
     }
   }
