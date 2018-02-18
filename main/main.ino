@@ -75,6 +75,7 @@ const char GasCurr[]             PROGMEM = {"GasCurr: "};
 const char tension[]             PROGMEM = {"Tension: "};
 const char infOnContr[]          PROGMEM = {"InfOnContr: "};
 const char sirenoff[]            PROGMEM = {"Siren Off: "};
+const char gasOnlyOnContr[]      PROGMEM = {"GasOnlyOnContr: "};
 
 const char SirenEnabled[]        PROGMEM = {"SirenEnabled: "};
 const char PIR1Siren[]           PROGMEM = {"PIR1Siren: "};
@@ -163,8 +164,10 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define E_delaySiren     4                      // адресс для сохранения длины паузы между срабатыванием датяиков и включением сирены (в сикундах)
 #define E_delayOnContr   5                      // время паузы от нажатия кнопки до установки режима охраны (в сикундах)
 #define E_intervalVcc    6                      // интервал между измерениями питания (в сикундах)
-#define E_infOnContr     7                      // адресс для сохранения режима оповещение о постановки на охрану через смс
-#define E_gasCalibr      8                      // калибровка датчика газа. Значение от датчика, которое воспринимать как 0 (отсутствие утечки газа)
+#define E_infOnContr     7                      // адресс для хранения режима оповещение о постановки на охрану через смс
+#define E_gasOnlyOnContr 8                      // адресс для хранения режима работы датчика газа (выключать ли датчик газа в режиме не на охране)  
+#define E_gasCalibr      9                      // калибровка датчика газа. Значение от датчика, которое воспринимать как 0 (отсутствие утечки газа)
+
 
 #define E_SirenEnabled   23
 #define E_PIR1Siren      24                     
@@ -305,6 +308,7 @@ void setup()
         EEPROM.write(E_BtnBalance, 3);
         EEPROM.write(E_BtnSkimpySiren, 4);        
         EEPROM.write(E_BtnOutOfContr, 0);
+        EEPROM.write(E_gasOnlyOnContr, 0);            // режим при котором датчик газа включен во всех режимах системы (не только в режиме на охране)
         WriteIntEEPROM(E_gasCalibr, 1023);                    
         EEPROM.write(E_SirenEnabled, 1);              // сирена по умолчанию включена
         EEPROM.write(E_PIR1Siren, 1);                 // сирена при срабатывании датчика движения 1 по умолчанию включена
@@ -691,6 +695,12 @@ void ClickButton()
 bool Set_OutOfContrMod(bool infOnContr)                 // метод для снятие с охраны
 { 
   mode = OutOfContrMod;                                 // снимаем с охраны
+
+  if (EEPROM.read(E_gasOnlyOnContr) == 1)               // если включен режим включения датчика газа только в режиме на охране
+    if (!inTestMod)                                     // если не режим тестирования
+      if (EEPROM.read(E_IsGasEnabled) == 1)             // и датчик газа активирован в системе
+        SenGas.TurnOffPower();                          // то выключаем датчик газа
+  
   interrupt = true;                                     // разрешаем обрабатывать прерывания
   digitalWrite(OnContrLED, LOW);
   if (!SenGas.IsTrig)
@@ -749,6 +759,11 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
   //установка на охрану     
   mode = OnContrMod;                                    // ставим на охрану 
 
+  if (EEPROM.read(E_gasOnlyOnContr) == 1)               // если включен режим включения датчика газа только в режиме на охране
+    if (!inTestMod)                                     // если не режим тестирования
+      if (EEPROM.read(E_IsGasEnabled) == 1)             // и датчик газа активирован в системе
+        SenGas.TurnOnPower();                           // то включаем датчик газа
+    
   if (!inTestMod && EEPROM.read(E_BtnOutOfContr)==0)    // если не включен режим тестирования и отключена возможность снимать с охраны кнопкой 
     interrupt = false;                                  // то запрещаем обрабатывать прерывания
   
@@ -1103,9 +1118,9 @@ void ExecSmsCommand()
       if (gsm.SmsText.startsWith(GetStrFromFlash(delaySiren)))                                                           // если обнаружена команда с основными настройками устройства (сетинги)
       {
         PlayTone(sysTone, smsSpecDur);                        
-        String sConf[4];
+        String sConf[6];
         String str = gsm.SmsText;                
-        for(byte i = 0; i < 5; i++)
+        for(byte i = 0; i < 6; i++)
         {
           int beginStr = str.indexOf('\'');
           str = str.substring(beginStr + 1);
@@ -1118,7 +1133,20 @@ void ExecSmsCommand()
               EEPROM.write(E_infOnContr, false);      
             else if (str.substring(0, duration) == "on")
               EEPROM.write(E_infOnContr, true); 
-          }                        
+          }
+          else if (i == 5)
+          {
+            if (str.substring(0, duration) == "off")
+            {
+              EEPROM.write(E_gasOnlyOnContr, false);
+              if (EEPROM.read(E_IsGasEnabled)) SenGas.TurnOnPower();                                                      // если датчик газа активирован то включаем его
+            }
+            else if (str.substring(0, duration) == "on")
+            {
+              EEPROM.write(E_gasOnlyOnContr, true);               
+              if (mode == OutOfContrMod) SenGas.TurnOffPower();                                                           // если режим не на охране то выключаем датчик газа
+            }
+          }   
           str = str.substring(duration + 1);         
         }        
         EEPROM.write(E_delaySiren, (byte)sConf[0].toInt());
@@ -1271,7 +1299,9 @@ void SendInfSMS_Setting()
      + GetStrFromFlash(delOnContr)           + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
      + GetStrFromFlash(intervalVcc)          + "'" + String(EEPROM.read(E_intervalVcc)) + "'" + GetStrFromFlash(sec) + "\n"
      + GetStrFromFlash(balanceUssd)          + "'" + ReadStrEEPROM(E_BalanceUssd) + "'" + "\n" 
-     + GetStrFromFlash(infOnContr)           + "'" + String((EEPROM.read(E_infOnContr)) ? "on" : "off") + "'"; 
+     + GetStrFromFlash(infOnContr)           + "'" + String((EEPROM.read(E_infOnContr)) ? "on" : "off") + "'" + "\n" 
+     + GetStrFromFlash(gasOnlyOnContr)       + "'" + String((EEPROM.read(E_gasOnlyOnContr)) ? "on" : "off") + "'";
+           
   SendSms(&msg, &gsm.SmsNumber);
 }
 
