@@ -624,39 +624,46 @@ void loop()
   }                                                                                       // end OnContrMod
 
   // обработка датчика газа/дыма
-  if (SenGas.PrTrigTime != 0 && (GetElapsed(SenGas.PrTrigTime)/1000) > 43200)             // если время последнего срабатывания больше чем 12 часов то обнуляем его 
-    SenGas.PrTrigTime = 0;
-
-  if (EEPROM.read(E_IsGasEnabled))                                                        // если датчик газа/дыма включен
+  if (SenGas.IsTurnOn)                                                                    // если датчик газа/дыма включен
   {
-    if (!SenGas.IsReady && GetElapsed(SenGas.PrGasTurnOn) > timeGasReady)                 // если прошло достаточно времени для прогревания датчика газа/дыма после включения устройства то указываем что он готов к опрашиванию.     
-      SenGas.IsReady = true;                                                              // то указываем что он готов к опрашиванию.          
+    // обработка датчика газа/дыма
+    if (SenGas.PrTrigTime != 0) 
+      if (GetElapsed(SenGas.PrTrigTime)/1000 > 43200)                                     // если время последнего срабатывания больше чем 12 часов то обнуляем его 
+        SenGas.PrTrigTime = 0;
+    
+    if (!SenGas.IsReady)
+      if (GetElapsed(SenGas.PrGasTurnOn) > timeGasReady)                                  // если прошло достаточно времени для прогревания датчика газа/дыма после включения устройства то указываем что он готов к опрашиванию.     
+        SenGas.IsReady = true;                                                            // то указываем что он готов к опрашиванию.          
         
-    if (SenGas.IsReady && (GetElapsed(SenGas.PrCheckGas) > timeCheckGas || SenGas.PrCheckGas == 0))       // если датчик газа прогрет и готов к опрашиванию то проверяем сколько прошло времени после последнего измирения датчика газа    
+    if (SenGas.IsReady) 
     { 
-      GasPct = SenGas.GetPctFromNorm();                                                   // сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения 
-      SenGas.PrCheckGas = millis(); 
-    }
-    if (GasPct > deltaGasPct)                                                             // если отклонение больше заданой дельты то сигнализируем о прывышении уровня газа/дыма 
-    {       
-      StartAlarm();                                                                       // сигнализируем светодиодом о тревоге
-      if (!SenGas.IsTrig && inTestMod) PlayTone(sysTone, 100);                            // если включен режим тестирование и это первое срабатывание то сигнализируем спикером  
-      SenGas.IsTrig = true;
-      SenGas.PrTrigTime = millis();                                                       // запоминаем когда сработал датчик для отображения статуса датчика
-      if (GetElapsed(SenGas.PrAlarmTime) > timeSmsGas || SenGas.PrAlarmTime == 0)         // если выдержена пауза после последнего звонка и отправки смс 
-        SenGas.IsAlarm = true;
-    }
-    else SenGas.IsTrig = false;    
+      if (GetElapsed(SenGas.PrCheckGas) > timeCheckGas || SenGas.PrCheckGas == 0)         // если датчик газа прогрет и готов к опрашиванию то проверяем сколько прошло времени после последнего измирения датчика газа    
+      { 
+        GasPct = SenGas.GetPctFromNorm();                                                 // сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения 
+        SenGas.PrCheckGas = millis(); 
+      }
+    
+      if (GasPct > deltaGasPct)                                                             // если отклонение больше заданой дельты то сигнализируем о прывышении уровня газа/дыма 
+      {       
+        StartAlarm();                                                                       // сигнализируем светодиодом о тревоге
+        if (!SenGas.IsTrig && inTestMod) PlayTone(sysTone, 100);                            // если включен режим тестирование и это первое срабатывание то сигнализируем спикером  
+        SenGas.IsTrig = true;
+        SenGas.PrTrigTime = millis();                                                       // запоминаем когда сработал датчик для отображения статуса датчика
+        if (GetElapsed(SenGas.PrAlarmTime) > timeSmsGas || SenGas.PrAlarmTime == 0)         // если выдержена пауза после последнего звонка и отправки смс 
+          SenGas.IsAlarm = true;
+      }
+      else SenGas.IsTrig = false;    
   
-    if (SenGas.IsAlarm)                                                                      
-    {                                                                 
-      if (gsm.IsAvailable())              
-      {  
-        if (!inTestMod)  
-          gsm.SendSms(&(GetStrFromFlash(sms_Gas)+ "\n" + GetStrFromFlash(GasVal) + String(GasPct) + "%"), &NumberRead(E_NUM1_OutOfContr));     // если не включен режим тестирование отправляем смс
-        gsm.Call(&NumberRead(E_NUM1_OutOfContr));                                        // сигнализируем звонком о сработке датчика
-        SenGas.PrAlarmTime = millis();
-        SenGas.IsAlarm = false;
+      if (SenGas.IsAlarm)                                                                      
+      {                                                                 
+        if (gsm.IsAvailable())              
+        {  
+          if (!inTestMod)  
+            gsm.SendSms(&(GetStrFromFlash(sms_Gas)+ "\n" + GetStrFromFlash(GasVal) + String(GasPct) + "%"), &NumberRead(E_NUM1_OutOfContr));     // если не включен режим тестирование отправляем смс
+          gsm.Call(&NumberRead(E_NUM1_OutOfContr));                                        // сигнализируем звонком о сработке датчика
+          SenGas.PrAlarmTime = millis();
+          SenGas.IsAlarm = false;
+        }
       }
     }
   }
