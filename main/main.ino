@@ -138,6 +138,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define sysTone 98                              // системный тон спикера
 #define clickTone 98                            // тон спикера при нажатии на кнопку
 #define smsSpecDur 100                          // длительность сигнала при получении смс команд и отправки ответа 
+#define poweSpecDur 100                         // длительность сигнала при обнаружении перехода на питание от батареии или от сети
 
 //Power control 
 #define pinMeasureVcc A0                        // нога чтения типа питания (БП или батарея)
@@ -819,16 +820,24 @@ void StopAlarm()
   isAlarm = false;  
 }
 
-void PowerControl()                                                                       // метод для обработки событий питания системы (переключение на батарею или на сетевое)
+void PowerControl()                                                                           // метод для обработки событий питания системы (переключение на батарею или на сетевое)
 {
   powCtr.Refresh();    
   digitalWrite(BattPowerLED, powCtr.IsBattPower);
-        
-  if (!inTestMod && !powCtr.IsBattPowerPrevious && powCtr.IsBattPower)                    // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v) и если не включен режим тестирования
-    SendSms(&GetStrFromFlash(sms_BattPower), &NumberRead(E_NUM1_OutOfContr));             // отправляем смс о переходе на резервное питание         
-   
-  if (!inTestMod && powCtr.IsBattPowerPrevious && !powCtr.IsBattPower)                    // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования  
-    SendSms(&GetStrFromFlash(sms_NetPower), &NumberRead(E_NUM1_OutOfContr));              // отправляем смс о возобновлении  сетевое питание 220v 
+
+  if (!powCtr.IsBattPowerPrevious && powCtr.IsBattPower)                                      // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v)
+  {
+    PlayTone(sysTone, poweSpecDur);                                                           // сигнализируем спикером о переходе на резервное питание
+    if (!inTestMod)                                                                           // если не включен режим тестирования
+      gsm.SendSms(&GetStrFromFlash(sms_BattPower), &NumberRead(E_NUM1_OutOfContr));           // отправляем смс о переходе на резервное питание            
+  }
+  
+  if (powCtr.IsBattPowerPrevious && !powCtr.IsBattPower)                                      // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования  
+  {
+    PlayTone(sysTone, poweSpecDur);                                                           // сигнализируем спикером о возобновлении питания от сетевое 220v 
+    if(!inTestMod)                                                                            // если не включен режим тестирования
+      gsm.SendSms(&GetStrFromFlash(sms_NetPower), &NumberRead(E_NUM1_OutOfContr));            // отправляем смс о возобновлении питания от сетевое 220v 
+  }
 }
 
 void SkimpySiren()                                                                        // метод для кратковременного включения сирены (для теститования сирены)
