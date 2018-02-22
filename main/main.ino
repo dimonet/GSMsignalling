@@ -630,13 +630,8 @@ void loop()
   if (EEPROM.read(E_IsGasEnabled))                                                        // если датчик газа/дыма включен
   {
     if (!SenGas.IsReady && GetElapsed(SenGas.PrGasTurnOn) > timeGasReady)                 // если прошло достаточно времени для прогревания датчика газа/дыма после включения устройства то указываем что он готов к опрашиванию.     
-    {
-      SenGas.IsReady = true;                                                              // то указываем что он готов к опрашиванию.    
-      PlayTone(sysTone, 75);                                                              // сигнализируем спикером (двойным сигналом) о готовности к опрашиванию датчика газа/дыма
-      delay(75);
-      PlayTone(sysTone, 75);                                                                       
-    }
-    
+      SenGas.IsReady = true;                                                              // то указываем что он готов к опрашиванию.          
+        
     if (SenGas.IsReady && (GetElapsed(SenGas.PrCheckGas) > timeCheckGas || SenGas.PrCheckGas == 0))       // если датчик газа прогрет и готов к опрашиванию то проверяем сколько прошло времени после последнего измирения датчика газа    
     { 
       GasPct = SenGas.GetPctFromNorm();                                                   // сохраняем отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения 
@@ -827,7 +822,7 @@ void PowerControl()                                                             
 
   if (!powCtr.IsBattPowerPrevious && powCtr.IsBattPower)                                      // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v)
   {
-    if (mode != OnContrMod || !inTestMod)                                                     // если не в режиме охраны или включен режим тестирования 
+    if (mode != OnContrMod || inTestMod)                                                      // если не в режиме охраны или включен режим тестирования 
       PlayTone(sysTone, powSpecDur);                                                          // то сигнализируем спикером о переходе на резервное питание
     if (!inTestMod)                                                                           // если не включен режим тестирования
       gsm.SendSms(&GetStrFromFlash(sms_BattPower), &NumberRead(E_NUM1_OutOfContr));           // отправляем смс о переходе на резервное питание            
@@ -835,7 +830,7 @@ void PowerControl()                                                             
   
   if (powCtr.IsBattPowerPrevious && !powCtr.IsBattPower)                                      // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования  
   {
-    if (mode != OnContrMod || !inTestMod)                                                     // если не в режиме охраны или включен режим тестирования 
+    if (mode != OnContrMod || inTestMod)                                                      // если не в режиме охраны или включен режим тестирования 
       PlayTone(sysTone, powSpecDur);                                                          // то сигнализируем спикером о возобновлении питания от сетевое 220v 
     if(!inTestMod)                                                                            // если не включен режим тестирования
       gsm.SendSms(&GetStrFromFlash(sms_NetPower), &NumberRead(E_NUM1_OutOfContr));            // отправляем смс о возобновлении питания от сетевое 220v 
