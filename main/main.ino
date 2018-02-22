@@ -827,14 +827,16 @@ void PowerControl()                                                             
 
   if (!powCtr.IsBattPowerPrevious && powCtr.IsBattPower)                                      // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v)
   {
-    PlayTone(sysTone, powSpecDur);                                                            // сигнализируем спикером о переходе на резервное питание
+    if (mode != OnContrMod || !inTestMod)                                                     // если не в режиме охраны или включен режим тестирования 
+      PlayTone(sysTone, powSpecDur);                                                          // то сигнализируем спикером о переходе на резервное питание
     if (!inTestMod)                                                                           // если не включен режим тестирования
       gsm.SendSms(&GetStrFromFlash(sms_BattPower), &NumberRead(E_NUM1_OutOfContr));           // отправляем смс о переходе на резервное питание            
   }
   
   if (powCtr.IsBattPowerPrevious && !powCtr.IsBattPower)                                      // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования  
   {
-    PlayTone(sysTone, powSpecDur);                                                            // сигнализируем спикером о возобновлении питания от сетевое 220v 
+    if (mode != OnContrMod || !inTestMod)                                                     // если не в режиме охраны или включен режим тестирования 
+      PlayTone(sysTone, powSpecDur);                                                          // то сигнализируем спикером о возобновлении питания от сетевое 220v 
     if(!inTestMod)                                                                            // если не включен режим тестирования
       gsm.SendSms(&GetStrFromFlash(sms_NetPower), &NumberRead(E_NUM1_OutOfContr));            // отправляем смс о возобновлении питания от сетевое 220v 
   }
