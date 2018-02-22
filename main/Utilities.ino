@@ -7,6 +7,8 @@ unsigned long GetElapsed(unsigned long prEventMillis)
 
 void PlayTone(byte tone, unsigned int duration) 
 {  
+  if (!isAlarm) digitalWrite(AlarmLED, LOW);                                                                            // если нет необходимости сигнализировать о тревоге то выключаем светодиод, который может моргать если включен тестовый режим
+  if (mode != OnContrMod) digitalWrite(boardLED, LOW);
   for (unsigned long i = 0; i < duration * 1000L; i += tone * 2) 
   {
     digitalWrite(SpecerPin, HIGH);
