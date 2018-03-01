@@ -29,7 +29,7 @@ const char sms_OutOfContrMod[]   PROGMEM = {"Command: Control mode is turned off
 const char sms_RedirectOn[]      PROGMEM = {"Command: SMS redirection is turned on."};                              // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
 const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection is turned off."};                             // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
 const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren was turned on."};                                // выполнена команда для коротковременного включения сирены
-const char sms_WasRebooted[]     PROGMEM = {"Command: Device was rebooted."};                                       // выполнена команда для коротковременного включения сирены
+const char sms_WasRebooted[]     PROGMEM = {"System: Device was rebooted."};                                        // выполнена команда для коротковременного включения сирены
 const char sms_WrongUssd[]       PROGMEM = {"Command: Wrong USSD code."};                                           // сообщение о неправельной USSD коде
 const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format should be next:\nSendSMS 'number' 'text'"};            // выполнена команда для отправки смс другому абоненту
 const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};                                              // выполнена команда для отправки смс другому абоненту
@@ -117,10 +117,11 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define  timeTestBlinkLed     400                          // время мерцания светодиода при включеном режима тестирования
 #define  timeRejectCall       3000                         // время пауза перед збросом звонка
 #define  timeCheckGas         2000                         // время паузы между измирениями датчика газа/дыма (милисекунды)
-#define  timeGasReady         180000                       // время паузы для прогрева датчика газа/дыма после включения устройства или датчика (милисекунды) (3 мин.)
+#define  timeGasReady         300000                       // время паузы для прогрева датчика газа/дыма после включения устройства или датчика (милисекунды) (3 мин.)
 #define  timeTestBoardLed     3000                         // время мерцания внутреннего светодиода на плате при включеном режима тестирования
 #define  timeTrigSensor       1000                         // во избежании ложного срабатывании датчика тревога включается только если датчик срабатывает больше чем указанное время (импл. только для расстяжки)
 #define  timeCheckGsm         3600000                      // время проверки gsm модуля (раз в 1 час). Если обнаружено что gsm не отвечает или потерял сеть то устройство перезагружается автоматически
+
 
 //// КОНСТАНТЫ ДЛЯ ПИНОВ /////
 #define SpecerPin 8
@@ -384,7 +385,7 @@ void loop()
     prRefreshVcc = millis();
   }   
 
-  if (GetElapsed(prCheckGsm) > timeCheckGsm || prCheckGsm == 0)                             // проверяем сколько прошло времени после последней проверки gsm модуля (отвечает ли он, в сети ли он). 
+  if (GetElapsed(prCheckGsm) > timeCheckGsm)                                                // проверяем сколько прошло времени после последней проверки gsm модуля (отвечает ли он, в сети ли он). 
   {   
     if (!gsm.isNetworkRegistered())
     {      

@@ -3,7 +3,7 @@
 
 #define serial Serial                           // если аппаратный в UNO
 
-#define AVAILABLE_TIMEOUT  20000                // врем ожидание готовности модема (милсек)  
+#define AVAILABLE_TIMEOUT  20                   // врем ожидание готовности модема (сек)  
 #define SMS_LIMIT          150                  // максимальное куличество символов в смс (большео лимита все символы обрезается)
 
 const char ATCPAS[]      PROGMEM = {"AT+CPAS"};
@@ -78,6 +78,7 @@ bool MyGSM::isNetworkRegistered()
 bool MyGSM::IsAvailable()
 {
   serial.println(GetStrFromFlash(ATCPAS));           //AT+CPAS         // спрашиваем состояние модема
+  delay(10);
   return (serial.find("+CPAS: 0")) ? true :  false;  //+CPAS: 0        // возвращаем true - модуль в "готовности", иначе модуль занят и возвращаем false                                                
 }
 
@@ -93,7 +94,7 @@ bool MyGSM::WaitingAvailable()
       return true;                                                    // выходим из цикла возвращая true - модуль в "готовности"
     }
     delay(10);
-    i += 10;
+    i += 1;
   }
   return false;                                                       // если gsm так и не ответил за заданный таймаут то возвращаем false - модуль не готов к работе
 }
