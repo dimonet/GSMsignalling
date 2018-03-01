@@ -55,9 +55,8 @@ void MyGSM::Initialize()
   delay(500); 
     
   while(1)                                                            // ждем подключение модема к сети
-  {                             
-    serial.println(GetStrFromFlash(ATCOPS));   //AT+COPS? 
-    if (serial.find("+COPS: 0"))    
+  { 
+    if (isNetworkRegistered())    
     {
       BlinkLED(500, 150, 0);                                          // блымаем светодиодом 
       BlinkLED(150, 150, 200);                                        // блымаем светодиодом 
@@ -70,10 +69,15 @@ void MyGSM::Initialize()
 
 bool MyGSM::IsAvailable()
 {
-  serial.println(GetStrFromFlash(ATCPAS));     //AT+CPAS              // спрашиваем состояние модема
-  if (serial.find("+CPAS: 0"))                 //+CPAS: 0 
-    return true;                                                      // возвращаем true - модуль в "готовности"
-  else return false;                                                  // иначе модуль занят и возвращаем false
+  serial.println(GetStrFromFlash(ATCPAS));           //AT+CPAS         // спрашиваем состояние модема
+  return (serial.find("+CPAS: 0")) ? true :  false;  //+CPAS: 0        // возвращаем true - модуль в "готовности", иначе модуль занят и возвращаем false                                                
+}
+
+bool MyGSM::isNetworkRegistered()
+{
+  serial.println(GetStrFromFlash(ATCOPS));     //AT+COPS? 
+  delay(50);
+  return (serial.find("+COPS: 0")) ? true : false; 
 }
 
 // ожидание готовности gsm модуля

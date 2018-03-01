@@ -120,6 +120,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define  timeGasReady         180000                       // время паузы для прогрева датчика газа/дыма после включения устройства или датчика (милисекунды) (3 мин.)
 #define  timeTestBoardLed     3000                         // время мерцания внутреннего светодиода на плате при включеном режима тестирования
 #define  timeTrigSensor       1000                         // во избежании ложного срабатывании датчика тревога включается только если датчик срабатывает больше чем указанное время (импл. только для расстяжки)
+#define  timeCheckGsm         3600000                      // время проверки gsm модуля (раз в 1 час). Если обнаружено что gsm не отвечает или потерял сеть то устройство перезагружается автоматически
 
 //// КОНСТАНТЫ ДЛЯ ПИНОВ /////
 #define SpecerPin 8
@@ -235,6 +236,7 @@ unsigned long prLastPressBtn = 0;               // время последнег
 unsigned long prTestBlinkLed = 0;               // время мерцания светодиода при включеном режима тестирования (милисекунды)
 unsigned long prRefreshVcc = 0;                 // время последнего измирения питания (милисекунды)
 unsigned long prReqSirena = 0;                  // время последнего обнаружения, что необходимо включать сирену
+unsigned long prCheckGsm = 0;                   // время последней проверки gsm модуля (отвечает ли он, в сети ли он). 
 
 unsigned long intrVcc = 0;                      // интервал между измерениями питания
 
@@ -381,7 +383,16 @@ void loop()
     PowerControl();                                                                         // мониторим питание системы
     prRefreshVcc = millis();
   }   
-  
+
+  if (GetElapsed(prCheckGsm) > timeCheckGsm || prCheckGsm == 0)                             // проверяем сколько прошло времени после последней проверки gsm модуля (отвечает ли он, в сети ли он). 
+  {   
+    if (!gsm.isNetworkRegistered())
+    {      
+      RebootDevice(NumberRead(E_NUM1_OutOfContr));
+    }
+    prCheckGsm = millis();
+  }   
+
   gsm.Refresh();                                                                            // читаем сообщения от GSM модема   
 
   if(wasRebooted)
@@ -865,6 +876,14 @@ void InTestMod(bool state)
   EEPROM.write(E_inTestMod, inTestMod);                                                   // пишим режим тестирование датчиков в еепром    
 }
 
+void RebootDevice(String infphone)
+{
+  EEPROM.write(E_wasRebooted, true);                                                       // записываем статус, что устройство перезагружается        
+  WriteStrEEPROM(E_NUM_RebootAns, &infphone);                                              // то сохраняем номер на который необходимо будет отправить после перезагрузки сообщение о перезагрузке устройства 
+  gsm.Shutdown();                                                                          // выключаем gsm модуль
+  RebootFunc();      
+}
+
 // читаем смс и если доступна новая команда по смс то выполняем ее
 void ExecSmsCommand()
 { 
@@ -986,10 +1005,7 @@ void ExecSmsCommand()
       if (gsm.SmsText == GetStrFromFlash(reboot))                                        // если обнаружена смс команда для перезагрузки устройства
       {
         PlayTone(sysTone, smsSpecDur);
-        EEPROM.write(E_wasRebooted, true);                                               // записываем статус, что устройство перезагружается        
-        WriteStrEEPROM(E_NUM_RebootAns, &gsm.SmsNumber);                                 // то сохраняем номер на который необходимо будет отправить после перезагрузки сообщение о перезагрузке устройства 
-        gsm.Shutdown();                                                                  // выключаем gsm модуль
-        RebootFunc();                                                                    // вызываем Reboot arduino платы
+        RebootDevice(gsm.SmsNumber);
       }      
       else 
       if (gsm.SmsText == GetStrFromFlash(_status))                                       // если обнаружена смс команда для запроса статуса режимов и настроек устройства  
