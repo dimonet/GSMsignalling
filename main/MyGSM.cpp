@@ -3,8 +3,8 @@
 
 #define serial Serial                           // если аппаратный в UNO
 
-#define GSM_TIMEOUT 60000                       // врем ожидание готовности модема (милсек)  
-#define SMS_LIMIT   150                         // максимальное куличество символов в смс (большео лимита все символы обрезается)
+#define AVAILABLE_TIMEOUT  20000                // врем ожидание готовности модема (милсек)  
+#define SMS_LIMIT          150                  // максимальное куличество символов в смс (большео лимита все символы обрезается)
 
 const char ATCPAS[]      PROGMEM = {"AT+CPAS"};
 const char ATH0[]        PROGMEM = {"ATH0"};
@@ -67,24 +67,25 @@ void MyGSM::Initialize()
   }    
 }
 
+bool MyGSM::isNetworkRegistered()
+{
+  if (!WaitingAvailable()) return false;                                    // ждем готовности модема и если он не ответил за заданный таймаут то прырываем отправку смс 
+  serial.println(GetStrFromFlash(ATCOPS));     //AT+COPS? 
+  delay(10);
+  return (serial.find("+COPS: 0")) ? true : false;                      // выходим из цикла возвращая статус модуля  
+}
+
 bool MyGSM::IsAvailable()
 {
   serial.println(GetStrFromFlash(ATCPAS));           //AT+CPAS         // спрашиваем состояние модема
   return (serial.find("+CPAS: 0")) ? true :  false;  //+CPAS: 0        // возвращаем true - модуль в "готовности", иначе модуль занят и возвращаем false                                                
 }
 
-bool MyGSM::isNetworkRegistered()
-{
-  serial.println(GetStrFromFlash(ATCOPS));     //AT+COPS? 
-  delay(50);
-  return (serial.find("+COPS: 0")) ? true : false; 
-}
-
 // ожидание готовности gsm модуля
 bool MyGSM::WaitingAvailable()
 {
   int i = 0;   
-  while(i <= GSM_TIMEOUT)
+  while(i <= AVAILABLE_TIMEOUT)
   {  
     if (IsAvailable())                                                // спрашиваем состояние gsm модуля и если он в "готовности" 
     {
