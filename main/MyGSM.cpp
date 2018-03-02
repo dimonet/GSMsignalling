@@ -3,8 +3,8 @@
 
 #define serial Serial                           // если аппаратный в UNO
 
-#define GSM_TIMEOUT 60000                       // врем ожидание готовности модема (милсек)  
-#define SMS_LIMIT   150                         // максимальное куличество символов в смс (большео лимита все символы обрезается)
+#define AVAILABLE_TIMEOUT  20                   // врем ожидание готовности модема (сек)  
+#define SMS_LIMIT          150                  // максимальное куличество символов в смс (большео лимита все символы обрезается)
 
 const char ATCPAS[]      PROGMEM = {"AT+CPAS"};
 const char ATH0[]        PROGMEM = {"ATH0"};
@@ -55,9 +55,8 @@ void MyGSM::Initialize()
   delay(500); 
     
   while(1)                                                            // ждем подключение модема к сети
-  {                             
-    serial.println(GetStrFromFlash(ATCOPS));   //AT+COPS? 
-    if (serial.find("+COPS: 0"))    
+  { 
+    if (isNetworkRegistered())    
     {
       BlinkLED(500, 150, 0);                                          // блымаем светодиодом 
       BlinkLED(150, 150, 200);                                        // блымаем светодиодом 
@@ -68,19 +67,26 @@ void MyGSM::Initialize()
   }    
 }
 
+bool MyGSM::isNetworkRegistered()
+{
+  if (!WaitingAvailable()) return false;                                    // ждем готовности модема и если он не ответил за заданный таймаут то прырываем отправку смс 
+  serial.println(GetStrFromFlash(ATCOPS));     //AT+COPS? 
+  delay(10);
+  return (serial.find("+COPS: 0")) ? true : false;                      // выходим из цикла возвращая статус модуля  
+}
+
 bool MyGSM::IsAvailable()
 {
-  serial.println(GetStrFromFlash(ATCPAS));     //AT+CPAS              // спрашиваем состояние модема
-  if (serial.find("+CPAS: 0"))                 //+CPAS: 0 
-    return true;                                                      // возвращаем true - модуль в "готовности"
-  else return false;                                                  // иначе модуль занят и возвращаем false
+  serial.println(GetStrFromFlash(ATCPAS));           //AT+CPAS         // спрашиваем состояние модема
+  delay(10);
+  return (serial.find("+CPAS: 0")) ? true :  false;  //+CPAS: 0        // возвращаем true - модуль в "готовности", иначе модуль занят и возвращаем false                                                
 }
 
 // ожидание готовности gsm модуля
 bool MyGSM::WaitingAvailable()
 {
   int i = 0;   
-  while(i <= GSM_TIMEOUT)
+  while(i <= AVAILABLE_TIMEOUT)
   {  
     if (IsAvailable())                                                // спрашиваем состояние gsm модуля и если он в "готовности" 
     {
@@ -88,7 +94,7 @@ bool MyGSM::WaitingAvailable()
       return true;                                                    // выходим из цикла возвращая true - модуль в "готовности"
     }
     delay(10);
-    i += 10;
+    i += 1;
   }
   return false;                                                       // если gsm так и не ответил за заданный таймаут то возвращаем false - модуль не готов к работе
 }
