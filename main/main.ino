@@ -29,7 +29,7 @@ const char sms_OutOfContrMod[]   PROGMEM = {"Command: Control mode is turned off
 const char sms_RedirectOn[]      PROGMEM = {"Command: SMS redirection is turned on."};                              // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
 const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection is turned off."};                             // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
 const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren was turned on."};                                // выполнена команда для коротковременного включения сирены
-const char sms_WasRebooted[]     PROGMEM = {"Command: Device was rebooted."};                                       // выполнена команда для коротковременного включения сирены
+const char sms_WasRebooted[]     PROGMEM = {"System: Device was rebooted."};                                        // выполнена команда для коротковременного включения сирены
 const char sms_WrongUssd[]       PROGMEM = {"Command: Wrong USSD code."};                                           // сообщение о неправельной USSD коде
 const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format should be next:\nSendSMS 'number' 'text'"};            // выполнена команда для отправки смс другому абоненту
 const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};                                              // выполнена команда для отправки смс другому абоненту
@@ -117,9 +117,11 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define  timeTestBlinkLed     400                          // время мерцания светодиода при включеном режима тестирования
 #define  timeRejectCall       3000                         // время пауза перед збросом звонка
 #define  timeCheckGas         2000                         // время паузы между измирениями датчика газа/дыма (милисекунды)
-#define  timeGasReady         180000                       // время паузы для прогрева датчика газа/дыма после включения устройства или датчика (милисекунды) (3 мин.)
+#define  timeGasReady         300000                       // время паузы для прогрева датчика газа/дыма после включения устройства или датчика (милисекунды) (3 мин.)
 #define  timeTestBoardLed     3000                         // время мерцания внутреннего светодиода на плате при включеном режима тестирования
 #define  timeTrigSensor       1000                         // во избежании ложного срабатывании датчика тревога включается только если датчик срабатывает больше чем указанное время (импл. только для расстяжки)
+#define  timeCheckGsm         3600000                      // время проверки gsm модуля (раз в 1 час). Если обнаружено что gsm не отвечает или потерял сеть то устройство перезагружается автоматически
+
 
 //// КОНСТАНТЫ ДЛЯ ПИНОВ /////
 #define SpecerPin 8
@@ -235,6 +237,7 @@ unsigned long prLastPressBtn = 0;               // время последнег
 unsigned long prTestBlinkLed = 0;               // время мерцания светодиода при включеном режима тестирования (милисекунды)
 unsigned long prRefreshVcc = 0;                 // время последнего измирения питания (милисекунды)
 unsigned long prReqSirena = 0;                  // время последнего обнаружения, что необходимо включать сирену
+unsigned long prCheckGsm = 0;                   // время последней проверки gsm модуля (отвечает ли он, в сети ли он). 
 
 unsigned long intrVcc = 0;                      // интервал между измерениями питания
 
@@ -363,7 +366,13 @@ void setup()
   intrVcc = intrVcc * 1000;                             // конвертируем интервал между измерениями питания с сикунд в милисекунды
 
   // чтение конфигураций с EEPROM
-  if (EEPROM.read(E_mode) == OnContrMod) Set_OnContrMod(true);                              // читаем режим из еепром      
+  if (EEPROM.read(E_mode) == OnContrMod)                // читаем режим из еепром 
+  {
+    if (wasRebooted)                                    // если устройство запускается после аварийной перезагрузки
+      Set_OnContrMod(false);                            // то устанавливаем на охрану немедленно (без паузы перед установкой на охрану)
+    else                                                // если устройство запускается не после аварийной перезагрузки
+      Set_OnContrMod(true);                             // то устанавливаем на охрану с паузой перед установкой (что б была возможность отменить установку на охрану или покинуть помещение)
+  }
     else Set_OutOfContrMod(0);  
 }
 
@@ -375,7 +384,16 @@ void loop()
     PowerControl();                                                                         // мониторим питание системы
     prRefreshVcc = millis();
   }   
-  
+
+  if (GetElapsed(prCheckGsm) > timeCheckGsm)                                                // проверяем сколько прошло времени после последней проверки gsm модуля (отвечает ли он, в сети ли он). 
+  {   
+    if (!gsm.isNetworkRegistered())
+    {      
+      RebootDevice(NumberRead(E_NUM1_OutOfContr));
+    }
+    prCheckGsm = millis();
+  }   
+
   gsm.Refresh();                                                                            // читаем сообщения от GSM модема   
 
   if(wasRebooted)
@@ -859,6 +877,14 @@ void InTestMod(bool state)
   EEPROM.write(E_inTestMod, inTestMod);                                                   // пишим режим тестирование датчиков в еепром    
 }
 
+void RebootDevice(String infphone)
+{
+  EEPROM.write(E_wasRebooted, true);                                                       // записываем статус, что устройство перезагружается        
+  WriteStrEEPROM(E_NUM_RebootAns, &infphone);                                              // то сохраняем номер на который необходимо будет отправить после перезагрузки сообщение о перезагрузке устройства 
+  gsm.Shutdown();                                                                          // выключаем gsm модуль
+  RebootFunc();      
+}
+
 // читаем смс и если доступна новая команда по смс то выполняем ее
 void ExecSmsCommand()
 { 
@@ -980,10 +1006,7 @@ void ExecSmsCommand()
       if (gsm.SmsText == GetStrFromFlash(reboot))                                        // если обнаружена смс команда для перезагрузки устройства
       {
         PlayTone(sysTone, smsSpecDur);
-        EEPROM.write(E_wasRebooted, true);                                               // записываем статус, что устройство перезагружается        
-        WriteStrEEPROM(E_NUM_RebootAns, &gsm.SmsNumber);                                 // то сохраняем номер на который необходимо будет отправить после перезагрузки сообщение о перезагрузке устройства 
-        gsm.Shutdown();                                                                  // выключаем gsm модуль
-        RebootFunc();                                                                    // вызываем Reboot arduino платы
+        RebootDevice(gsm.SmsNumber);
       }      
       else 
       if (gsm.SmsText == GetStrFromFlash(_status))                                       // если обнаружена смс команда для запроса статуса режимов и настроек устройства  
