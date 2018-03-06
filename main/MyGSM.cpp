@@ -175,7 +175,7 @@ void MyGSM::Refresh()
         {
           BlinkLED(0, 250, 0);                                     // сигнализируем об этом 
           NewSms = true;
-          SetString(&currStr, &SmsNumber);                                                           
+          SetString(&currStr, &SmsNumber, '\"', '\"');                                                           
           strCount = 1;
         }
         else
@@ -183,7 +183,7 @@ void MyGSM::Refresh()
         {
           BlinkLED(0, 250, 0);                                     // сигнализируем об этом
           NewUssd = true;         
-          SetString(&currStr, &UssdText);                    
+          SetString(&currStr, &UssdText, '\"', '\"');                    
         }         
       }
       else
@@ -203,7 +203,7 @@ void MyGSM::Refresh()
       {
         if (NewRing)                                               // если входящий звонок
         {
-         SetString(&currStr, &RingNumber);                               
+         SetString(&currStr, &RingNumber, '\"', '\"');                               
         }                 
       }        
     currStr = "";    
@@ -223,11 +223,11 @@ void MyGSM::Refresh()
   }    
 }
 
-void MyGSM::SetString(String *source, String *target)
+void MyGSM::SetString(String *source, String *target, char firstSymb, char lastSymb)
 {
-  byte beginStr = source->indexOf('\"');
+  byte beginStr = source->indexOf(firstSymb);
   *target = source->substring(beginStr + 1);
-  byte duration = target->indexOf('\"');  
+  byte duration = target->indexOf(lastSymb);  
   if (duration > 0)
     *target = target->substring(0, duration - 1);                  // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
   if (target->length() > SMS_LIMIT)
