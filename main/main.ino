@@ -1017,6 +1017,7 @@ void ExecSmsCommand()
                    + GetStrFromFlash(redirSms)         + String((EEPROM.read(E_isRedirectSms)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "\n"
                    + GetStrFromFlash(power)            + ((powCtr.IsBattPower) ? "battery" : "network") + "\n"
                    + GetStrFromFlash(delSiren)         + String(EEPROM.read(E_delaySiren)) + GetStrFromFlash(sec);
+                   + "Signal: "                        + String(gsm.GetSignalStrength()) + "%";
         
         if (!SirEnabled)
           msg = msg + "\n" + GetStrFromFlash(sirenoff);

@@ -24,6 +24,7 @@ class MyGSM
     void Shutdown();                                // выключения gsm модула (может использоваться при перезагрузке всего устройства)
     bool IsAvailable();                             // оправшивает готовность gsm модуля (возвращает true если модуль не занят)
     bool isNetworkRegistered();                     // проверяет зарегистрирован ли модуль в сети (готов ли модуль к работе)
+    int GetSignalStrength();                        // возвращает уровень сигнала
     
   private:
     bool WaitingAvailable();                        // ожидание готовности gsm модуля
@@ -32,5 +33,6 @@ class MyGSM
     byte _gsmLED;
     byte _boardLED;
     byte _pinBOOT;                                   // нога BOOT или K на модеме   
+    String _sigStrength;
     String GetStrFromFlash(char* addr);    
 };

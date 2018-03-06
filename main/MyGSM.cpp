@@ -11,8 +11,10 @@ const char ATH0[]        PROGMEM = {"ATH0"};
 const char RING[]        PROGMEM = {"RING"};
 const char CMT[]         PROGMEM = {"+CMT"};
 const char CUSD[]        PROGMEM = {"+CUSD"};
+const char CSQ[]         PROGMEM = {"+CSQ"};
 const char ATCPWROFF[]   PROGMEM = {"AT+CPWROFF"};
 const char ATCOPS[]      PROGMEM = {"AT+COPS?"};
+const char ATCSQ[]       PROGMEM = {"AT+CSQ"}; 
 
 MyGSM::MyGSM(byte gsmLED, byte boardLED, byte pinBOOT)
 {
@@ -184,6 +186,11 @@ void MyGSM::Refresh()
           BlinkLED(0, 250, 0);                                     // сигнализируем об этом
           NewUssd = true;         
           SetString(&currStr, &UssdText, '\"', '\"');                    
+        }
+        else 
+        if (currStr.startsWith(GetStrFromFlash(CSQ)))  //+CSQ      // если ответ на запрос об уровне сигнала
+        {
+          SetString(&currStr, &_sigStrength, ' ', ',');                 
         }         
       }
       else
@@ -276,5 +283,14 @@ String MyGSM::GetStrFromFlash(char* addr)
     buffstr += String(currSymb);
   }
   return buffstr;
+}
+
+int MyGSM::GetSignalStrength()
+{
+  if (!WaitingAvailable()) return 0;                                    // ждем готовности модема и если он не ответил за заданный таймаут то прырываем выполнения метода 
+  serial.println(GetStrFromFlash(ATCSQ));     //ATCSQ 
+  delay(10);  
+  Refresh();
+  return round((_sigStrength.toFloat()/31)*100);
 }
 ;
