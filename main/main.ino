@@ -67,6 +67,7 @@ const char test[]                PROGMEM = {"Test mode: "};
 const char redirSms[]            PROGMEM = {"Redirect SMS: "}; 
 const char power[]               PROGMEM = {"Power: "}; 
 const char delSiren[]            PROGMEM = {"DelaySiren: "}; 
+const char sign[]                PROGMEM = {"Signal: "}; 
 const char PIR1[]                PROGMEM = {"PIR1: "}; 
 const char PIR2[]                PROGMEM = {"PIR2: "};
 const char Gas[]                 PROGMEM = {"Gas: "}; 
@@ -371,7 +372,9 @@ void setup()
     if (wasRebooted)                                    // если устройство запускается после аварийной перезагрузки
       Set_OnContrMod(false);                            // то устанавливаем на охрану немедленно (без паузы перед установкой на охрану)
     else                                                // если устройство запускается не после аварийной перезагрузки
-      Set_OnContrMod(true);                             // то устанавливаем на охрану с паузой перед установкой (что б была возможность отменить установку на охрану или покинуть помещение)
+      if (!Set_OnContrMod(true))                        // то устанавливаем на охрану с паузой перед установкой (что б была возможность отменить установку на охрану или покинуть помещение)
+        Set_OutOfContrMod(0);                           // если установка на охрану прервана то устанавливаем режим Не на охране
+      
   }
     else Set_OutOfContrMod(0);  
 }
@@ -744,7 +747,7 @@ bool Set_OutOfContrMod(bool infOnContr)                 // метод для с�
   gsm.RejectCall();                                     // сбрасываем вызов  
   
   if (!inTestMod && infOnContr)
-    SendSms(&GetStrFromFlash(sms_InfOnContr), &NumberRead(E_NUM1_OutOfContr));  // отправляем смс о завершении;
+    SendSms(&GetStrFromFlash(sms_InfOnContr), &NumberRead(E_NUM1_OutOfContr));  // отправляем смс о снятии с охраны;
   return true;
 }
 
@@ -1016,8 +1019,8 @@ void ExecSmsCommand()
                    + GetStrFromFlash(test)             + String((inTestMod) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "\n" 
                    + GetStrFromFlash(redirSms)         + String((EEPROM.read(E_isRedirectSms)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "\n"
                    + GetStrFromFlash(power)            + ((powCtr.IsBattPower) ? "battery" : "network") + "\n"
-                   + GetStrFromFlash(delSiren)         + String(EEPROM.read(E_delaySiren)) + GetStrFromFlash(sec);
-                   + "Signal: "                        + String(gsm.GetSignalStrength()) + "%";
+                   + GetStrFromFlash(delSiren)         + String(EEPROM.read(E_delaySiren)) + GetStrFromFlash(sec) + "\n"
+                   + GetStrFromFlash(sign)             + String(gsm.GetSignalStrength()) + "%";
         
         if (!SirEnabled)
           msg = msg + "\n" + GetStrFromFlash(sirenoff);
