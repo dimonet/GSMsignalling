@@ -21,14 +21,15 @@ const char sms_BattPower[]       PROGMEM = {"POWER: Battery is used for powering
 const char sms_NetPower[]        PROGMEM = {"POWER: Network power has been restored."};                             // текст смс для оповещения о том, что сетевое питание возобновлено
 
 const char sms_ErrorCommand[]    PROGMEM = {"SendSMS,\nBalance,\nTestOn(Off),\nControlOn(Off),\nRedirectOn(Off),\nSkimpy,\nStatus,\nReboot,\nButton,\nSetting,\nSensor,\nSiren,\nOutOfContr,\nOnContr,\nSmsCommand."};  // смс команда не распознана
-const char sms_InfOnContr[]      PROGMEM = {"Inform: Control mode was turned off."};                                // информирование о снятии с охраны
-const char sms_TestModOn[]       PROGMEM = {"Command: Test mode is turned on."};                                    // выполнена команда для включения тестового режима для тестирования датчиков
-const char sms_TestModOff[]      PROGMEM = {"Command: Test mode is turned off."};                                   // выполнена команда для выключения тестового режима для тестирования датчиков
-const char sms_OnContrMod[]      PROGMEM = {"Command: Control mode is turned on."};                                 // выполнена команда для установку на охрану
-const char sms_OutOfContrMod[]   PROGMEM = {"Command: Control mode is turned off."};                                // выполнена команда для снятие с охраны
-const char sms_RedirectOn[]      PROGMEM = {"Command: SMS redirection is turned on."};                              // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
-const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection is turned off."};                             // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
-const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren was turned on."};                                // выполнена команда для коротковременного включения сирены
+const char sms_InfContrOff[]     PROGMEM = {"Inform: Control mode was turned OFF."};                                // информирование о снятии с охраны
+const char sms_InfContrOn[]      PROGMEM = {"Inform: Control mode was turned ON."};                                 // информирование о снятии с охраны
+const char sms_TestModOn[]       PROGMEM = {"Command: Test mode is turned ON."};                                    // выполнена команда для включения тестового режима для тестирования датчиков
+const char sms_TestModOff[]      PROGMEM = {"Command: Test mode is turned OFF."};                                   // выполнена команда для выключения тестового режима для тестирования датчиков
+const char sms_OnContrMod[]      PROGMEM = {"Command: Control mode is turned ON."};                                 // выполнена команда для установку на охрану
+const char sms_OutOfContrMod[]   PROGMEM = {"Command: Control mode is turned OFF."};                                // выполнена команда для снятие с охраны
+const char sms_RedirectOn[]      PROGMEM = {"Command: SMS redirection is turned ON."};                              // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
+const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection is turned OFF."};                             // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
+const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren was turned ON."};                                // выполнена команда для коротковременного включения сирены
 const char sms_WasRebooted[]     PROGMEM = {"System: Device was rebooted."};                                        // выполнена команда для коротковременного включения сирены
 const char sms_WrongUssd[]       PROGMEM = {"Command: Wrong USSD code."};                                           // сообщение о неправельной USSD коде
 const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format should be next:\nSendSMS 'number' 'text'"};            // выполнена команда для отправки смс другому абоненту
@@ -67,14 +68,13 @@ const char test[]                PROGMEM = {"Test mode: "};
 const char redirSms[]            PROGMEM = {"Redirect SMS: "}; 
 const char power[]               PROGMEM = {"Power: "}; 
 const char delSiren[]            PROGMEM = {"DelaySiren: "}; 
-const char sign[]                PROGMEM = {"Signal: "}; 
 const char PIR1[]                PROGMEM = {"PIR1: "}; 
 const char PIR2[]                PROGMEM = {"PIR2: "};
 const char Gas[]                 PROGMEM = {"Gas: "}; 
 const char GasCalibr[]           PROGMEM = {"GasCalibr: "};
 const char GasCurr[]             PROGMEM = {"GasCurr: "};
 const char tension[]             PROGMEM = {"Tension: "};
-const char infOnContr[]          PROGMEM = {"InfOnContr: "};
+const char infContr[]            PROGMEM = {"infContr: "};
 const char sirenoff[]            PROGMEM = {"Siren Off: "};
 const char gasOnlyOnContr[]      PROGMEM = {"GasOnlyOnContr: "};
 
@@ -168,7 +168,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define E_delaySiren     4                      // адресс для сохранения длины паузы между срабатыванием датяиков и включением сирены (в сикундах)
 #define E_delayOnContr   5                      // время паузы от нажатия кнопки до установки режима охраны (в сикундах)
 #define E_intervalVcc    6                      // интервал между измерениями питания (в сикундах)
-#define E_infOnContr     7                      // адресс для хранения режима оповещение о постановки на охрану через смс
+#define E_infContr       7                      // адресс для хранения режима оповещение о постановки/снятие на охрану через смс
 #define E_gasOnlyOnContr 8                      // адресс для хранения режима работы датчика газа (выключать ли датчик газа в режиме не на охране)  
 #define E_gasCalibr      9                      // калибровка датчика газа. Значение от датчика, которое воспринимать как 0 (отсутствие утечки газа)
 
@@ -305,7 +305,7 @@ void setup()
         EEPROM.write(E_delayOnContr, 25);            // пауза от нажатия кнопки до установки режима охраны (25 сек)
         EEPROM.write(E_intervalVcc, 0);              // интервал между измерениями питания (0 секунд)
         EEPROM.write(E_BalanceUssd, "***");          // Ussd код для запроса баланца
-        EEPROM.write(E_infOnContr, 0);               // информирование о снятии с охраны по смс по умолчанию отключено
+        EEPROM.write(E_infContr, 0);                 // информирование о снятии с охраны по смс по умолчанию отключено
         EEPROM.write(E_IsPIR1Enabled, 1);            
         EEPROM.write(E_IsPIR2Enabled, 1);
         EEPROM.write(E_IsGasEnabled, 0);
@@ -369,11 +369,11 @@ void setup()
   // чтение конфигураций с EEPROM
   if (EEPROM.read(E_mode) == OnContrMod)                // читаем режим из еепром 
   {
-    if (wasRebooted)                                    // если устройство запускается после аварийной перезагрузки
-      Set_OnContrMod(false);                            // то устанавливаем на охрану немедленно (без паузы перед установкой на охрану)
-    else                                                // если устройство запускается не после аварийной перезагрузки
-      if (!Set_OnContrMod(true))                        // то устанавливаем на охрану с паузой перед установкой (что б была возможность отменить установку на охрану или покинуть помещение)
-        Set_OutOfContrMod(0);                           // если установка на охрану прервана то устанавливаем режим Не на охране
+    if (wasRebooted)                                       // если устройство запускается после аварийной перезагрузки
+      Set_OnContrMod(false, EEPROM.read(E_infContr));      // то устанавливаем на охрану немедленно (без паузы перед установкой на охрану)
+    else                                                   // если устройство запускается не после аварийной перезагрузки
+      if (!Set_OnContrMod(true, EEPROM.read(E_infContr)))  // то устанавливаем на охрану с паузой перед установкой (что б была возможность отменить установку на охрану или покинуть помещение)
+        Set_OutOfContrMod(0);                              // если установка на охрану прервана то устанавливаем режим Не на охране
       
   }
     else Set_OutOfContrMod(0);  
@@ -434,7 +434,7 @@ void loop()
       if (mode == OutOfContrMod && countPressBtn == EEPROM.read(E_BtnOnContr))              // если кнопку нажали заданное количество для включение/отключения режима тестирования
       {
         countPressBtn = 0;  
-        Set_OnContrMod(true);       
+        Set_OnContrMod(true, EEPROM.read(E_infContr));       
       }
       else
       // включение/отключения режима тестирования
@@ -470,7 +470,7 @@ void loop()
       {
         delay(200);                                                                         // пайза, что б не сливались звуковые сигналы нажатия кнопки и установки режима
         countPressBtn = 0;          
-        Set_OutOfContrMod(EEPROM.read(E_infOnContr));             
+        Set_OutOfContrMod(EEPROM.read(E_infContr));             
       }
       else
       {
@@ -504,7 +504,7 @@ void loop()
         digitalWrite(boardLED, LOW);
         delay(timeRejectCall);                                                             // пауза перед збросом звонка        
         gsm.RejectCall();                                                                  // сбрасываем вызов               
-        Set_OnContrMod(false);                                                             // устанавливаем на охрану без паузы              
+        Set_OnContrMod(false, EEPROM.read(E_infContr));                                    // устанавливаем на охрану без паузы              
       }
       else gsm.RejectCall();                                                               // если не найден зарегистрированный звонок то сбрасываем вызов (без паузы)      
     gsm.ClearRing();                                                                       // очищаем обнаруженный входящий звонок    
@@ -625,7 +625,7 @@ void loop()
          )               
       {                    
         delay(timeRejectCall);                                                             // пауза перед збросом звонка
-        Set_OutOfContrMod(EEPROM.read(E_infOnContr));                                      // снимаем с охраны                       
+        Set_OutOfContrMod(EEPROM.read(E_infContr));                                        // снимаем с охраны                       
       }
       else
       if ((NumberRead(E_NUM1_OnContr).indexOf(gsm.RingNumber) > -1 ||
@@ -709,7 +709,7 @@ void ClickButton()
     if (interrupt)                    
     {    
       static unsigned long millis_prev;
-      if(millis() - 100 > millis_prev) 
+      if(millis() - 300 > millis_prev) 
       {          
         PlayTone(clickTone, 40);    
         countPressBtn++;
@@ -720,7 +720,7 @@ void ClickButton()
   }      
 }
 
-bool Set_OutOfContrMod(bool infOnContr)                 // метод для снятие с охраны
+bool Set_OutOfContrMod(bool infContr)                   // метод для снятие с охраны
 { 
   mode = OutOfContrMod;                                 // снимаем с охраны
 
@@ -746,12 +746,12 @@ bool Set_OutOfContrMod(bool infOnContr)                 // метод для с�
  
   gsm.RejectCall();                                     // сбрасываем вызов  
   
-  if (!inTestMod && infOnContr)
-    SendSms(&GetStrFromFlash(sms_InfOnContr), &NumberRead(E_NUM1_OutOfContr));  // отправляем смс о снятии с охраны;
+  if (!inTestMod && infContr)
+    SendSms(&GetStrFromFlash(sms_InfContrOff), &NumberRead(E_NUM1_OutOfContr));  // отправляем смс о снятии с охраны;
   return true;
 }
 
-bool Set_OnContrMod(bool IsWaiting)                     // метод для установки на охрану
+bool Set_OnContrMod(bool IsWaiting, bool infContr)      // метод для установки на охрану
 { 
   if (IsWaiting == true)                                // если включен режим ожидание перед установкой охраны, выдерживаем заданную паузу, что б успеть покинуть помещение
   { 
@@ -805,6 +805,9 @@ bool Set_OnContrMod(bool IsWaiting)                     // метод для у�
   EEPROM.write(E_mode, mode);                           // пишим режим в еепром, что б при следующем включении устройства, оно оставалось в данном режиме
   delay (2500);                                         // дополнительная пауза так как датчик держит лог. единицу 2,5
   prReqSirena = 1;                                      // устанавливаем в 1 для активации паузы между срабатыванием датчиков и включением сирены
+  
+  if (!inTestMod && infContr)                         
+    SendSms(&GetStrFromFlash(sms_InfContrOn), &NumberRead(E_NUM1_OutOfContr));  // отправляем смс о постановке на охрану;
   return true;
 }
 
@@ -976,7 +979,7 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText == GetStrFromFlash(controlon))                                     // если обнаружена смс команда для установки на охрану
       {        
-        Set_OnContrMod(false);                                                           // устанавливаем на охрану без паузы                                                
+        Set_OnContrMod(false, 0);                                                           // устанавливаем на охрану без паузы                                                
         SendSms(&GetStrFromFlash(sms_OnContrMod), &gsm.SmsNumber);                       // отправляем смс о завершении выполнения даной смс команды                           
       }
       else 
@@ -1019,8 +1022,7 @@ void ExecSmsCommand()
                    + GetStrFromFlash(test)             + String((inTestMod) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "\n" 
                    + GetStrFromFlash(redirSms)         + String((EEPROM.read(E_isRedirectSms)) ? GetStrFromFlash(on) : GetStrFromFlash(off)) + "\n"
                    + GetStrFromFlash(power)            + ((powCtr.IsBattPower) ? "battery" : "network") + "\n"
-                   + GetStrFromFlash(delSiren)         + String(EEPROM.read(E_delaySiren)) + GetStrFromFlash(sec) + "\n"
-                   + GetStrFromFlash(sign)             + String(gsm.GetSignalStrength()) + "%";
+                   + GetStrFromFlash(delSiren)         + String(EEPROM.read(E_delaySiren)) + GetStrFromFlash(sec);
         
         if (!SirEnabled)
           msg = msg + "\n" + GetStrFromFlash(sirenoff);
@@ -1172,9 +1174,9 @@ void ExecSmsCommand()
           else if (i == 4)
           {
             if (str.substring(0, duration) == "off")
-              EEPROM.write(E_infOnContr, false);      
+              EEPROM.write(E_infContr, false);      
             else if (str.substring(0, duration) == "on")
-              EEPROM.write(E_infOnContr, true); 
+              EEPROM.write(E_infContr, true); 
           }
           else if (i == 5)
           {
@@ -1342,7 +1344,7 @@ void SendInfSMS_Setting()
      + GetStrFromFlash(delOnContr)           + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
      + GetStrFromFlash(intervalVcc)          + "'" + String(EEPROM.read(E_intervalVcc)) + "'" + GetStrFromFlash(sec) + "\n"
      + GetStrFromFlash(balanceUssd)          + "'" + ReadStrEEPROM(E_BalanceUssd) + "'" + "\n" 
-     + GetStrFromFlash(infOnContr)           + "'" + String((EEPROM.read(E_infOnContr)) ? "on" : "off") + "'" + "\n" 
+     + GetStrFromFlash(infContr)             + "'" + String((EEPROM.read(E_infContr)) ? "on" : "off") + "'" + "\n" 
      + GetStrFromFlash(gasOnlyOnContr)       + "'" + String((EEPROM.read(E_gasOnlyOnContr)) ? "on" : "off") + "'";
            
   SendSms(&msg, &gsm.SmsNumber);

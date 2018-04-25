@@ -283,13 +283,4 @@ String MyGSM::GetStrFromFlash(char* addr)
   }
   return buffstr;
 }
-
-int MyGSM::GetSignalStrength()
-{
-  if (!WaitingAvailable()) return 0;                                    // ждем готовности модема и если он не ответил за заданный таймаут то прырываем выполнения метода 
-  serial.println(GetStrFromFlash(ATCSQ));     //ATCSQ 
-  delay(10);  
-  Refresh();
-  return round((_sigStrength.toFloat()/31)*100);
-}
 ;
