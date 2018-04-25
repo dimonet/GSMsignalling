@@ -23,14 +23,15 @@ class MyGSM
     void ClearUssd();
     void Shutdown();                                // выключения gsm модула (может использоваться при перезагрузке всего устройства)
     bool IsAvailable();                             // оправшивает готовность gsm модуля (возвращает true если модуль не занят)
-    bool isNetworkRegistered();                     // проверяет зарегистрирован ли модуль в сети (готов ли модуль к работе)
+    bool isNetworkRegistered();                     // проверяет зарегистрирован ли модуль в сети (готов ли модуль к работе)   
     
   private:
     bool WaitingAvailable();                        // ожидание готовности gsm модуля
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
-    void SetString(String *source, String *target);
+    void SetString(String *source, String *target, char firstSymb, int offsetFirst, char secondSymb, int offsetSecond);
     byte _gsmLED;
     byte _boardLED;
     byte _pinBOOT;                                   // нога BOOT или K на модеме   
+    String _sigStrength;
     String GetStrFromFlash(char* addr);    
 };
