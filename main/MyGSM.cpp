@@ -11,8 +11,10 @@ const char ATH0[]        PROGMEM = {"ATH0"};
 const char RING[]        PROGMEM = {"RING"};
 const char CMT[]         PROGMEM = {"+CMT"};
 const char CUSD[]        PROGMEM = {"+CUSD"};
+const char CSQ[]         PROGMEM = {"+CSQ"};
 const char ATCPWROFF[]   PROGMEM = {"AT+CPWROFF"};
 const char ATCOPS[]      PROGMEM = {"AT+COPS?"};
+const char ATCSQ[]       PROGMEM = {"AT+CSQ"}; 
 
 MyGSM::MyGSM(byte gsmLED, byte boardLED, byte pinBOOT)
 {
@@ -175,7 +177,7 @@ void MyGSM::Refresh()
         {
           BlinkLED(0, 250, 0);                                     // сигнализируем об этом 
           NewSms = true;
-          SetString(&currStr, &SmsNumber);                                                           
+          SetString(&currStr, &SmsNumber, '\"', 0, '\"', 1);                                                           
           strCount = 1;
         }
         else
@@ -183,7 +185,12 @@ void MyGSM::Refresh()
         {
           BlinkLED(0, 250, 0);                                     // сигнализируем об этом
           NewUssd = true;         
-          SetString(&currStr, &UssdText);                    
+          SetString(&currStr, &UssdText, '\"', 0, '\"', 1);                    
+        }
+        else 
+        if (currStr.startsWith(GetStrFromFlash(CSQ)))  //+CSQ      // если ответ на запрос об уровне сигнала
+        {
+          SetString(&currStr, &_sigStrength, ' ', 0, ',', 0);                 
         }         
       }
       else
@@ -195,15 +202,14 @@ void MyGSM::Refresh()
         if (NewSms)                                                // если СМС
         {
           SmsText = currStr;                                        
-        }
-                
+        }                
       }
       else
       if (strCount == 2) 
       {
         if (NewRing)                                               // если входящий звонок
         {
-         SetString(&currStr, &RingNumber);                               
+         SetString(&currStr, &RingNumber, '\"', 0, '\"', 1);                               
         }                 
       }        
     currStr = "";    
@@ -223,13 +229,13 @@ void MyGSM::Refresh()
   }    
 }
 
-void MyGSM::SetString(String *source, String *target)
+void MyGSM::SetString(String *source, String *target, char firstSymb, int offsetFirst, char secondSymb, int offsetSecond)
 {
-  byte beginStr = source->indexOf('\"');
-  *target = source->substring(beginStr + 1);
-  byte duration = target->indexOf('\"');  
+  byte beginStr = source->indexOf(firstSymb);
+  *target = source->substring(beginStr + 1 - offsetFirst);
+  byte duration = target->indexOf(secondSymb);  
   if (duration > 0)
-    *target = target->substring(0, duration - 1);                  // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
+    *target = target->substring(0, duration - offsetSecond);       // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
   if (target->length() > SMS_LIMIT)
   {  
     *target = target->substring(0, SMS_LIMIT - 4);                 // обрезаем строку до 156 символов что б она поместилась в одну смс
