@@ -23,6 +23,7 @@ const char sms_NetPower[]        PROGMEM = {"POWER: Network power has been resto
 const char sms_ErrorCommand[]    PROGMEM = {"SendSMS,\nBalance,\nTestOn(Off),\nControlOn(Off),\nRedirectOn(Off),\nSkimpy,\nStatus,\nReboot,\nButton,\nSetting,\nSensor,\nSiren,\nOutOfContr,\nOnContr,\nSmsCommand."};  // смс команда не распознана
 const char sms_InfContrOff[]     PROGMEM = {"Inform: Control mode was turned OFF."};                                // информирование о снятии с охраны
 const char sms_InfContrOn[]      PROGMEM = {"Inform: Control mode was turned ON."};                                 // информирование о снятии с охраны
+const char sms_ErrorTension[]    PROGMEM = {"Warning: Break OnContr (TensionCable)."};                              // информирование о прырывании установки на охрану;
 const char sms_TestModOn[]       PROGMEM = {"Command: Test mode is turned ON."};                                    // выполнена команда для включения тестового режима для тестирования датчиков
 const char sms_TestModOff[]      PROGMEM = {"Command: Test mode is turned OFF."};                                   // выполнена команда для выключения тестового режима для тестирования датчиков
 const char sms_OnContrMod[]      PROGMEM = {"Command: Control mode is turned ON."};                                 // выполнена команда для установку на охрану
@@ -765,9 +766,7 @@ bool Set_OnContrMod(bool IsWaiting, bool infContr)      // метод для у�
     {               
       if (countPressBtn > 0)                            // если пользователь нажал на кнопку то установка на охрану прерывается
       {
-        countPressBtn = 0;        
-        digitalWrite(OnContrLED, LOW);  
-        digitalWrite(OutOfContrLED, HIGH);
+        Break_OnContrMod();
         return false;
       }        
       if (i < (timeWait * 0.7))                         // первых 70% паузы моргаем медленным темпом
@@ -782,7 +781,14 @@ bool Set_OnContrMod(bool IsWaiting, bool infContr)      // метод для у�
       }         
     }
   }
-
+  
+  if (EEPROM.read(E_TensionEnabled) && SenTension.CheckSensor())    // проверяем растяжку, если она нарушена (не закрыта дверь) то прырываем установку на охрану и информируем смс об этом
+  {
+    SendSms(&GetStrFromFlash(sms_ErrorTension), &NumberRead(E_NUM1_OutOfContr));  // отправляем смс о прырывании установки на охрану;
+    Break_OnContrMod();
+    return false;
+  }
+  
   //установка на охрану     
   mode = OnContrMod;                                    // ставим на охрану 
 
@@ -809,6 +815,13 @@ bool Set_OnContrMod(bool IsWaiting, bool infContr)      // метод для у�
   if (!inTestMod && infContr)                         
     SendSms(&GetStrFromFlash(sms_InfContrOn), &NumberRead(E_NUM1_OutOfContr));  // отправляем смс о постановке на охрану;
   return true;
+}
+
+void Break_OnContrMod()
+{
+    countPressBtn = 0;        
+    digitalWrite(OnContrLED, LOW);  
+    digitalWrite(OutOfContrLED, HIGH);
 }
 
 void StartSiren()
