@@ -4,14 +4,16 @@ class MyGSM
 {
   public: 
     MyGSM(byte gsmLED, byte boardLED, byte pinBOOT);
-    void Initialize();    
+    bool Initialize();             
+    void Shutdown(bool ledIndicator);               // выключение gsm модуля          
     bool NewRing;
     bool NewSms;
     bool NewUssd;
+    bool WasRestored;
     String RingNumber;
     String SmsNumber;
     String SmsText;
-    String UssdText;
+    String UssdText;    
     String Read();
     bool SendSms(String *text, String *phone);      // метод возвращает true если смс отправлен успешно
     bool Call(String *phone);
@@ -20,12 +22,15 @@ class MyGSM
     void Refresh();
     void ClearRing();
     void ClearSms();
-    void ClearUssd();
-    void Shutdown();                                // выключения gsm модула (может использоваться при перезагрузке всего устройства)
+    void ClearUssd();   
     bool IsAvailable();                             // оправшивает готовность gsm модуля (возвращает true если модуль не занят)
     bool isNetworkRegistered();                     // проверяет зарегистрирован ли модуль в сети (готов ли модуль к работе)   
     
   private:
+    unsigned long GetElapsed(unsigned long prEventMillis);
+    void SwitchOn();                                // включение gsm модуля   
+    void Configure();                               // настройка gsm модуля
+    bool ModuleIsCorrect;    
     bool WaitingAvailable();                        // ожидание готовности gsm модуля
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
     void SetString(String *source, String *target, char firstSymb, int offsetFirst, char secondSymb, int offsetSecond);
