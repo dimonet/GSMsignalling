@@ -69,10 +69,10 @@ void MyGSM::Configure()
 
 void MyGSM::Shutdown(bool ledIndicator)
 {
-  digitalWrite(_pinBOOT, HIGH);                                    // выключаем пинг который включает модем
   serial.println(GetStrFromFlash(ATCPWROFF));      //AT+CPWROFF    // посылаем команду выключения gsm модема  
-  delay(100);
-  if (ledIndicator) digitalWrite(_gsmLED, HIGH);                                     // включаем светодиод сигнализируя о не доступности gsm модема
+  delay(200);
+  digitalWrite(_pinBOOT, HIGH);                                    // выключаем пинг который включает модем
+  if (ledIndicator) digitalWrite(_gsmLED, HIGH);                   // включаем светодиод сигнализируя о не доступности gsm модема
 }
 
 // Инициализация gsm модуля (включения, настройка)
@@ -212,7 +212,7 @@ void MyGSM::Refresh()
     if (!isNetworkRegistered())
     {      
       Shutdown(true);                                                                       // если gsm модем не смог найти связь то пробываем его перезагрузить      
-      delay(200); 
+      delay(100); 
       SwitchOn();             
       Configure();                                                                                   
       prStartGsm = millis();                                                            // запоминаем время старта gsm модема что б через установленное время проверить подключился ли он к сети и готов к работе      
