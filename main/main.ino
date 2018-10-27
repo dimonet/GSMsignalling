@@ -23,6 +23,7 @@ const char sms_NetPower[]        PROGMEM = {"POWER: Network power has been resto
 const char sms_ErrorCommand[]    PROGMEM = {"SendSMS,\nBalance,\nTestOn(Off),\nControlOn(Off),\nRedirectOn(Off),\nSkimpy,\nStatus,\nReboot,\nButton,\nSetting,\nSensor,\nSiren,\nOutOfContr,\nOnContr,\nSmsCommand."};  // смс команда не распознана
 const char sms_InfContrOff[]     PROGMEM = {"Inform: Control mode was turned OFF."};                                // информирование о снятии с охраны
 const char sms_InfContrOn[]      PROGMEM = {"Inform: Control mode was turned ON."};                                 // информирование о снятии с охраны
+const char sms_ErrorTension[]    PROGMEM = {"Warning: Break OnContr (TensionCable)."};                              // информирование о прырывании установки на охрану;
 const char sms_TestModOn[]       PROGMEM = {"Command: Test mode is turned ON."};                                    // выполнена команда для включения тестового режима для тестирования датчиков
 const char sms_TestModOff[]      PROGMEM = {"Command: Test mode is turned OFF."};                                   // выполнена команда для выключения тестового режима для тестирования датчиков
 const char sms_OnContrMod[]      PROGMEM = {"Command: Control mode is turned ON."};                                 // выполнена команда для установку на охрану
@@ -30,7 +31,8 @@ const char sms_OutOfContrMod[]   PROGMEM = {"Command: Control mode is turned OFF
 const char sms_RedirectOn[]      PROGMEM = {"Command: SMS redirection is turned ON."};                              // выполнена команда для включения перенаправления всех смс от любого отправителя на номер SMSNUMBER
 const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection is turned OFF."};                             // выполнена команда для выключения перенаправления всех смс от любого отправителя на номер SMSNUMBER
 const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren was turned ON."};                                // выполнена команда для коротковременного включения сирены
-const char sms_WasRebooted[]     PROGMEM = {"System: Device was rebooted."};                                        // выполнена команда для коротковременного включения сирены
+const char sms_WasRebooted[]     PROGMEM = {"Command: Device was rebooted."};                                       // устройство перегружено
+const char sms_GsmWasRestored[]  PROGMEM = {"System: GSM was restored."};                                           // gsm модуль был перегружен и востановлен после збоя
 const char sms_WrongUssd[]       PROGMEM = {"Command: Wrong USSD code."};                                           // сообщение о неправельной USSD коде
 const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format should be next:\nSendSMS 'number' 'text'"};            // выполнена команда для отправки смс другому абоненту
 const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};                                              // выполнена команда для отправки смс другому абоненту
@@ -121,8 +123,6 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define  timeGasReady         600000                       // время паузы для прогрева датчика газа/дыма после включения устройства или датчика (милисекунды) (10 мин.)
 #define  timeTestBoardLed     3000                         // время мерцания внутреннего светодиода на плате при включеном режима тестирования
 #define  timeTrigSensor       1000                         // во избежании ложного срабатывании датчика тревога включается только если датчик срабатывает больше чем указанное время (импл. только для расстяжки)
-#define  timeCheckGsm         3600000                      // время проверки gsm модуля (раз в 1 час). Если обнаружено что gsm не отвечает или потерял сеть то устройство перезагружается автоматически
-
 
 //// КОНСТАНТЫ ДЛЯ ПИНОВ /////
 #define SpecerPin 8
@@ -238,7 +238,6 @@ unsigned long prLastPressBtn = 0;               // время последнег
 unsigned long prTestBlinkLed = 0;               // время мерцания светодиода при включеном режима тестирования (милисекунды)
 unsigned long prRefreshVcc = 0;                 // время последнего измирения питания (милисекунды)
 unsigned long prReqSirena = 0;                  // время последнего обнаружения, что необходимо включать сирену
-unsigned long prCheckGsm = 0;                   // время последней проверки gsm модуля (отвечает ли он, в сети ли он). 
 
 unsigned long intrVcc = 0;                      // интервал между измерениями питания
 
@@ -344,7 +343,7 @@ void setup()
 
   analogReference(INTERNAL);
   
-  gsm.Initialize();                                     // инициализация gsm модуля (включения, настройка) 
+  gsm.Initialize();                                     // инициализация gsm модуля (включения, настройка)     
   
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
   digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
@@ -388,17 +387,14 @@ void loop()
     prRefreshVcc = millis();
   }   
 
-  if (GetElapsed(prCheckGsm) > timeCheckGsm)                                                // проверяем сколько прошло времени после последней проверки gsm модуля (отвечает ли он, в сети ли он). 
-  {   
-    if (!gsm.isNetworkRegistered())
-    {      
-      RebootDevice(NumberRead(E_NUM1_OutOfContr));
-    }
-    prCheckGsm = millis();
-  }   
-
   gsm.Refresh();                                                                            // читаем сообщения от GSM модема   
-
+  
+  if(gsm.WasRestored)
+  {
+    SendSms(&GetStrFromFlash(sms_GsmWasRestored), &NumberRead(E_NUM1_OutOfContr));
+    gsm.WasRestored = false;
+  }
+  
   if(wasRebooted)
   {    
     SendSms(&GetStrFromFlash(sms_WasRebooted), &NumberRead(E_NUM_RebootAns));
@@ -432,7 +428,7 @@ void loop()
     {       
       // установка на охрану countBtnOnContrMod
       if (mode == OutOfContrMod && countPressBtn == EEPROM.read(E_BtnOnContr))              // если кнопку нажали заданное количество для включение/отключения режима тестирования
-      {
+      {        
         countPressBtn = 0;  
         Set_OnContrMod(true, EEPROM.read(E_infContr));       
       }
@@ -765,9 +761,7 @@ bool Set_OnContrMod(bool IsWaiting, bool infContr)      // метод для у�
     {               
       if (countPressBtn > 0)                            // если пользователь нажал на кнопку то установка на охрану прерывается
       {
-        countPressBtn = 0;        
-        digitalWrite(OnContrLED, LOW);  
-        digitalWrite(OutOfContrLED, HIGH);
+        Break_OnContrMod();
         return false;
       }        
       if (i < (timeWait * 0.7))                         // первых 70% паузы моргаем медленным темпом
@@ -782,7 +776,14 @@ bool Set_OnContrMod(bool IsWaiting, bool infContr)      // метод для у�
       }         
     }
   }
-
+  
+  if (EEPROM.read(E_TensionEnabled) && SenTension.CheckSensor())    // проверяем растяжку, если она нарушена (не закрыта дверь) то прырываем установку на охрану и информируем смс об этом
+  {
+    SendSms(&GetStrFromFlash(sms_ErrorTension), &NumberRead(E_NUM1_OutOfContr));  // отправляем смс о прырывании установки на охрану;
+    Break_OnContrMod();
+    return false;
+  }
+  
   //установка на охрану     
   mode = OnContrMod;                                    // ставим на охрану 
 
@@ -809,6 +810,13 @@ bool Set_OnContrMod(bool IsWaiting, bool infContr)      // метод для у�
   if (!inTestMod && infContr)                         
     SendSms(&GetStrFromFlash(sms_InfContrOn), &NumberRead(E_NUM1_OutOfContr));  // отправляем смс о постановке на охрану;
   return true;
+}
+
+void Break_OnContrMod()
+{
+    countPressBtn = 0;        
+    digitalWrite(OnContrLED, LOW);  
+    digitalWrite(OutOfContrLED, HIGH);
 }
 
 void StartSiren()
@@ -886,8 +894,11 @@ void InTestMod(bool state)
 void RebootDevice(String infphone)
 {
   EEPROM.write(E_wasRebooted, true);                                                       // записываем статус, что устройство перезагружается        
-  WriteStrEEPROM(E_NUM_RebootAns, &infphone);                                              // то сохраняем номер на который необходимо будет отправить после перезагрузки сообщение о перезагрузке устройства 
-  gsm.Shutdown();                                                                          // выключаем gsm модуль
+  WriteStrEEPROM(E_NUM_RebootAns, &infphone);                                              // то сохраняем номер на который необходимо будет отправить после перезагрузки сообщение о перезагрузке устройства   
+  gsm.Shutdown(false);                                                                     // выключаем gsm модуль
+  digitalWrite(AlarmLED, LOW);
+  digitalWrite(OutOfContrLED, LOW);
+  digitalWrite(OnContrLED, LOW);
   RebootFunc();      
 }
 
@@ -1142,7 +1153,7 @@ void ExecSmsCommand()
       {
         PlayTone(sysTone, smsSpecDur);                        
         String str = gsm.SmsText; 
-        byte bConf[5];                                                                                                   // сохраняем настройки по датчикам
+        byte bConf[5];                                                                                                   // сохраняем настройки по кнопке
         for(byte i = 0; i < 5; i++)
         {
           int beginStr = str.indexOf('\'');
@@ -1344,8 +1355,9 @@ void SendInfSMS_Setting()
      + GetStrFromFlash(delOnContr)           + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
      + GetStrFromFlash(intervalVcc)          + "'" + String(EEPROM.read(E_intervalVcc)) + "'" + GetStrFromFlash(sec) + "\n"
      + GetStrFromFlash(balanceUssd)          + "'" + ReadStrEEPROM(E_BalanceUssd) + "'" + "\n" 
-     + GetStrFromFlash(infContr)             + "'" + String((EEPROM.read(E_infContr)) ? "on" : "off") + "'" + "\n" 
-     + GetStrFromFlash(gasOnlyOnContr)       + "'" + String((EEPROM.read(E_gasOnlyOnContr)) ? "on" : "off") + "'";
+     + GetStrFromFlash(infContr)             + "'" + String((EEPROM.read(E_infContr)) ? "on" : "off") + "'";   
+  if (EEPROM.read(E_IsGasEnabled)) 
+    msg = msg + "\n" + GetStrFromFlash(gasOnlyOnContr)  + "'" + String((EEPROM.read(E_gasOnlyOnContr)) ? "on" : "off") + "'";
            
   SendSms(&msg, &gsm.SmsNumber);
 }
