@@ -1,3 +1,4 @@
+// Версия: 4.1
 /// GSM сигналка c установкой по кнопке
 /// с датчиками движения и растяжкой (или с геркониевым датчиком)
 /// ВНИМАНИЕ: для корретной работы sms необходимо установить размеры буферов вместо 64 на SERIAL_TX_BUFFER_SIZE 24 и SERIAL_RX_BUFFER_SIZE 170 в файле hardware\arduino\avr\cores\arduino\HardwareSerial.h
@@ -65,6 +66,7 @@ const char siren[]               PROGMEM = {"siren"};
 const char _SirenEnabled[]       PROGMEM = {"sirenenabled"};
 
 // Строки для формирования смс ответов на смс команды Status и Settings
+const char FirmwareVer[]         PROGMEM = {"Ver: 4.1"};
 const char control[]             PROGMEM = {"On controlling: "}; 
 const char test[]                PROGMEM = {"Test mode: "}; 
 const char redirSms[]            PROGMEM = {"Redirect SMS: "}; 
@@ -133,7 +135,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define BattPowerLED 9                          // LED для сигнализации о работе от резервного питания
 #define boardLED 6                              // LED для сигнализации текущего режима с помошью внутреннего светодиода на плате
 
-#define pinBOOT 5                               // нога BOOT или K на модеме 
+#define pinBOOT 5                               // нога BOOT для включения gsm модема 
 #define Button 2                                // нога на кнопку
 #define SirenGenerator 7                        // нога на сирену
 
@@ -1037,7 +1039,7 @@ void ExecSmsCommand()
         
         if (!SirEnabled)
           msg = msg + "\n" + GetStrFromFlash(sirenoff);
-          
+        msg = msg + "\n" +  GetStrFromFlash(FirmwareVer);                                     // выводим версию прошивки
         unsigned long ltime;
         String sStatus = "";                  
         if (EEPROM.read(E_IsGasEnabled))
