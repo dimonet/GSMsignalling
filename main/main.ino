@@ -36,10 +36,6 @@ const char sms_GsmWasRestored[]  PROGMEM = {"System: GSM was restored."};       
 const char sms_WrongUssd[]       PROGMEM = {"Command: Wrong USSD code."};                                           // сообщение о неправельной USSD коде
 const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format should be next:\nSendSMS 'number' 'text'"};            // выполнена команда для отправки смс другому абоненту
 const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};                                              // выполнена команда для отправки смс другому абоненту
-/*const char sms_command[]         PROGMEM = {"Command: "};                                                           // префикс типа сообщения Command
-const char sms_alarm[]           PROGMEM = {"ALARM: "};                                                             // префикс типа сообщения ALARM
-const char sms_power[]           PROGMEM = {"Power: "};                                                             // префикс типа сообщения POWER
-const char sms_alarm[]           PROGMEM = {"Inform: "};                                                            // префикс типа сообщения ALARM*/
 
 // Строки для смс команд
 const char sendsms[]             PROGMEM = {"sendsms"};                                                             
@@ -1157,7 +1153,7 @@ void ExecSmsCommand()
       {
         PlayTone(sysTone, smsSpecDur);                        
         String str = gsm.SmsText; 
-        byte bConf[5];                                                                                                   // сохраняем настройки по датчикам
+        byte bConf[5];                                                                                                   // сохраняем настройки по кнопке
         for(byte i = 0; i < 5; i++)
         {
           int beginStr = str.indexOf('\'');
@@ -1359,8 +1355,9 @@ void SendInfSMS_Setting()
      + GetStrFromFlash(delOnContr)           + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
      + GetStrFromFlash(intervalVcc)          + "'" + String(EEPROM.read(E_intervalVcc)) + "'" + GetStrFromFlash(sec) + "\n"
      + GetStrFromFlash(balanceUssd)          + "'" + ReadStrEEPROM(E_BalanceUssd) + "'" + "\n" 
-     + GetStrFromFlash(infContr)             + "'" + String((EEPROM.read(E_infContr)) ? "on" : "off") + "'" + "\n" 
-     + GetStrFromFlash(gasOnlyOnContr)       + "'" + String((EEPROM.read(E_gasOnlyOnContr)) ? "on" : "off") + "'";
+     + GetStrFromFlash(infContr)             + "'" + String((EEPROM.read(E_infContr)) ? "on" : "off") + "'";   
+  if (EEPROM.read(E_IsGasEnabled)) 
+    msg = msg + "\n" + GetStrFromFlash(gasOnlyOnContr)  + "'" + String((EEPROM.read(E_gasOnlyOnContr)) ? "on" : "off") + "'";
            
   SendSms(&msg, &gsm.SmsNumber);
 }

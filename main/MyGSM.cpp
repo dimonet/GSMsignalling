@@ -37,6 +37,7 @@ MyGSM::MyGSM(byte gsmLED, byte boardLED, byte pinBOOT)
   _gsmLED = gsmLED;
   _boardLED = boardLED;
   _pinBOOT = pinBOOT;  
+  IsWorking = false;
 }
 
 void MyGSM::SwitchOn()
@@ -64,6 +65,7 @@ void MyGSM::Configure()
 /*  serial.println(GetStrFromFlash(ATCPBSSM));   //AT+CPBS=\"SM\"                  // открывает доступ к данным телефонной книги SIM-карты
   delay(200);*/
   serial.println(GetStrFromFlash(ATCNMI12210));  //AT+CNMI=1,2,2,1,0               // включает оповещение о новых сообщениях
+  IsWorking = true;
   delay(200);  
 }
 
@@ -73,6 +75,7 @@ void MyGSM::Shutdown(bool ledIndicator)
   delay(200);
   digitalWrite(_pinBOOT, HIGH);                                    // выключаем пинг который включает модем
   if (ledIndicator) digitalWrite(_gsmLED, HIGH);                   // включаем светодиод сигнализируя о не доступности gsm модема
+  IsWorking = false;
 }
 
 // Инициализация gsm модуля (включения, настройка)
@@ -91,7 +94,7 @@ bool MyGSM::Initialize()
   {
     ModuleIsCorrect = true;
     int i = 0;  
-    while(i < INITIALIZE_TIMEOUT * 0.7)                                 // ждем подключение модема к сети  (приблезительно за одну сек. выполняется 0.7 итераций)
+    while(i < INITIALIZE_TIMEOUT * 0.6)                                // ждем подключение модема к сети  (приблезительно за одну сек. выполняется 0.6 итераций)
     { 
       if (isNetworkRegistered())    
       {
@@ -130,6 +133,7 @@ bool MyGSM::IsAvailable()
 // ожидание готовности gsm модуля
 bool MyGSM::WaitingAvailable()
 {
+  if (!IsWorking) return false;                                         // модуль выключен или не с конфигурирован то возвращаем сразу false указывая, что модуль не готов
   int i = 0;   
   while(i <= AVAILABLE_TIMEOUT)
   {  
@@ -179,8 +183,8 @@ bool MyGSM::RequestUssd(String *code)
 {
   if(code->substring(code->length()-1)!="#")
     return false;
-  if (!WaitingAvailable()) return false;                           // ждем готовности модема и если он не ответил то прырываем запрос
-  delay(100);                                                      // для некоторых gsm модулей (SIM800l) обязательно необходима пауза между получением смс и отправкой Ussd запроса
+  if (!WaitingAvailable()) return false;                             // ждем готовности модема и если он не ответил то прырываем запрос
+  delay(100);                                                        // для некоторых gsm модулей (SIM800l) обязательно необходима пауза между получением смс и отправкой Ussd запроса
   BlinkLED(0, 250, 0);  
   serial.println("AT+CUSD=1,\"" + *code + "\"");
   return true; 
@@ -201,7 +205,7 @@ void MyGSM::Refresh()
       }
       else 
       {  
-        Shutdown(true);                                                                     // если gsm модем не смог найти связь через заданный таймаут то выключаем его до след. проверки
+        Shutdown(true);                                                                 // если gsm модем не смог найти связь через заданный таймаут то выключаем его до след. проверки
         prStartGsm = 0;   
       }
     } 
@@ -211,8 +215,11 @@ void MyGSM::Refresh()
   {   
     if (!isNetworkRegistered())
     {      
-      Shutdown(true);                                                                       // если gsm модем не смог найти связь то пробываем его перезагрузить      
-      delay(100); 
+      if(IsWorking)
+      {
+        Shutdown(true);                                                                 // если gsm модем не смог найти связь то пробываем его перезагрузить      
+        delay(100); 
+      }     
       SwitchOn();             
       Configure();                                                                                   
       prStartGsm = millis();                                                            // запоминаем время старта gsm модема что б через установленное время проверить подключился ли он к сети и готов к работе      

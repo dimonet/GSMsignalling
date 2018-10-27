@@ -5,7 +5,7 @@ class MyGSM
   public: 
     MyGSM(byte gsmLED, byte boardLED, byte pinBOOT);
     bool Initialize();             
-    void Shutdown(bool ledIndicator);               // выключение gsm модуля          
+    void Shutdown(bool ledIndicator);               // выключение gsm модуля             
     bool NewRing;
     bool NewSms;
     bool NewUssd;
@@ -30,6 +30,7 @@ class MyGSM
     unsigned long GetElapsed(unsigned long prEventMillis);
     void SwitchOn();                                // включение gsm модуля   
     void Configure();                               // настройка gsm модуля
+    bool IsWorking;                                   // true - модуль включен, false - модуль выключен или не с конфигурирован (возможно из за збоев)
     bool ModuleIsCorrect;    
     bool WaitingAvailable();                        // ожидание готовности gsm модуля
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
