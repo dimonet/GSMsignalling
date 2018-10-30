@@ -247,8 +247,10 @@ byte countPressBtn = 0;                         // счетчик нажатий
 bool wasRebooted = false;                       // указываем была ли последний раз перезагрузка программным путем
 int GasPct = 0;                                 // хранит отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения
 
-MyGSM gsm(gsmLED, boardLED, pinBOOT);           // GSM модуль
 PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
+
+MyGSM gsm(gsmLED, boardLED, pinBOOT);           // GSM модуль
+
 
 // Датчики
 DigitalSensor SenTension(pinSH1);
@@ -345,9 +347,9 @@ void setup()
 
   analogReference(INTERNAL);
   
+  powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
   gsm.Initialize();                                     // инициализация gsm модуля (включения, настройка)     
   
-  powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
   digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
   
   if (EEPROM.read(E_IsGasEnabled))                      // если включен датчик газа/дыма
