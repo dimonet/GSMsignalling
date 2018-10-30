@@ -348,6 +348,7 @@ void setup()
   analogReference(INTERNAL);
   
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
+  digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом состояния питания
   gsm.Initialize();                                     // инициализация gsm модуля (включения, настройка)     
   
   digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
