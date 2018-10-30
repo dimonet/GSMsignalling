@@ -62,8 +62,6 @@ void MyGSM::Configure()
   delay(200);
   serial.println(GetStrFromFlash(ATIFC11));      //AT+IFC=1, 1                     // устанавливает программный контроль потоком передачи данных
   delay(200);
-/*  serial.println(GetStrFromFlash(ATCPBSSM));   //AT+CPBS=\"SM\"                  // открывает доступ к данным телефонной книги SIM-карты
-  delay(200);*/
   serial.println(GetStrFromFlash(ATCNMI12210));  //AT+CNMI=1,2,2,1,0               // включает оповещение о новых сообщениях
   IsWorking = true;
   delay(200);  
@@ -82,8 +80,7 @@ void MyGSM::Shutdown(bool ledIndicator)
 bool MyGSM::Initialize()
 {
   serial.begin(9600);                                                 // установка скорости работы UART модема
-  delay(1000);                             
-  MyGSM::SwitchOn();                                                  // включаем модем 
+  delay(1000);                               
   digitalWrite(_gsmLED, HIGH);                                        // на время включаем лед на панели
   digitalWrite(_boardLED, HIGH);                                      // на время включаем лед на плате
   Configure();  

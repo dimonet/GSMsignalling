@@ -1,4 +1,4 @@
-// Версия: 4.1
+// Версия: 4.2
 /// GSM сигналка c установкой по кнопке
 /// с датчиками движения и растяжкой (или с геркониевым датчиком)
 /// ВНИМАНИЕ: для корретной работы sms необходимо установить размеры буферов вместо 64 на SERIAL_TX_BUFFER_SIZE 24 и SERIAL_RX_BUFFER_SIZE 170 в файле hardware\arduino\avr\cores\arduino\HardwareSerial.h
@@ -66,7 +66,7 @@ const char siren[]               PROGMEM = {"siren"};
 const char _SirenEnabled[]       PROGMEM = {"sirenenabled"};
 
 // Строки для формирования смс ответов на смс команды Status и Settings
-const char FirmwareVer[]         PROGMEM = {"Ver: 4.1"};
+const char FirmwareVer[]         PROGMEM = {"Ver: 4.2"};
 const char control[]             PROGMEM = {"On controlling: "}; 
 const char test[]                PROGMEM = {"Test mode: "}; 
 const char redirSms[]            PROGMEM = {"Redirect SMS: "}; 
@@ -344,9 +344,10 @@ void setup()
   digitalWrite(AlarmLED, LOW);
   digitalWrite(BattPowerLED, LOW);
   digitalWrite(boardLED, LOW);
-
+  
   analogReference(INTERNAL);
   
+  gsm.SwitchOn();                                                  // включаем модем 
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
   digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом состояния питания
   gsm.Initialize();                                     // инициализация gsm модуля (включения, настройка)     

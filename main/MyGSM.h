@@ -25,10 +25,10 @@ class MyGSM
     void ClearUssd();   
     bool IsAvailable();                             // оправшивает готовность gsm модуля (возвращает true если модуль не занят)
     bool isNetworkRegistered();                     // проверяет зарегистрирован ли модуль в сети (готов ли модуль к работе)   
+    void SwitchOn();                                // включение gsm модуля   
     
   private:
-    unsigned long GetElapsed(unsigned long prEventMillis);
-    void SwitchOn();                                // включение gsm модуля   
+    unsigned long GetElapsed(unsigned long prEventMillis);   
     void Configure();                               // настройка gsm модуля
     bool IsWorking;                                   // true - модуль включен, false - модуль выключен или не с конфигурирован (возможно из за збоев)
     bool ModuleIsCorrect;    
