@@ -3,7 +3,7 @@
 
 #define serial Serial                           // если аппаратный в UNO
 
-#define AVAILABLE_TIMEOUT  20                   // врем ожидание готовности модема (сек)  
+#define AVAILABLE_TIMEOUT  5                    // врем ожидание готовности модема (сек)  
 #define INITIALIZE_TIMEOUT 120                  // врем ожидания поиска сети модема (сек)  
 #define SMS_LIMIT          150                  // максимальное куличество символов в смс (большео лимита все символы обрезается)
 #define TIME_DIAGNOSTIC    1800000              // время проверки gsm модуля (раз в пол часа). Если обнаружено что gsm не отвечает или потерял сеть то устройство перезагружается автоматически
@@ -22,7 +22,6 @@ const char ATCLIP1[]     PROGMEM = {"AT+CLIP=1"};
 const char ATCMGF1[]     PROGMEM = {"AT+CMGF=1"}; 
 const char ATCSCSGSM[]   PROGMEM = {"AT+CSCS=\"GSM\""}; 
 const char ATIFC11[]     PROGMEM = {"AT+IFC=1, 1"}; 
-//const char ATCPBSSM[]    PROGMEM = {"AT+CPBS=\"SM\""}; 
 const char ATCNMI12210[] PROGMEM = {"AT+CNMI=1,2,2,1,0"}; 
 const char ATCMGD14[]    PROGMEM = {"AT+CMGD=1,4"}; 
 
