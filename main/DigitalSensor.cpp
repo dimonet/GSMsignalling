@@ -8,14 +8,23 @@ DigitalSensor::DigitalSensor(byte pinSensor)
 
 bool DigitalSensor::CheckSensor()
 {
-  if (digitalRead(_pinSensor) == HIGH) return true;
-    else return false; 
+  if (digitalRead(_pinSensor) == HIGH) 
+  { 
+    State = true;
+    return true;         
+  }
+  else 
+  {
+    State = false;
+    return false;   
+  }
 }
 
 void DigitalSensor::ResetSensor()
 {
   IsTrig = false; 
   IsAlarm = false; 
+  State = false;
   PrTrigTime = 0; 
   PrAlarmTime = 0;  
 }
