@@ -13,5 +13,7 @@ class DigitalSensor
     unsigned long PrAlarmTime;    // время последнего оповещение о срабатывании датчика (СМС, тел. звонок)
         
   private:
+    unsigned long GetElapsed(unsigned long prEventMillis);   
     byte _pinSensor;              // пинг датчика который опрашивается
+    unsigned long _firstTrigTime; // для хранения времени первого срабатывания (используется исключительно в механизме защиты от ложного срабатывания)
 };

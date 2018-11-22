@@ -126,7 +126,6 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define  timeCheckGas         2000                         // время паузы между измирениями датчика газа/дыма (милисекунды)
 #define  timeGasReady         600000                       // время паузы для прогрева датчика газа/дыма после включения устройства или датчика (милисекунды) (10 мин.)
 #define  timeTestBoardLed     3000                         // время мерцания внутреннего светодиода на плате при включеном режима тестирования
-#define  timeTrigSensor       1000                         // во избежании ложного срабатывании датчика тревога включается только если датчик срабатывает больше чем указанное время (импл. только для расстяжки)
 
 //// КОНСТАНТЫ ДЛЯ ПИНОВ /////
 #define SpecerPin 8
@@ -547,23 +546,16 @@ void loop()
       
     if (SenTension.State && !SenTension.IsTrig && EEPROM.read(E_TensionEnabled))           // проверяем растяжку только если она не срабатывала ранее (что б смс и звонки совершались единоразово)
     {
-      if (SenTension.PrTrigTime == 0) SenTension.PrTrigTime = millis();                     // если это первое срабатывание то запоминаем когда сработал датчик
-      if (GetElapsed(SenTension.PrTrigTime) > timeTrigSensor)                               // реагируем на сработку датчика только если он срабатывает больше заданного времени (во избежании ложных срабатываний)
-      {
-        StartAlarm();                                                                       // сигнализируем светодиодом о тревоге
-        if (!inTestMod && TensionSir) 
-        {
-          reqSirena = true;             
-          if (prReqSirena == 1) prReqSirena = millis();                         
-        }
-        SenTension.PrTrigTime = millis();                                                   // запоминаем когда сработал датчик для отображения статуса датчика
-        SenTension.IsTrig = true;            
-        SenTension.IsAlarm = true;         
-      }    
-    }
-    if (SenTension.PrTrigTime != 0 && !SenTension.IsTrig && !SenTension.State)             // проверяем если были ложные срабатывания расстяжки то сбрасываем счетчик времени
-      SenTension.PrTrigTime = 0;
-   
+       StartAlarm();                                                                       // сигнализируем светодиодом о тревоге
+       if (!inTestMod && TensionSir) 
+       {
+         reqSirena = true;             
+         if (prReqSirena == 1) prReqSirena = millis();                         
+       }
+       SenTension.PrTrigTime = millis();                                                   // запоминаем когда сработал датчик для отображения статуса датчика
+       SenTension.IsTrig = true;            
+       SenTension.IsAlarm = true;                   
+    }   
     
     if (SenPIR1.State && EEPROM.read(E_IsPIR1Enabled))
     {       
