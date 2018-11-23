@@ -1,5 +1,6 @@
-#include "MyGSM.h"
 #include "Arduino.h"
+#include "MyGSM.h"
+#include "Utilities.h"
 
 #define serial Serial                           // если аппаратный в UNO
 
@@ -90,16 +91,16 @@ bool MyGSM::Initialize()
   {
     ModuleIsCorrect = true;
     int i = 0;  
-    while(i < INITIALIZE_TIMEOUT * 0.6)                                // ждем подключение модема к сети  (приблезительно за одну сек. выполняется 0.6 итераций)
+    while(i < INITIALIZE_TIMEOUT * 0.6)                               // ждем подключение модема к сети  (приблезительно за одну сек. выполняется 0.6 итераций)
     { 
       if (isNetworkRegistered())    
       {
-        BlinkLED(500, 150, 0);                                          // блымаем светодиодом 
-        BlinkLED(150, 150, 200);                                        // блымаем светодиодом 
+        BlinkLEDhigh(_gsmLED, 500, 150, 0);                           // блымаем светодиодом 
+        BlinkLEDhigh(_gsmLED, 150, 150, 200);                         // блымаем светодиодом 
         return true;
       }    
-      BlinkLED(0, 500, 0);                                              // блымаем светодиодом  
-      digitalWrite(_boardLED, digitalRead(_boardLED) == LOW);           // блымаем внутренним светодиодом
+      BlinkLEDhigh(_gsmLED, 0, 500, 0);                               // блымаем светодиодом  
+      digitalWrite(_boardLED, digitalRead(_boardLED) == LOW);         // блымаем внутренним светодиодом
       i++;
     }
     Shutdown(true);
@@ -154,7 +155,7 @@ bool MyGSM::SendSms(String *text, String *phone)                     // проц
   serial.print(*text); 
   serial.print((char)26);
   delay(950);
-  BlinkLED(0, 250, 0);                                               // сигнализируем об этом   
+  BlinkLEDhigh(_gsmLED, 0, 250, 0);                                  // сигнализируем об этом   
   return true;                                                       // метод возвращает true - смс отправлено успешно 
 }
 
@@ -164,7 +165,7 @@ bool MyGSM::Call(String *phone)
   if (!WaitingAvailable()) return false;                             // ждем готовности модема и если он не ответил за заданный таймаут то прырываем отправку смс 
   *phone = phone->substring(1);                                      // отрезаем плюс в начале так как для звонка формат номера без плюса
   serial.println("ATD+" + *phone + ";"); 
-  BlinkLED(0, 250, 0);                                               // сигнализируем об этом 
+  BlinkLEDhigh(_gsmLED, 0, 250, 0);                                  // сигнализируем об этом 
   return true;
 }
 
@@ -181,7 +182,7 @@ bool MyGSM::RequestUssd(String *code)
     return false;
   if (!WaitingAvailable()) return false;                             // ждем готовности модема и если он не ответил то прырываем запрос
   delay(100);                                                        // для некоторых gsm модулей (SIM800l) обязательно необходима пауза между получением смс и отправкой Ussd запроса
-  BlinkLED(0, 250, 0);  
+  BlinkLEDhigh(_gsmLED, 0, 250, 0);  
   serial.println("AT+CUSD=1,\"" + *code + "\"");
   return true; 
 }
@@ -236,14 +237,14 @@ void MyGSM::Refresh()
       {
         if (currStr.startsWith(GetStrFromFlash(RING)))    //RING   // если входящий звонок
         {
-          BlinkLED(0, 250, 0);                                     // сигнализируем об этом 
+          BlinkLEDhigh(_gsmLED, 0, 250, 0);                        // сигнализируем об этом 
           NewRing = true;          
           strCount = 1;
         }
         else
         if (currStr.startsWith(GetStrFromFlash(CMT)))    //+CMT    // если СМС
         {
-          BlinkLED(0, 250, 0);                                     // сигнализируем об этом 
+          BlinkLEDhigh(_gsmLED, 0, 250, 0);                        // сигнализируем об этом 
           NewSms = true;
           SetString(&currStr, &SmsNumber, '\"', 0, '\"', 1);                                                           
           strCount = 1;
@@ -251,7 +252,7 @@ void MyGSM::Refresh()
         else
         if (currStr.startsWith(GetStrFromFlash(CUSD)))  //+CUSD    // если ответ от gsm команды
         {
-          BlinkLED(0, 250, 0);                                     // сигнализируем об этом
+          BlinkLEDhigh(_gsmLED, 0, 250, 0);                        // сигнализируем об этом
           NewUssd = true;         
           SetString(&currStr, &UssdText, '\"', 0, '\"', 1);                    
         }
@@ -330,36 +331,5 @@ void MyGSM::ClearUssd()
 {
   NewUssd = false;  
   UssdText = "";  
-}
-
-String MyGSM::GetStrFromFlash(char* addr)
-{
-  String buffstr = "";
-  int len = strlen_P(addr);
-  char currSymb;
-  for (byte i = 0; i < len; i++)
-  {
-    currSymb = pgm_read_byte_near(addr + i);
-    buffstr += String(currSymb);
-  }
-  return buffstr;
-}
-
-// Блымание gsm светодиодом 
-void MyGSM::BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter)
-{ 
-  digitalWrite(_gsmLED, LOW);                          
-  delay(millisBefore);  
-  digitalWrite(_gsmLED, HIGH);                                      // блымаем светодиодом
-  delay(millisHIGH); 
-  digitalWrite(_gsmLED, LOW);  
-  delay(millisAfter);
-}
-
-// подсчет сколько прошло милисикунд после последнего срабатывания события (сирена, звонок и т.д.)
-unsigned long MyGSM::GetElapsed(unsigned long prEventMillis)
-{
-  unsigned long tm = millis();
-  return (tm >= prEventMillis) ? tm - prEventMillis : 0xFFFFFFFF - prEventMillis + tm + 1;  //возвращаем милисикунды после последнего события
 }
 ;

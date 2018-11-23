@@ -27,10 +27,9 @@ class MyGSM
     bool isNetworkRegistered();                     // проверяет зарегистрирован ли модуль в сети (готов ли модуль к работе)   
     void SwitchOn();                                // включение gsm модуля   
     
-  private:
-    unsigned long GetElapsed(unsigned long prEventMillis);   
+  private:   
     void Configure();                               // настройка gsm модуля
-    bool IsWorking;                                   // true - модуль включен, false - модуль выключен или не с конфигурирован (возможно из за збоев)
+    bool IsWorking;                                 // true - модуль включен, false - модуль выключен или не с конфигурирован (возможно из за збоев)
     bool ModuleIsCorrect;    
     bool WaitingAvailable();                        // ожидание готовности gsm модуля
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
@@ -38,6 +37,5 @@ class MyGSM
     byte _gsmLED;
     byte _boardLED;
     byte _pinBOOT;                                   // нога BOOT или K на модеме   
-    String _sigStrength;
-    String GetStrFromFlash(char* addr);    
+    String _sigStrength;   
 };

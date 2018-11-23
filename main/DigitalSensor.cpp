@@ -1,4 +1,5 @@
 #include "DigitalSensor.h"
+#include "Utilities.h"
 
 DigitalSensor::DigitalSensor(byte pinSensor, int timeTrigSensor)
 {  
@@ -34,13 +35,6 @@ void DigitalSensor::ResetSensor()
   PrTrigTime = 0; 
   PrAlarmTime = 0;  
 }
-
-unsigned long DigitalSensor::GetElapsed(unsigned long prEventMillis)
-{
-  unsigned long tm = millis();
-  return (tm >= prEventMillis) ? tm - prEventMillis : 0xFFFFFFFF - prEventMillis + tm + 1;  //возвращаем милисикунды после последнего события
-}
-
 ;
 
 
