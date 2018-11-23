@@ -1,6 +1,7 @@
 #include "DigitalSensor.h"
 #include "Utilities.h"
 
+
 DigitalSensor::DigitalSensor(byte pinSensor, int timeTrigSensor)
 {  
   _pinSensor = pinSensor;
@@ -15,7 +16,7 @@ bool DigitalSensor::CheckSensor()
   {
     if (_firstTrigTime == 0) _firstTrigTime = millis();             // если это первое срабатывание то запоминаем когда сработал датчик
     if (GetElapsed(_firstTrigTime) >= _timeTrigSensor)              // реагируем на сработку датчика только если он срабатывает больше заданного времени (во избежании ложных срабатываний)
-    {
+    {   
       State = true;
       return true; 
     }

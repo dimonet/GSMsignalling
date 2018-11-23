@@ -122,6 +122,7 @@ bool MyGSM::isNetworkRegistered()
 
 bool MyGSM::IsAvailable()
 {
+  if (!IsWorking) return false;                                       // модуль выключен или не с конфигурирован то возвращаем сразу false указывая, что модуль не готов
   serial.println(GetStrFromFlash(ATCPAS));           //AT+CPAS        // спрашиваем состояние модема
   delay(10);
   return (serial.find("+CPAS: 0")) ? true : false;  //+CPAS: 0        // возвращаем true - модуль в "готовности", иначе модуль занят и возвращаем false                                                
@@ -197,14 +198,11 @@ void MyGSM::Refresh()
       if (isNetworkRegistered())
       {
         digitalWrite(_gsmLED, LOW);                                                     // выключаем светодиод сигнализируя о готовности к работе
-        WasRestored = true;
-        prStartGsm = 0;   
+        WasRestored = true;        
       }
       else 
-      {  
-        Shutdown(true);                                                                 // если gsm модем не смог найти связь через заданный таймаут то выключаем его до след. проверки
-        prStartGsm = 0;   
-      }
+        Shutdown(true);                                                                 // если gsm модем не смог найти связь через заданный таймаут то выключаем его до след. проверки              
+      prStartGsm = 0;
     } 
   }
   else  

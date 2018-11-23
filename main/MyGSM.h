@@ -30,7 +30,7 @@ class MyGSM
   private:   
     void Configure();                               // настройка gsm модуля
     bool IsWorking;                                 // true - модуль включен, false - модуль выключен или не с конфигурирован (возможно из за збоев)
-    bool ModuleIsCorrect;    
+    bool ModuleIsCorrect;                           // true - означает что gsm модуль и сим карта обнаружены)
     bool WaitingAvailable();                        // ожидание готовности gsm модуля
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
     void SetString(String *source, String *target, char firstSymb, int offsetFirst, char secondSymb, int offsetSecond);
