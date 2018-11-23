@@ -3,7 +3,7 @@
 class DigitalSensor
 {
   public: 
-    DigitalSensor(byte pinSensor);
+    DigitalSensor(byte pinSensor, int timeTrigSensor);
     bool CheckSensor();           // проверяет состояние датчика и если он сработал то возвращает true
     void ResetSensor();           // сброс всех свойств датчика в значения по умолянию
     bool IsTrig;                  // указывает факт, что датчик был сработал
@@ -15,5 +15,6 @@ class DigitalSensor
   private:
     unsigned long GetElapsed(unsigned long prEventMillis);   
     byte _pinSensor;              // пинг датчика который опрашивается
+    int _timeTrigSensor;          // указывает время (милсек.) сколько должен датчик срабатывать, что бы перейти в статус "Сработал" (защита от ложного срабатывании датчиков)
     unsigned long _firstTrigTime; // для хранения времени первого срабатывания (используется исключительно в механизме защиты от ложного срабатывания)
 };

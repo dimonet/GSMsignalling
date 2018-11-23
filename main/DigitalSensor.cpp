@@ -1,10 +1,9 @@
 #include "DigitalSensor.h"
 
-#define  timeTrigSensor       1000                         // во избежании ложного срабатывании датчика тревога включается только если датчик срабатывает больше чем указанное время (импл. только для расстяжки)
-
-DigitalSensor::DigitalSensor(byte pinSensor)
+DigitalSensor::DigitalSensor(byte pinSensor, int timeTrigSensor)
 {  
   _pinSensor = pinSensor;
+  _timeTrigSensor = timeTrigSensor;
   _firstTrigTime = 0;
   ResetSensor();   
 }
@@ -14,7 +13,7 @@ bool DigitalSensor::CheckSensor()
   if (digitalRead(_pinSensor) == HIGH)                              // проверяем растяжку только если она не срабатывала ранее (что б смс и звонки совершались единоразово)
   {
     if (_firstTrigTime == 0) _firstTrigTime = millis();             // если это первое срабатывание то запоминаем когда сработал датчик
-    if (GetElapsed(_firstTrigTime) > timeTrigSensor)     // реагируем на сработку датчика только если он срабатывает больше заданного времени (во избежании ложных срабатываний)
+    if (GetElapsed(_firstTrigTime) >= _timeTrigSensor)              // реагируем на сработку датчика только если он срабатывает больше заданного времени (во избежании ложных срабатываний)
     {
       State = true;
       return true; 

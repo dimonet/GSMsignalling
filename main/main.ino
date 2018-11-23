@@ -126,6 +126,8 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define  timeCheckGas         2000                         // время паузы между измирениями датчика газа/дыма (милисекунды)
 #define  timeGasReady         600000                       // время паузы для прогрева датчика газа/дыма после включения устройства или датчика (милисекунды) (10 мин.)
 #define  timeTestBoardLed     3000                         // время мерцания внутреннего светодиода на плате при включеном режима тестирования
+#define  timeTrigTension      1000                         // во избежании ложного срабатывании датчика расстяжки включается только если датчик срабатывает больше чем указанное время
+#define  timeTrigPirs         1000                         // во избежании ложного срабатывании датчики движения включается только если датчик срабатывает больше чем указанное время
 
 //// КОНСТАНТЫ ДЛЯ ПИНОВ /////
 #define SpecerPin 8
@@ -255,9 +257,9 @@ MyGSM gsm(gsmLED, boardLED, pinBOOT);           // GSM модуль
 
 
 // Датчики
-DigitalSensor SenTension(pinSH1);
-DigitalSensor SenPIR1(pinPIR1);
-DigitalSensor SenPIR2(pinPIR2);
+DigitalSensor SenTension(pinSH1, timeTrigTension);
+DigitalSensor SenPIR1(pinPIR1, timeTrigPirs);
+DigitalSensor SenPIR2(pinPIR2, timeTrigPirs);
 GasSensor SenGas(pinGas, pinGasPower);
 
 
