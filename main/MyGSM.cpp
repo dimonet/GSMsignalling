@@ -155,7 +155,7 @@ bool MyGSM::SendSms(String *text, String *phone)                     // проц
   delay(100);
   serial.print(*text); 
   serial.print((char)26);
-  delay(950);
+ // delay(950);
   BlinkLEDhigh(_gsmLED, 0, 250, 0);                                  // сигнализируем об этом   
   return true;                                                       // метод возвращает true - смс отправлено успешно 
 }

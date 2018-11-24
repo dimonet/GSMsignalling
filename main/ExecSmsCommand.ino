@@ -519,7 +519,7 @@ void SendInfSMS_SmsCommand()
 
 void PlayToneDependMod()
 {
-  if (mode == OutOfContrMod) PlayTone(sysTone, smsSpecDur);
+  if (mode == OutOfContrMod || inTestMod) PlayTone(sysTone, smsSpecDur);
 }
 
 
