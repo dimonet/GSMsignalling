@@ -34,7 +34,8 @@ bool DigitalSensor::CheckSensor()
 void DigitalSensor::ResetSensor()
 {
   HasTrigered = false; 
-  IsAlarm = false; 
+  ReqAlarmSMS = false; 
+  ReqAlarmCall = false;
   TrigEvent = false;
   PrTrigTime = 0; 
   PrAlarmTime = 0;  

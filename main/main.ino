@@ -126,7 +126,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define  timeCheckGas         2000                         // время паузы между измирениями датчика газа/дыма (милисекунды)
 #define  timeGasReady         600000                       // время паузы для прогрева датчика газа/дыма после включения устройства или датчика (милисекунды) (10 мин.)
 #define  timeTestBoardLed     3000                         // время мерцания внутреннего светодиода на плате при включеном режима тестирования
-#define  timeTrigTension      1000                         // во избежании ложного срабатывании датчика расстяжки включается только если датчик срабатывает больше чем указанное время
+#define  timeTrigTension      500                          // во избежании ложного срабатывании датчика расстяжки включается только если датчик срабатывает больше чем указанное время
 #define  timeTrigPirs         300                          // во избежании ложного срабатывании датчики движения включаются только если датчик срабатывает больше чем указанное время
 
 //// КОНСТАНТЫ ДЛЯ ПИНОВ /////
@@ -539,7 +539,7 @@ void loop()
   ////// IN CONTROL MODE ///////  
   if (mode == OnContrMod)                                                                  // если в режиме охраны
   {
-    CheckSensors() ;                                                                       // опрашиваем все датчики для обновления их состояний
+    CheckSensors();                                                                        // опрашиваем все датчики для обновления их состояний
     if (isSiren && !inTestMod)
     {
       if (GetElapsed(prSiren) > timeSiren)                                                 // если включена сирена и сирена работает больше установленного времени то выключаем ее
@@ -556,7 +556,8 @@ void loop()
        }
        SenTension.PrTrigTime = millis();                                                   // запоминаем когда сработал датчик для отображения статуса датчика
        SenTension.HasTrigered = true;            
-       SenTension.IsAlarm = true;   
+       SenTension.ReqAlarmSMS = true;                                                      // указываем о необходимости оповещения о тревоге через sms
+       SenTension.ReqAlarmCall = true;                                                     // указываем о необходимости оповещения о тревоге звонком
        SenTension.TrigEvent = false;                                                       // сбрасываем события сработки датчика так как его обработали 
     }   
     
@@ -570,7 +571,10 @@ void loop()
       }
       SenPIR1.PrTrigTime = millis();                                                       // запоминаем когда сработал датчик для отображения статуса датчика      
       if (GetElapsed(SenPIR1.PrAlarmTime) > timeSmsPIR1 || SenPIR1.PrAlarmTime == 0)       // если выдержена пауза после последнего звонка и отправки смс 
-        SenPIR1.IsAlarm = true;           
+      {
+        SenPIR1.ReqAlarmSMS = true;                                                        // указываем о необходимости оповещения о тревоге через sms
+        SenPIR1.ReqAlarmCall = true;                                                       // указываем о необходимости оповещения о тревоге звонком
+      }         
       SenPIR1.TrigEvent = false;                                                           // сбрасываем события сработки датчика так как его обработали 
     }
 
@@ -584,11 +588,14 @@ void loop()
       }
       SenPIR2.PrTrigTime = millis();                                                       // запоминаем когда сработал датчик для отображения статуса датчика      
       if (GetElapsed(SenPIR2.PrAlarmTime) > timeSmsPIR2 || SenPIR2.PrAlarmTime == 0)       // если выдержена пауза после последнего звонка и отправки смс
-        SenPIR2.IsAlarm = true;           
+      {
+        SenPIR2.ReqAlarmSMS = true;                                                        // указываем о необходимости оповещения о тревоге через sms
+        SenPIR2.ReqAlarmCall = true;                                                       // указываем о необходимости оповещения о тревоге звонком
+      }
       SenPIR2.TrigEvent = false;                                                           // сбрасываем события сработки датчика так как его обработали 
     }   
    
-    CheckSensors() ;                                                                       // опрашиваем все датчики для обновления их состояний
+    CheckSensors();                                                                        // опрашиваем все датчики для обновления их состояний
          
     if (reqSirena 
       && (GetElapsed(prReqSirena)/1000 >= EEPROM.read(E_delaySiren) || prReqSirena == 0))      
@@ -604,55 +611,79 @@ void loop()
         prSiren = millis();      
     }      
     
-    if (SenTension.IsAlarm)                                                                // проверяем состояние растяжки и если это первое обнаружение обрыва (TensionTriggered = false) то выполняем аналогичные действие
+    // Обрабатываем оповещение о тревоге (срабатывании датчиков) sms сообщением на зарегистрированый номер NUM1_OutOfContr
+    if (SenTension.ReqAlarmSMS)                                          // проверяем состояние растяжки и если это первое обнаружение обрыва (TensionTriggered = false) то выполняем аналогичные действие
     { 
       //gsm.RejectCall();                                                                  // если уже оповещается вызовом о тревоге то прырываем звонок так как смс оповещение в приоритете
-      if (gsm.IsAvailable())
+      if (!CheckSensors() && gsm.IsAvailable())
       {
         if (!inTestMod)    
         {
           gsm.SendSms(&GetStrFromFlash(sms_TensionCable), &NumberRead(E_NUM1_OutOfContr));
           CheckSensors() ;                                                                 // чтобы нечего не пропустить перечитываем состояние датчиков после sms так как sms может отправляется долго 
-        }        
-        gsm.Call(&NumberRead(E_NUM1_OutOfContr));  
-        CheckSensors() ;                                                                   // чтобы нечего не пропустить перечитываем состояние датчиков после звонка так как звонок может отправляется долго
-        SenTension.IsAlarm = false;
+        }               
+        SenTension.ReqAlarmSMS = false;
       }                                                    
     }
     
-    if (SenPIR1.IsAlarm)                                                                   // проверяем состояние 1-го датчика движения
-    {                                                                 
-      //gsm.RejectCall();                                                                  // если уже оповещается вызовом о тревоге то прырываем звонок так как смс оповещение в приоритете
-      if (gsm.IsAvailable())              
+    if (SenPIR1.ReqAlarmSMS)                                                               // проверяем состояние 1-го датчика движения
+    {                                                                       
+      if (!CheckSensors() && gsm.IsAvailable())             
       {  
         if (!inTestMod)  
         {
           gsm.SendSms(&GetStrFromFlash(sms_PIR1), &NumberRead(E_NUM1_OutOfContr));         // если не включен режим тестирование отправляем смс        
           CheckSensors() ;                                                                 // чтобы нечего не пропустить перечитываем состояние датчиков после sms так как sms может отправляется долго 
-        }        
-        gsm.Call(&NumberRead(E_NUM1_OutOfContr));  
-        CheckSensors() ;                                                                   // чтобы нечего не пропустить перечитываем состояние датчиков после звонка так как звонок может отправляется долго
+        }                                                                                  // чтобы нечего не пропустить перечитываем состояние датчиков после звонка так как звонок может отправляется долго
         SenPIR1.PrAlarmTime = millis();
-        SenPIR1.IsAlarm = false;
+        SenPIR1.ReqAlarmSMS = false;
       }
     }
     
-    if (SenPIR2.IsAlarm)                                                                   // проверяем состояние 2-го датчика движения
-    {      
-      //gsm.RejectCall();                                                                  // если уже оповещается вызовом о тревоге то прырываем звонок так как смс оповещение в приоритете
-      if (gsm.IsAvailable())
+    if (SenPIR2.ReqAlarmSMS)                                                               // проверяем состояние 2-го датчика движения
+    {  
+      if (!CheckSensors() && gsm.IsAvailable())
       {  
         if (!inTestMod)
         {
           gsm.SendSms(&GetStrFromFlash(sms_PIR2), &NumberRead(E_NUM1_OutOfContr));        
           CheckSensors() ;                                                                 // чтобы нечего не пропустить перечитываем состояние датчиков после sms так как sms может отправляется долго 
-        }
-        gsm.Call(&NumberRead(E_NUM1_OutOfContr));  
-        CheckSensors() ;                                                                   // чтобы нечего не пропустить перечитываем состояние датчиков после sms так как sms может отправляется долго 
+        }                                                                                  // чтобы нечего не пропустить перечитываем состояние датчиков после sms так как sms может отправляется долго 
         SenPIR2.PrAlarmTime = millis();
-        SenPIR2.IsAlarm = false;
+        SenPIR2.ReqAlarmSMS = false;
       }
     }
+
+    // Обрабатываем оповещение о тревоге (срабатывании датчиков) звонком на зарегистрированый номер NUM1_OutOfContr
+    if (SenTension.ReqAlarmCall)                                                           // проверяем состояние растяжки и если это первое обнаружение обрыва (TensionTriggered = false) то выполняем аналогичные действие
+    {     
+      if (!CheckSensors() && gsm.IsAvailable())
+      {      
+        gsm.Call(&NumberRead(E_NUM1_OutOfContr));  
+        CheckSensors() ;                                                                   // чтобы нечего не пропустить перечитываем состояние датчиков после звонка так как звонок может отправляется долго
+        SenTension.ReqAlarmCall = false;
+      }                                                    
+    }
+    
+    if (SenPIR1.ReqAlarmCall)                                                                   // проверяем состояние 1-го датчика движения
+    {                                                                       
+      if (!CheckSensors() && gsm.IsAvailable())            
+      {              
+        gsm.Call(&NumberRead(E_NUM1_OutOfContr));  
+        CheckSensors() ;                                                                   // чтобы нечего не пропустить перечитываем состояние датчиков после звонка так как звонок может отправляется долго      
+        SenPIR1.ReqAlarmCall = false;
+      }
+    }
+    
+    if (SenPIR2.ReqAlarmCall)                                                                   // проверяем состояние 2-го датчика движения
+    {  
+      if (!CheckSensors() && gsm.IsAvailable())
+      {         
+        gsm.Call(&NumberRead(E_NUM1_OutOfContr));  
+        CheckSensors() ;                                                                   // чтобы нечего не пропустить перечитываем состояние датчиков после sms так как sms может отправляется долго      
+        SenPIR2.ReqAlarmCall = false;
+      }
+    }    
     
     if (gsm.NewRing)                                                                       // если обнаружен входящий звонок
     {      
@@ -711,19 +742,29 @@ void loop()
         SenGas.HasTrigered = true;
         SenGas.PrTrigTime = millis();                                                       // запоминаем когда сработал датчик для отображения статуса датчика
         if (GetElapsed(SenGas.PrAlarmTime) > timeSmsGas || SenGas.PrAlarmTime == 0)         // если выдержена пауза после последнего звонка и отправки смс 
-          SenGas.IsAlarm = true;
+        { 
+          SenGas.ReqAlarmSMS = true;
+          SenGas.ReqAlarmCall = true;
+        }
       }
       else SenGas.HasTrigered = false;    
   
-      if (SenGas.IsAlarm)                                                                      
+      if (SenGas.ReqAlarmSMS)                                                                      
       {                                                                 
-        if (gsm.IsAvailable())              
+        if ((mode != OnContrMod || !CheckSensors()) && gsm.IsAvailable())                 // если в режиме охраны то проверяем датчики, и если нет активности в датчиках и gsm модуль не занят то оповещаем о тревоге sms
         {  
           if (!inTestMod)  
-            gsm.SendSms(&(GetStrFromFlash(sms_Gas)+ "\n" + GetStrFromFlash(GasVal) + String(GasPct) + "%"), &NumberRead(E_NUM1_OutOfContr));     // если не включен режим тестирование отправляем смс
-          gsm.Call(&NumberRead(E_NUM1_OutOfContr));                                        // сигнализируем звонком о сработке датчика
+            gsm.SendSms(&(GetStrFromFlash(sms_Gas)+ "\n" + GetStrFromFlash(GasVal) + String(GasPct) + "%"), &NumberRead(E_NUM1_OutOfContr));     // если не включен режим тестирование отправляем смс         
           SenGas.PrAlarmTime = millis();
-          SenGas.IsAlarm = false;
+          SenGas.ReqAlarmSMS = false;
+        }
+      }
+      if (SenGas.ReqAlarmCall)                                                                      
+      {                                                                 
+        if ((mode != OnContrMod || !CheckSensors()) && gsm.IsAvailable())                 // если в режиме охраны то проверяем датчики, и если нет активности в датчиках и gsm модуль не занят то оповещаем о тревоге sms
+        {         
+          gsm.Call(&NumberRead(E_NUM1_OutOfContr));                                        // сигнализируем звонком о сработке датчика
+          SenGas.ReqAlarmCall = false;
         }
       }
     }
@@ -735,8 +776,9 @@ void loop()
     SendSms(&gsm.UssdText, &numberAnsUssd);                                              // отправляем ответ на Ussd запрос
     gsm.ClearUssd();                                                                     // сбрасываем ответ на gsm команду 
   }
-  
-  if(!SenTension.IsAlarm && !SenPIR1.IsAlarm && !SenPIR2.IsAlarm && !SenGas.IsAlarm)
+   
+  if(!SenTension.ReqAlarmSMS && !SenPIR1.ReqAlarmSMS 
+      && !SenPIR2.ReqAlarmSMS && !SenGas.ReqAlarmSMS && !CheckSensors())                 // обработку смс выполняем только если отсутствует необходимость в оповещении о тревоге и не обнаружено ни какой активности сенсоров
     ExecSmsCommand();                                                                    // если нет необработаных датчиков то проверяем доступна ли новая команда по смс и если да то выполняем ее
   
   if(mode == OnContrMod)                                                                 // если мы в режиме контроля то чтобы нечего не пропустить перечитываем состояние датчиков
