@@ -25,6 +25,8 @@ const char ATCSCSGSM[]   PROGMEM = {"AT+CSCS=\"GSM\""};
 const char ATIFC11[]     PROGMEM = {"AT+IFC=1, 1"}; 
 const char ATCNMI12210[] PROGMEM = {"AT+CNMI=1,2,2,1,0"}; 
 const char ATCMGD14[]    PROGMEM = {"AT+CMGD=1,4"}; 
+const char ATCCID[]      PROGMEM = {"AT+CCID"}; 
+
 
 
 
@@ -69,6 +71,7 @@ void MyGSM::Configure()
 
 void MyGSM::Shutdown(bool ledIndicator)
 {
+  if (ModuleIsCorrect) WaitingAvailable();                         // если модуль рабочий то ждем готовности модема (если ждать готовности с нерабочим модулем то будет подвисание)
   serial.println(GetStrFromFlash(ATCPWROFF));      //AT+CPWROFF    // посылаем команду выключения gsm модема  
   delay(200);
   digitalWrite(_pinBOOT, HIGH);                                    // выключаем пинг который включает модем
@@ -85,14 +88,14 @@ bool MyGSM::Initialize()
   digitalWrite(_boardLED, HIGH);                                      // на время включаем лед на плате
   Configure();  
   serial.println(GetStrFromFlash(ATCMGD14));     //AT+CMGD=1,4        // удаление всех старых смс
-  delay(300); 
+  delay(300);   
   
-  if(IsAvailable())                                                   // проверяем отвичает ли модуль и вставлена ли SIM карта, если все впорядке то ожидаем регистрации в сети
+  if(CheckSIMCard())                                                  // проверяем отвичает ли модуль и вставлена ли SIM карта, если все впорядке то ожидаем регистрации в сети
   {
     ModuleIsCorrect = true;
     int i = 0;  
     while(i < INITIALIZE_TIMEOUT * 0.6)                               // ждем подключение модема к сети  (приблезительно за одну сек. выполняется 0.6 итераций)
-    { 
+    {       
       if (isNetworkRegistered())    
       {
         BlinkLEDhigh(_gsmLED, 500, 150, 0);                           // блымаем светодиодом 
@@ -107,7 +110,7 @@ bool MyGSM::Initialize()
     return false;    
   }
   else                                                                // если модуль не отвечает или нет SIM карты то пока выключаем модуль до след. автодиагностики, попробуем включить позже
-    ModuleIsCorrect = false;
+    ModuleIsCorrect = false;    
     Shutdown(true);
   return false; 
 }
@@ -118,6 +121,13 @@ bool MyGSM::isNetworkRegistered()
   serial.println(GetStrFromFlash(ATCOPS));     //AT+COPS? 
   delay(10);
     return (serial.find("+COPS: 0")) ? true : false;                  // выходим из цикла возвращая статус модуля  
+}
+
+bool MyGSM::CheckSIMCard()
+{  
+  serial.println(GetStrFromFlash(ATCCID));  
+  delay(10);  
+  return (serial.find("+CCID:")) ? true : false; 
 }
 
 bool MyGSM::IsAvailable()
@@ -173,6 +183,7 @@ bool MyGSM::Call(String *phone)
 void MyGSM::RejectCall()
 {
   serial.println("ATH0"); //ATH0
+  delay(10);
 }
 
 // запрос gsm кода (*#) 

@@ -17,7 +17,7 @@ class MyGSM
     String Read();
     bool SendSms(String *text, String *phone);      // метод возвращает true если смс отправлен успешно
     bool Call(String *phone);
-    void RejectCall();    
+    void RejectCall();        
     bool RequestUssd(String *code);                 // запрос gsm кода (*#)
     void Refresh();
     void ClearRing();
@@ -26,6 +26,7 @@ class MyGSM
     bool IsAvailable();                             // оправшивает готовность gsm модуля (возвращает true если модуль не занят)
     bool isNetworkRegistered();                     // проверяет зарегистрирован ли модуль в сети (готов ли модуль к работе)   
     void SwitchOn();                                // включение gsm модуля   
+    bool CheckSIMCard();                            // возвращает true если модуль обнаружил SIM карту
     
   private:   
     void Configure();                               // настройка gsm модуля
