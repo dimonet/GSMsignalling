@@ -26,9 +26,7 @@ const char ATIFC11[]     PROGMEM = {"AT+IFC=1, 1"};
 const char ATCNMI12210[] PROGMEM = {"AT+CNMI=1,2,2,1,0"}; 
 const char ATCMGD14[]    PROGMEM = {"AT+CMGD=1,4"}; 
 const char ATCCID[]      PROGMEM = {"AT+CCID"}; 
-
-
-
+const char ATH0[]        PROGMEM = {"ATH0"}; 
 
 
 unsigned long prStartGsm = 0;                   // время включения gsm модуля после его перезагрузки если обнаружено сбой в его работе (если =0 то сбоя небыло)
@@ -182,7 +180,7 @@ bool MyGSM::Call(String *phone)
 // сброс звонка
 void MyGSM::RejectCall()
 {
-  serial.println("ATH0"); //ATH0
+  serial.println(GetStrFromFlash(ATH0));  //ATH0
   delay(10);
 }
 
