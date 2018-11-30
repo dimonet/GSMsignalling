@@ -146,7 +146,6 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define sysTone 98                              // системный тон спикера
 #define clickTone 98                            // тон спикера при нажатии на кнопку
 #define smsSpecDur 100                          // длительность сигнала при получении смс команд и отправки ответа 
-#define powSpecDur 100                          // длительность сигнала при обнаружении перехода на питание от батареии или от сети
 
 //Power control 
 #define pinMeasureVcc A0                        // нога чтения типа питания (БП или батарея)
@@ -622,11 +621,7 @@ void loop()
       if (!CheckSensors() && gsm.IsAvailable())
       {
         if (!inTestMod)    
-        {
-          gsm.SendSms(&GetStrFromFlash(sms_TensionCable), &NumberRead(E_NUM1_OutOfContr));
-          CheckSensors() ;                                                                 // чтобы нечего не пропустить перечитываем состояние датчиков после sms так как sms может отправляется долго 
-          wdt_reset();                                                                     // сбрасываем счетчик watchdog так как отправка смс может занять некоторое время
-        }               
+          SendSms(&GetStrFromFlash(sms_TensionCable), &NumberRead(E_NUM1_OutOfContr));                                 
         SenTension.ReqAlarmSMS = false;
       }                                                    
     }
@@ -636,11 +631,7 @@ void loop()
       if (!CheckSensors() && gsm.IsAvailable())             
       {  
         if (!inTestMod)  
-        {
-          gsm.SendSms(&GetStrFromFlash(sms_PIR1), &NumberRead(E_NUM1_OutOfContr));         // если не включен режим тестирование отправляем смс        
-          CheckSensors() ;                                                                 // чтобы нечего не пропустить перечитываем состояние датчиков после sms так как sms может отправляется долго 
-          wdt_reset();                                                                     // сбрасываем счетчик watchdog так как отправка смс может занять некоторое время
-        }                                                                                  // чтобы нечего не пропустить перечитываем состояние датчиков после звонка так как звонок может отправляется долго
+          SendSms(&GetStrFromFlash(sms_PIR1), &NumberRead(E_NUM1_OutOfContr));            // если не включен режим тестирование отправляем смс                                                                                                           
         SenPIR1.PrAlarmTime = millis();
         SenPIR1.ReqAlarmSMS = false;
       }
@@ -651,11 +642,7 @@ void loop()
       if (!CheckSensors() && gsm.IsAvailable())
       {  
         if (!inTestMod)
-        {
-          gsm.SendSms(&GetStrFromFlash(sms_PIR2), &NumberRead(E_NUM1_OutOfContr));                  
-          CheckSensors() ;                                                                 // чтобы нечего не пропустить перечитываем состояние датчиков после sms так как sms может отправляется долго 
-          wdt_reset();                                                                     // сбрасываем счетчик watchdog так как отправка смс может занять некоторое время
-        }                                                                                  // чтобы нечего не пропустить перечитываем состояние датчиков после sms так как sms может отправляется долго 
+          SendSms(&GetStrFromFlash(sms_PIR2), &NumberRead(E_NUM1_OutOfContr));                            
         SenPIR2.PrAlarmTime = millis();
         SenPIR2.ReqAlarmSMS = false;
       }
@@ -766,8 +753,7 @@ void loop()
         if ((mode != OnContrMod || !CheckSensors()) && gsm.IsAvailable())                 // если в режиме охраны то проверяем датчики, и если нет активности в датчиках и gsm модуль не занят то оповещаем о тревоге sms
         {  
           if (!inTestMod)  
-            gsm.SendSms(&(GetStrFromFlash(sms_Gas)+ "\n" + GetStrFromFlash(GasVal) + String(GasPct) + "%"), &NumberRead(E_NUM1_OutOfContr));     // если не включен режим тестирование отправляем смс   
-          wdt_reset();                                                                    // сбрасываем счетчик watchdog так как отправка смс может занять некоторое время      
+            SendSms(&(GetStrFromFlash(sms_Gas)+ "\n" + GetStrFromFlash(GasVal) + String(GasPct) + "%"), &NumberRead(E_NUM1_OutOfContr));     // если не включен режим тестирование отправляем смс             
           SenGas.PrAlarmTime = millis();
           SenGas.ReqAlarmSMS = false;
         }
@@ -972,30 +958,12 @@ void PowerControl()                                                             
   digitalWrite(BattPowerLED, powCtr.IsBattPower);
 
   if (!powCtr.IsBattPowerPrevious && powCtr.IsBattPower)                                      // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v)
-  {
-    if (mode != OnContrMod || inTestMod)                                                      // если не в режиме охраны или включен режим тестирования 
-      PlayTone(sysTone, powSpecDur);                                                          // то сигнализируем спикером о переходе на резервное питание
     if (!inTestMod)                                                                           // если не включен режим тестирования
-    {  
-      CheckSensors() ;                                                                        // чтобы нечего не пропустить перечитываем состояние датчиков 
-      gsm.SendSms(&GetStrFromFlash(sms_BattPower), &NumberRead(E_NUM1_OutOfContr));           // отправляем смс о переходе на резервное питание            
-      wdt_reset();                                                                            // сбрасываем счетчик watchdog так как отправка смс может занять некоторое время  
-      CheckSensors() ;                                                                        // чтобы нечего не пропустить перечитываем состояние датчиков 
-    }
-  }
+      SendSms(&GetStrFromFlash(sms_BattPower), &NumberRead(E_NUM1_OutOfContr));               // отправляем смс о переходе на резервное питание                        
   
   if (powCtr.IsBattPowerPrevious && !powCtr.IsBattPower)                                      // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования  
-  {
-    if (mode != OnContrMod || inTestMod)                                                      // если не в режиме охраны или включен режим тестирования 
-      PlayTone(sysTone, powSpecDur);                                                          // то сигнализируем спикером о возобновлении питания от сетевое 220v 
     if(!inTestMod)                                                                            // если не включен режим тестирования
-    { 
-      CheckSensors() ;                                                                        // чтобы нечего не пропустить перечитываем состояние датчиков 
-      gsm.SendSms(&GetStrFromFlash(sms_NetPower), &NumberRead(E_NUM1_OutOfContr));            // отправляем смс о возобновлении питания от сетевое 220v 
-      wdt_reset();                                                                            // сбрасываем счетчик watchdog так как отправка смс может занять некоторое время  
-      CheckSensors() ;                                                                        // чтобы нечего не пропустить перечитываем состояние датчиков 
-    }
-  }
+      SendSms(&GetStrFromFlash(sms_NetPower), &NumberRead(E_NUM1_OutOfContr));                // отправляем смс о возобновлении питания от сетевое 220v       
 }
 
 void SkimpySiren()                                                                        // метод для кратковременного включения сирены (для теститования сирены)
@@ -1039,15 +1007,13 @@ void BlinkLEDSpecer(byte pinLED,  unsigned int millisBefore,  unsigned int milli
 
 bool SendSms(String *text, String *phone)      // собственный метод отправки СМС (возвращает true если смс отправлена успешно) создан для инкапсуляции сигнализации об отправки смс
 {
-  if(gsm.SendSms(text, phone))                 // если смс отправлено успешно 
-  {  
-    wdt_reset();                               // сбрасываем счетчик watchdog так как отправка смс может занять некоторое время    
-    if (mode != OnContrMod || inTestMod)       // если не в режиме охраны или включен режим тестирования то сигнализируем спикером об отправке смс
-      PlayTone(sysTone, smsSpecDur);                 
-    return true;                               // так как sms отправилась удачно выходим с метода и возвращаем true
-  }
-  wdt_reset();                                 // сбрасываем счетчик watchdog так как попытка отправки смс может занять некоторое время
-  return false;                                // если sms пока какой либо причине не отправилась то возвращаем false
+  bool res = false;
+  res = gsm.SendSms(text, phone);              // отправляем смс и запоминаем результат 
+  CheckSensors();                              // чтобы нечего не пропустить перечитываем состояние датчиков после sms так как sms может отправляется долго
+  wdt_reset();                                 // сбрасываем счетчик watchdog так как отправка смс может занять некоторое время    
+  if (mode != OnContrMod && res == true)       // если смс отправлена успешно и не в режиме охраны или включен режим тестирования то сигнализируем спикером об отправке смс
+    PlayTone(sysTone, smsSpecDur);                   
+  return res;                                  // если sms пока какой либо причине не отправилась то возвращаем false
 }
 
 // Hard перезагрузка, после которой отправляется sms о перезагрузке (полная перезагрузка устройства средствами WatshDog с перезагрузкой gsm модуля) (Примечание: Не применять если gsm модуль еще не загрузился) 
