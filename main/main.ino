@@ -659,7 +659,7 @@ void loop()
       if (!CheckSensors() && gsm.IsAvailable())
       {      
         gsm.Call(&NumberRead(E_NUM1_OutOfContr));         
-        CheckSensors() ;                                                                   // чтобы нечего не пропустить перечитываем состояние датчиков после звонка так как звонок может отправляется долго
+        CheckSensors();                                                                    // чтобы нечего не пропустить перечитываем состояние датчиков после звонка так как звонок может отправляется долго
         wdt_reset();                                                                       // сбрасываем счетчик watchdog так как совершение звонка может занять некоторое время
         SenTension.ReqAlarmCall = false;
       }                                                    
@@ -670,7 +670,7 @@ void loop()
       if (!CheckSensors() && gsm.IsAvailable())            
       {              
         gsm.Call(&NumberRead(E_NUM1_OutOfContr));  
-        CheckSensors() ;                                                                   // чтобы нечего не пропустить перечитываем состояние датчиков после звонка так как звонок может отправляется долго      
+        CheckSensors();                                                                    // чтобы нечего не пропустить перечитываем состояние датчиков после звонка так как звонок может отправляется долго      
         wdt_reset();                                                                       // сбрасываем счетчик watchdog так как совершение звонка может занять некоторое время
         SenPIR1.ReqAlarmCall = false;
       }
@@ -681,7 +681,7 @@ void loop()
       if (!CheckSensors() && gsm.IsAvailable())
       {         
         gsm.Call(&NumberRead(E_NUM1_OutOfContr));  
-        CheckSensors() ;                                                                   // чтобы нечего не пропустить перечитываем состояние датчиков после sms так как sms может отправляется долго      
+        CheckSensors();                                                                    // чтобы нечего не пропустить перечитываем состояние датчиков после sms так как sms может отправляется долго      
         wdt_reset();                                                                       // сбрасываем счетчик watchdog так как совершение звонка может занять некоторое время
         SenPIR2.ReqAlarmCall = false;
       }
