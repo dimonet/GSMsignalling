@@ -4,8 +4,9 @@ class MyGSM
 {
   public: 
     MyGSM(byte gsmLED, byte boardLED, byte pinBOOT);
+    void InitUART();                                // инициализация UART gsm модуля
     bool Initialize();             
-    void Shutdown(bool ledIndicator);               // выключение gsm модуля             
+    void Shutdown(bool ledIndicator);               // выключение gsm модуля            
     bool NewRing;
     bool NewSms;
     bool NewUssd;

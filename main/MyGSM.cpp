@@ -5,7 +5,7 @@
 #define serial Serial                           // если аппаратный в UNO
 
 #define AVAILABLE_TIMEOUT  1000                 // врем ожидание готовности модема (мили сек.)  
-#define TIME_DIAGNOSTIC    1800000              // время проверки gsm модуля(мили сек.) (1800000 = раз в пол часа). Если обнаружено что gsm не отвечает или потерял сеть то устройство перезагружается автоматически
+#define TIME_DIAGNOSTIC    1200000              // время проверки gsm модуля(мили сек.) (1800000 = раз в пол часа, 1200000 = раз в 20 мин). Если обнаружено что gsm не отвечает или потерял сеть то устройство перезагружается автоматически
 #define TIMEOUT_LOADING    120000               // время таймаута ожидания поиска сети gsm модуля после его перезагрузки если обнаружено сбой в его работе (мили сек.)
 #define INITIALIZE_TIMEOUT 120                  // врем ожидания поиска сети модема (сек.)  
 #define SMS_LIMIT          150                  // максимальное куличество символов в смс (большео лимита все символы обрезается)
@@ -33,20 +33,22 @@ unsigned long prStartGsm = 0;                   // время включения
 unsigned long prCheckGsm = 0;                   // время последней проверки gsm модуля (отвечает ли он, в сети ли он). 
 
 MyGSM::MyGSM(byte gsmLED, byte boardLED, byte pinBOOT)
-{
+{  
   _gsmLED = gsmLED;
   _boardLED = boardLED;
   _pinBOOT = pinBOOT;  
   IsWorking = false;
 }
+void MyGSM::InitUART()
+{
+  serial.begin(9600);                                              // установка скорости работы UART модема  
+  delay(1000);    
+}
 
 void MyGSM::SwitchOn()
 {
-  ClearRing();
-  ClearSms();
-  ClearUssd();  
-  digitalWrite(_pinBOOT, LOW);                                        // включаем модем   
-  delay(2000);                                                        // нужно дождатся включения модема 
+  digitalWrite(_pinBOOT, LOW);                                     // включаем модем   
+  delay(2000);                                                     // нужно дождатся включения модема         
 }
 
 void MyGSM::Configure()
@@ -68,20 +70,21 @@ void MyGSM::Configure()
 }
 
 void MyGSM::Shutdown(bool ledIndicator)
-{
-  if (ModuleIsCorrect) WaitingAvailable();                         // если модуль рабочий то ждем готовности модема (если ждать готовности с нерабочим модулем то будет подвисание)
+{  
+  ClearRing();
+  ClearSms();
+  ClearUssd();
   serial.println(GetStrFromFlash(ATCPWROFF));      //AT+CPWROFF    // посылаем команду выключения gsm модема  
-  delay(200);
-  digitalWrite(_pinBOOT, HIGH);                                    // выключаем пинг который включает модем
+  delay(2000);
+  digitalWrite(_pinBOOT, HIGH);                                    // выключаем пинг который включает модем   
+  delay(1000);  
   if (ledIndicator) digitalWrite(_gsmLED, HIGH);                   // включаем светодиод сигнализируя о не доступности gsm модема
   IsWorking = false;
 }
 
 // Инициализация gsm модуля (включения, настройка)
 bool MyGSM::Initialize()
-{
-  serial.begin(9600);                                                 // установка скорости работы UART модема
-  delay(1000);                               
+{                        
   digitalWrite(_gsmLED, HIGH);                                        // на время включаем лед на панели
   digitalWrite(_boardLED, HIGH);                                      // на время включаем лед на плате
   Configure();  
@@ -217,12 +220,12 @@ void MyGSM::Refresh()
   if (ModuleIsCorrect and GetElapsed(prCheckGsm) > TIME_DIAGNOSTIC)                     // если модуль рабочий (есть sim карта) раз в заданное время проверяем сколько прошло времени после последней проверки gsm модуля (в сети ли он). 
   {   
     if (!isNetworkRegistered())
-    {      
-      if(IsWorking)
+    {        
+      if(IsWorking)      
       {
-        Shutdown(true);                                                                 // если gsm модем не смог найти связь то пробываем его перезагрузить      
-        delay(100); 
-      }     
+        Shutdown(true);                                                                 // если gsm модем не смог найти связь то пробываем его перезагрузить             
+        delay(500);
+      }
       SwitchOn();             
       Configure();                                                                                   
       prStartGsm = millis();                                                            // запоминаем время старта gsm модема что б через установленное время проверить подключился ли он к сети и готов к работе      
