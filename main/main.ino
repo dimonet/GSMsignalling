@@ -114,6 +114,10 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 // Watch Dog (для перезагрузки)
 #define  wd_16ms           1                               // сторожовой таймер сработает по истичению 16-ти мили сек. (режим для немедленной перезагрузки) 
 #define  wd_8s             2                               // сторожовой таймер сработает по истичению 8-ми сек. (стандартный режим работы таймера)
+#define  Normal            0                               // 0 - перезагрузки небыло, 
+#define  SysDisaster       1                               // 1 - аварийная перезагрузка системы сторожовым таймером, 
+#define  GsmDisaster       2                               // 2 - аварийная перезагрузка системы из за збоя gsm модуля, 
+#define  SMSRebooted       3                               // 3 - перезагрузка по запросу sms команды
 
 // паузы
 #define  delayOnContrTest     7                            // время паузы от нажатие кнопки до установки режима охраны в режиме тестирования
@@ -174,7 +178,8 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 #define E_WDRebooted     3                      // адресс для сохранения факта перезагрузки устройства
                                                 // 0 - перезагрузки небыло, 
                                                 // 1 - аварийная перезагрузка системы сторожовым таймером, 
-                                                // 2 - перезагрузка по запросу sms команды 
+                                                // 2 - аварийная перезагрузка системы из за збоя gsm модуля, 
+                                                // 3 - перезагрузка по запросу sms команды 
 
 
 #define E_delaySiren     4                      // адресс для сохранения длины паузы между срабатыванием датяиков и включением сирены (в сикундах)
@@ -255,11 +260,11 @@ unsigned long prRing = 0;                       // время последнег
 unsigned long intrVcc = 0;                      // интервал между измерениями питания
 
 byte countPressBtn = 0;                         // счетчик нажатий на кнопку
-bool SMSRebooted = false;                       // указываем была ли последний раз перезагрузка программным путем
 
-byte WDRebooted = 0;                            // 0 - перезагрузки небыло, 
+byte WDRebooted = Normal;                       // 0 - перезагрузки небыло, 
                                                 // 1 - аварийная перезагрузка системы сторожовым таймером, 
-                                                // 2 - перезагрузка по запросу sms команды 
+                                                // 
+                                                // 3 - перезагрузка по запросу sms команды 
 
 int GasPct = 0;                                 // хранит отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения
 
@@ -300,7 +305,7 @@ void setup()
   pinMode(SirenGenerator, OUTPUT);            // нога на сирену
   pinMode(pinMeasureVcc, INPUT);              // нога чтения типа питания (БП или батарея)      
 
-  digitalWrite(pinBOOT, HIGH);                // при включении устройства gsm модуль должен быть по умолчанию выключен (включается позже)
+  digitalWrite(pinBOOT, LOW);                 // при включении устройства gsm модуль должен быть по умолчанию выключен (включается позже)
   StopSiren();                                // при включении устройства сирена должна быть по умолчанию выключена
 
   // блок сброса очистки EEPROM (сброс всех настроек)
@@ -322,7 +327,7 @@ void setup()
         EEPROM.write(E_mode, OutOfContrMod);         // устанавливаем по умолчанию режим не на охране
         EEPROM.write(E_inTestMod, 0);                // режим тестирования по умолчанию выключен
         EEPROM.write(E_isRedirectSms, 0);            // режим перенаправления всех смс по умолчанию выключен
-        EEPROM.write(E_WDRebooted, 0);               // факт перезагрузки устройства по умолчанию выключено (устройство не перезагружалось)
+        EEPROM.write(E_WDRebooted, Normal);          // факт перезагрузки устройства по умолчанию выключено (устройство не перезагружалось)
         EEPROM.write(E_delaySiren, 0);               // пауза между сработкой датчиков и включением сирены отключена (0 секунд) 
         EEPROM.write(E_delayOnContr, 25);            // пауза от нажатия кнопки до установки режима охраны (25 сек)
         EEPROM.write(E_intervalVcc, 0);              // интервал между измерениями питания (0 секунд)
@@ -346,13 +351,7 @@ void setup()
         delay(100);                                   
     }
   } 
-
-  gsm.InitUART();                                     // инициализация UART gsm модуля
   
-  WDRebooted = EEPROM.read(E_WDRebooted);             // читаем перезагружалось ли последний раз устройство по sms команде
-  if (WDRebooted != 0)                                // если обнаружено, что была аварияная или по sms запросу перезагрузка системы
-    gsm.Shutdown(false);                              // если произошла  перезагрузка то выключаем gsm модуль    
- 
   // блок тестирования спикера и всех светодиодов
   PlayTone(sysTone, 100);                          
   delay(500);
@@ -371,8 +370,18 @@ void setup()
   digitalWrite(boardLED, LOW);
   
   analogReference(INTERNAL);
-    
-  gsm.SwitchOn();                                       // включаем модем 
+
+  gsm.InitUART();                                     // инициализация UART gsm модуля
+  gsm.SwitchOn();                                     // включаем модем 
+  WDRebooted = EEPROM.read(E_WDRebooted);             // читаем перезагружалось ли последний раз устройство по sms команде
+  if (WDRebooted != Normal)                           // если обнаружено, что была аварияная или по sms запросу перезагрузка системы то презагружаем gsm модуль
+  {
+    gsm.Shutdown(false);                              // выключаем gsm модуль
+    delay(3700);                                      // добавляем паузы что б gsm модуль точно успел выключится
+    gsm.SwitchOn();                                   // ыключаем gsm модуль
+  }
+  
+ // if (WDRebooted == Normal) 
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
   digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом состояния питания
   gsm.Initialize();                                     // инициализация gsm модуля     
@@ -398,7 +407,7 @@ void setup()
   // чтение конфигураций с EEPROM
   if (EEPROM.read(E_mode) == OnContrMod)                   // читаем режим из еепром 
   {
-    if (WDRebooted)                                        // если устройство запускается после перезагрузки (аварийной или по смс команде)
+    if (WDRebooted != Normal)                              // если устройство запускается после перезагрузки (аварийной или по смс команде)
       Set_OnContrMod(false, EEPROM.read(E_infContr));      // то устанавливаем на охрану немедленно (без паузы перед установкой на охрану)
     else                                                   // если устройство запускается не после аварийной перезагрузки
       if (!Set_OnContrMod(true, EEPROM.read(E_infContr)))  // то устанавливаем на охрану с паузой перед установкой (что б была возможность отменить установку на охрану или покинуть помещение)
@@ -423,27 +432,40 @@ void loop()
   
   gsm.Refresh();                                                                            // читаем сообщения от GSM модема                                                
   wdt_reset();                                                                              // сбрасываем счетчик watchdog так как обновление состояния gsm может занять некоторое время
-  
-  if(gsm.WasRestored)
-  {
-    SendSms(&GetStrFromFlash(sms_GsmWasRestored), &NumberRead(E_NUM1_OutOfContr));
-    gsm.WasRestored = false;    
-  }  
 
-  if(WDRebooted == 1)
+  if (gsm.Status == Fail)                                                                   // проверяем если gsm модуль в статусе Fail (не отвечает или не в сети)
+  {
+    WDRebooted = GsmDisaster;                                                               // устанавливаем флаг, указывающий на причину перезагрузки - збой gsm модуля
+    Reboot();                                                                               // вызываем полную перезагрузку устройства
+  }
+  
+  if(WDRebooted == SysDisaster)
   {    
      SendSms(&GetStrFromFlash(sms_WDRebooted), &NumberRead(E_NUM1_OutOfContr));
-     WDRebooted = 0;
+     WDRebooted = Normal;
      EEPROM.write(E_WDRebooted, WDRebooted);
   }
-  else 
-  if (WDRebooted == 2)
+  else
+  if ((WDRebooted == GsmDisaster && gsm.Status == Registered) || gsm.WasRestored)
   {
-     SendSms(&GetStrFromFlash(sms_SMSRebooted), &NumberRead(E_NUM_RebootAns));
-     WDRebooted = 0;
+     SendSms(&GetStrFromFlash(sms_GsmWasRestored), &NumberRead(E_NUM1_OutOfContr));
+     gsm.WasRestored = false;    
+     WDRebooted = Normal;
      EEPROM.write(E_WDRebooted, WDRebooted); 
   }
-   
+  else 
+  if (WDRebooted == SMSRebooted)
+  {
+     SendSms(&GetStrFromFlash(sms_SMSRebooted), &NumberRead(E_NUM_RebootAns));
+     WDRebooted = Normal;
+     EEPROM.write(E_WDRebooted, WDRebooted); 
+  }
+  else 
+  if (WDRebooted != Normal)
+  {
+    WDRebooted = Normal;  
+    EEPROM.write(E_WDRebooted, WDRebooted);     
+  }
     
   if (inTestMod && !isAlarm)                                                                // если включен режим тестирования и не тревога
   {
@@ -484,7 +506,7 @@ void loop()
       if (mode == OutOfContrMod && countPressBtn == EEPROM.read(E_BtnOnContr))              // если кнопку нажали заданное количество для включение/отключения режима тестирования
       {        
         countPressBtn = 0;  
-        Set_OnContrMod(true, EEPROM.read(E_infContr));                      
+        Set_OnContrMod(true, EEPROM.read(E_infContr));                        
       }
       else
       // включение/отключения режима тестирования
@@ -1053,8 +1075,8 @@ void WDSetup(byte l)
 
 ISR(WDT_vect)                                          // метод для прырывания при срабатывании Watch Dog
 {       
-  if(WDRebooted == 0)
-    WDRebooted = 1;                                    // если перезагрузка не по sms команде то устанавливаем флаг, указывающий на причину перезагрузки, 1 - сбой системы
+  if(WDRebooted == Normal)
+    WDRebooted = SysDisaster;                                    // если перезагрузка не по sms команде то устанавливаем флаг, указывающий на причину перезагрузки, 1 - сбой системы
   EEPROM.write(E_WDRebooted, WDRebooted); 
   wdt_disable();
   wdt_enable(WDTO_15MS);    

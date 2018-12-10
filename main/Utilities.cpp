@@ -1,8 +1,6 @@
 #include "Utilities.h"
 #include <EEPROM.h>
 
-#define numSize 15      // количество символов в строке телефонного номера
-
 // подсчет сколько прошло милисикунд после последнего срабатывания события (сирена, звонок и т.д.)
 unsigned long GetElapsed(unsigned long prEventMillis)
 {
