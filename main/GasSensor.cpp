@@ -38,8 +38,9 @@ void GasSensor::TurnOffPower()
 
 void GasSensor::ResetSensor()
 {
-  IsTrig = false; 
-  IsAlarm = false; 
+  HasTrigered = false; 
+  ReqAlarmSMS = false; 
+  ReqAlarmCall = false;
   PrTrigTime = 0; 
   PrAlarmTime = 0;  
 }
