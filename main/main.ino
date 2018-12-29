@@ -1,7 +1,7 @@
-// Версия: 5.0
+// Версия: 5.1
 /// GSM сигналка c установкой по кнопке
 /// с датчиками движения и растяжкой (или с геркониевым датчиком)
-/// ВНИМАНИЕ: для корретной работы sms необходимо установить размеры буферов вместо 64 на SERIAL_TX_BUFFER_SIZE 24 и SERIAL_RX_BUFFER_SIZE 170 в файле hardware\arduino\avr\cores\arduino\HardwareSerial.h
+/// ВНИМАНИЕ: перед прошивкой устройства, необходимо перенастроить IDE среду согластно инструкции в файле IDEConfiguration.txt
 
 #include <EEPROM.h>
 #include <avr/pgmspace.h>
@@ -9,7 +9,7 @@
 #include "DigitalSensor.h" 
 #include "GasSensor.h"
 #include "MyGSM.h"
-#include "PowerControl.h"
+#include "Power.h"
 #include "Utilities.h"
 
 //#define debug Serial
@@ -69,7 +69,7 @@ const char siren[]               PROGMEM = {"siren"};
 const char _SirenEnabled[]       PROGMEM = {"sirenenabled"};
 
 // Строки для формирования смс ответов на смс команды Status и Settings
-const char FirmwareVer[]         PROGMEM = {"Ver: 5.0"};
+const char FirmwareVer[]         PROGMEM = {"Ver: 5.1"};
 const char control[]             PROGMEM = {"On controlling: "}; 
 const char test[]                PROGMEM = {"Test mode: "}; 
 const char redirSms[]            PROGMEM = {"Redirect SMS: "}; 
@@ -268,7 +268,7 @@ byte WDRebooted = Normal;                       // 0 - перезагрузки 
 
 int GasPct = 0;                                 // хранит отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения
 
-PowerControl powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
+Power powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
 
 MyGSM gsm(gsmLED, boardLED, pinBOOT);           // GSM модуль
 

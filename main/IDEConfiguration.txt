@@ -1,0 +1,4 @@
+1. In file hardware\arduino\avr\boards.txt in section "nano.name=Arduino Nano" you shoul change parameter "upload.maximum_size=30720" to value 32256.
+and parameter "upload.speed" change to value 115200 
+
+2. In file hardware\arduino\avr\cores\arduino\HardwareSerial.h you should set parameter "SERIAL_TX_BUFFER_SIZE 64" to 24 and "SERIAL_RX_BUFFER_SIZE 64" to 170
