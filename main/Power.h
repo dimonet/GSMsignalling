@@ -1,9 +1,9 @@
 #include "Arduino.h"
 
-class PowerControl
+class Power
 {
   public: 
-    PowerControl(byte netVcc, byte  battVcc, byte pinMeasureVcc);
+    Power(byte netVcc, byte  battVcc, byte pinMeasureVcc);
     void Refresh();                               // делает измерения питания и обновляет все данные
     bool IsBattPower;                             // тип питания (true - система питается от батареи, false - от сети)
     bool IsBattPowerPrevious;                     // предыдущее состояние питание системы (trrue - система питалась от батареи, false - от сети)
