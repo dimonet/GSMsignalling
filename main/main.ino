@@ -1,4 +1,4 @@
-// Версия: 5.1
+// Версия: 5.2
 /// GSM сигналка c установкой по кнопке
 /// с датчиками движения и растяжкой (или с геркониевым датчиком)
 /// ВНИМАНИЕ: перед прошивкой устройства, необходимо перенастроить IDE среду согластно инструкции в файле IDEConfiguration.txt
@@ -69,7 +69,7 @@ const char siren[]               PROGMEM = {"siren"};
 const char _SirenEnabled[]       PROGMEM = {"sirenenabled"};
 
 // Строки для формирования смс ответов на смс команды Status и Settings
-const char FirmwareVer[]         PROGMEM = {"Ver: 5.1"};
+const char FirmwareVer[]         PROGMEM = {"Ver: 5.2"};
 const char control[]             PROGMEM = {"On controlling: "}; 
 const char test[]                PROGMEM = {"Test mode: "}; 
 const char redirSms[]            PROGMEM = {"Redirect SMS: "}; 
@@ -871,8 +871,6 @@ bool Set_OutOfContrMod(bool infContr)                   // метод для с�
   
   EEPROM.write(E_mode, mode);                           // пишим режим в еепром, что б при следующем включении устройства, оно оставалось в данном режиме
  
-  gsm.RejectCall();                                     // сбрасываем вызов  
-  
   if (!inTestMod && infContr)
     SendSms(&GetStrFromFlash(sms_InfContrOff), &NumberRead(E_NUM1_OutOfContr));  // отправляем смс о снятии с охраны;
   return true;
