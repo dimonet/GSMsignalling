@@ -304,8 +304,7 @@ void ExecSmsCommand()
         }
         EEPROM.write(E_delaySiren, (byte)sConf[0].toInt());
         EEPROM.write(E_delayOnContr, (byte)sConf[1].toInt());
-        EEPROM.write(E_intervalVcc, (byte)sConf[2].toInt());
-        intrVcc = sConf[2].toInt() * 1000;
+        EEPROM.write(E_delayVcc, (byte)sConf[2].toInt());
         WriteStrEEPROM(E_BalanceUssd, &sConf[3]);
         SendInfSMS_Setting();
       }
@@ -449,10 +448,10 @@ void ExecSmsCommand()
 
 void SendInfSMS_Setting()
 {
-  String msg = GetStrFromFlash(delSiren)     + "'" + String(EEPROM.read(E_delaySiren)) + "'" + GetStrFromFlash(sec) + "\n"
+  String msg = GetStrFromFlash(delSiren)     + "'" + String(EEPROM.read(E_delaySiren))   + "'" + GetStrFromFlash(sec) + "\n"
      + GetStrFromFlash(delOnContr)           + "'" + String(EEPROM.read(E_delayOnContr)) + "'" + GetStrFromFlash(sec) + "\n"
-     + GetStrFromFlash(intervalVcc)          + "'" + String(EEPROM.read(E_intervalVcc)) + "'" + GetStrFromFlash(sec) + "\n"
-     + GetStrFromFlash(balanceUssd)          + "'" + ReadStrEEPROM(E_BalanceUssd) + "'" + "\n"
+     + GetStrFromFlash(delayVcc)             + "'" + String(EEPROM.read(E_delayVcc))     + "'" + GetStrFromFlash(sec) + "\n"
+     + GetStrFromFlash(balanceUssd)          + "'" + ReadStrEEPROM(E_BalanceUssd)        + "'" + "\n"
      + GetStrFromFlash(infContr)             + "'" + String((EEPROM.read(E_infContr)) ? "on" : "off") + "'";
   if (EEPROM.read(E_IsGasEnabled))
     msg = msg + "\n" + GetStrFromFlash(gasOnlyOnContr)  + "'" + String((EEPROM.read(E_gasOnlyOnContr)) ? "on" : "off") + "'";
