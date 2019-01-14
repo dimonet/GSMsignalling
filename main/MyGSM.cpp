@@ -302,7 +302,7 @@ void MyGSM::Refresh()
       
   if (NewSms)
   { 
-    serial.println("AT+CMGD=1,4");                                 // удаление всех старых смс
+    serial.println(GetStrFromFlash(ATCMGD14)); //"AT+CMGD=1,4"     // удаление всех старых смс
     delay(300);
   }    
 }

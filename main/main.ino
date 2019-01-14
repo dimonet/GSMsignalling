@@ -1,4 +1,4 @@
-// Версия: 5.2
+// Версия: 5.3
 /// GSM сигналка c установкой по кнопке
 /// с датчиками движения и растяжкой (или с геркониевым датчиком)
 /// ВНИМАНИЕ: перед прошивкой устройства, необходимо перенастроить IDE среду согластно инструкции в файле IDEConfiguration.txt
@@ -69,7 +69,7 @@ const char siren[]               PROGMEM = {"siren"};
 const char _SirenEnabled[]       PROGMEM = {"sirenenabled"};
 
 // Строки для формирования смс ответов на смс команды Status и Settings
-const char FirmwareVer[]         PROGMEM = {"Ver: 5.2"};
+const char FirmwareVer[]         PROGMEM = {"Ver: 5.3"};
 const char control[]             PROGMEM = {"On controlling: "}; 
 const char test[]                PROGMEM = {"Test mode: "}; 
 const char redirSms[]            PROGMEM = {"Redirect SMS: "}; 
@@ -97,7 +97,7 @@ const char sec[]                 PROGMEM = {" sec."};
 const char minut[]               PROGMEM = {" min."};
 const char hour[]                PROGMEM = {" hours."};
 const char delOnContr[]          PROGMEM = {"DelayOnContr: "};
-const char intervalVcc[]         PROGMEM = {"IntervalVcc: "};
+const char delayVcc[]            PROGMEM = {"DelayVcc: "};
 const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
 const char GasVal[]              PROGMEM = {"GasVal: "};
 const char GasNotReady[]         PROGMEM = {"NotReady"};
@@ -184,7 +184,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 
 #define E_delaySiren     4                      // адресс для сохранения длины паузы между срабатыванием датяиков и включением сирены (в сикундах)
 #define E_delayOnContr   5                      // время паузы от нажатия кнопки до установки режима охраны (в сикундах)
-#define E_intervalVcc    6                      // интервал между измерениями питания (в сикундах)
+#define E_delayVcc       6                      // интервал между измерениями питания (в сикундах)
 #define E_infContr       7                      // адресс для хранения режима оповещение о постановки/снятие на охрану через смс
 #define E_gasOnlyOnContr 8                      // адресс для хранения режима работы датчика газа (выключать ли датчик газа в режиме не на охране)  
 #define E_gasCalibr      9                      // калибровка датчика газа. Значение от датчика, которое воспринимать как 0 (отсутствие утечки газа)
@@ -246,6 +246,8 @@ bool PIR2Sir = false;                           // включена/выключ
 bool isAlarm = false;                           // режим тревоги
 bool reqSirena = false;                         // уст. в true когда сработал датчик и необходимо включить сирену
 bool isRun = true;                              // флаг для управления выполнения блока кода в loop только при старте устройства
+bool reqBattVccSMS = false;                     // Флаг указывает о необходимости оповещения SMS о переходе на резервное питание
+bool reqNetVccSMS = false;                      // Флаг указывает о необходимости оповещения SMS о возобновлении питания
 String numberAnsUssd = "";                      // для промежуточного хранения номера телефона, от которого получено gsm код и которому необходимо отправить ответ (баланс и т.д.)
 
 
@@ -253,11 +255,9 @@ unsigned long prSiren = 0;                      // время включения
 unsigned long prAlarm = 0;                      // время включения светодиода тревоги (милисекунды)
 unsigned long prLastPressBtn = 0;               // время последнего нажатие на кнопку (милисекунды)
 unsigned long prTestBlinkLed = 0;               // время мерцания светодиода при включеном режима тестирования (милисекунды)
-unsigned long prRefreshVcc = 0;                 // время последнего измирения питания (милисекунды)
+unsigned long prBatteryVcc = 0;                 // время последнего обнаружения, что система перешла на резервное питание измирения питания (милисекунды)
 unsigned long prReqSirena = 0;                  // время последнего обнаружения, что необходимо включать сирену
 unsigned long prRing = 0;                       // время последнего обнаружения входящего звонка
-
-unsigned long intrVcc = 0;                      // интервал между измерениями питания
 
 byte countPressBtn = 0;                         // счетчик нажатий на кнопку
 
@@ -330,7 +330,7 @@ void setup()
         EEPROM.write(E_WDRebooted, Normal);          // факт перезагрузки устройства по умолчанию выключено (устройство не перезагружалось)
         EEPROM.write(E_delaySiren, 0);               // пауза между сработкой датчиков и включением сирены отключена (0 секунд) 
         EEPROM.write(E_delayOnContr, 25);            // пауза от нажатия кнопки до установки режима охраны (25 сек)
-        EEPROM.write(E_intervalVcc, 0);              // интервал между измерениями питания (0 секунд)
+        EEPROM.write(E_delayVcc, 0);                 // интервал между измерениями питания (0 секунд)
         EEPROM.write(E_BalanceUssd, "***");          // Ussd код для запроса баланца
         EEPROM.write(E_infContr, 0);                 // информирование о снятии с охраны по смс по умолчанию отключено
         EEPROM.write(E_IsPIR1Enabled, 1);            
@@ -401,8 +401,6 @@ void setup()
   TensionSir = EEPROM.read(E_TensionSiren);             // читаем включена или выключена сирена для растяжки
   PIR1Sir = EEPROM.read(E_PIR1Siren);                   // читаем включена или выключена сирена для датчика движения 1
   PIR2Sir = EEPROM.read(E_PIR2Siren);                   // читаем включена или выключена сирена для датчика движения 2
-  intrVcc = EEPROM.read(E_intervalVcc);                 // читаем интервал между измерениями питания (в сикундах)
-  intrVcc = intrVcc * 1000;                             // конвертируем интервал между измерениями питания с сикунд в милисекунды
 
   // чтение конфигураций с EEPROM
   if (EEPROM.read(E_mode) == OnContrMod)                   // читаем режим из еепром 
@@ -421,11 +419,7 @@ void setup()
 
 void loop() 
 {    
-  if (GetElapsed(prRefreshVcc) > intrVcc || prRefreshVcc == 0)                              // проверяем сколько прошло времени после последнего измерения питания (секунды) (выдерживаем паузц между измерениями что б не загружать контроллер)
-  {   
-    PowerControl();                                                                         // мониторим питание системы
-    prRefreshVcc = millis();
-  }   
+  PowerControl();                                                                           // мониторим питание системы   
 
   if(mode == OnContrMod)                                                                    // если мы в режиме контроля то чтобы нечего не пропустить перечитываем состояние датчиков
     CheckSensors();                                                                    
@@ -656,7 +650,7 @@ void loop()
     // Обрабатываем оповещение о тревоге (срабатывании датчиков) sms сообщением на зарегистрированый номер NUM1_OutOfContr
     if (SenTension.ReqAlarmSMS)                                                            // проверяем состояние растяжки и если это первое обнаружение обрыва (TensionTriggered = false) то выполняем аналогичные действие
     {       
-      if (!CheckSensors() && gsm.IsAvailable())
+      if (!CheckSensors() && gsm.IsAvailable())                                            // опрашиваем датчики и если нет подозрительной активности и gsm не зянят то отправляем смс иначе пробуем отправить в следующих итерациях цыкла
       {
         if (!inTestMod)    
           SendSms(&GetStrFromFlash(sms_TensionCable), &NumberRead(E_NUM1_OutOfContr));                                 
@@ -666,10 +660,10 @@ void loop()
     
     if (SenPIR1.ReqAlarmSMS)                                                               // проверяем состояние 1-го датчика движения
     {                                                                       
-      if (!CheckSensors() && gsm.IsAvailable())             
+      if (!CheckSensors() && gsm.IsAvailable())                                            // опрашиваем датчики и если нет подозрительной активности и gsm не зянят то отправляем смс иначе пробуем отправить в следующих итерациях цыкла
       {  
         if (!inTestMod)  
-          SendSms(&GetStrFromFlash(sms_PIR1), &NumberRead(E_NUM1_OutOfContr));            // если не включен режим тестирование отправляем смс                                                                                                           
+          SendSms(&GetStrFromFlash(sms_PIR1), &NumberRead(E_NUM1_OutOfContr));             // если не включен режим тестирование отправляем смс                                                                                                           
         SenPIR1.PrAlarmTime = millis();
         SenPIR1.ReqAlarmSMS = false;
       }
@@ -677,7 +671,7 @@ void loop()
     
     if (SenPIR2.ReqAlarmSMS)                                                               // проверяем состояние 2-го датчика движения
     {  
-      if (!CheckSensors() && gsm.IsAvailable())
+      if (!CheckSensors() && gsm.IsAvailable())                                            // опрашиваем датчики и если нет подозрительной активности и gsm не зянят то отправляем смс иначе пробуем отправить в следующих итерациях цыкла
       {  
         if (!inTestMod)
           SendSms(&GetStrFromFlash(sms_PIR2), &NumberRead(E_NUM1_OutOfContr));                            
@@ -985,18 +979,43 @@ void StopAlarm()
   isAlarm = false;  
 }
 
-void PowerControl()                                                                           // метод для обработки событий питания системы (переключение на батарею или на сетевое)
+void PowerControl()                                                                       // метод для обработки событий питания системы (переключение на батарею или на сетевое)
 {
   powCtr.Refresh();    
   digitalWrite(BattPowerLED, powCtr.IsBattPower);
 
-  if (!powCtr.IsBattPowerPrevious && powCtr.IsBattPower)                                      // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v)
-    if (!inTestMod)                                                                           // если не включен режим тестирования
-      SendSms(&GetStrFromFlash(sms_BattPower), &NumberRead(E_NUM1_OutOfContr));               // отправляем смс о переходе на резервное питание                        
+  if (!powCtr.IsBattPowerPrevious && powCtr.IsBattPower)                                  // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v)
+    prBatteryVcc = millis();    
+
+  if (prBatteryVcc != 0)
+    if (GetElapsed(prBatteryVcc) > EEPROM.read(E_delayVcc) * 1000)                        // выдержываем установленную в конф. паузу перед оповещением, что б не оповещать каждый раз при непродолжительных сбоях в питании
+    {
+      if(!inTestMod)                                                                      // если не включен режим тестирования то устанавливаем флаг о необходимости оповестить СМС  
+        reqBattVccSMS = true;
+      prBatteryVcc = 0;
+    }   
   
-  if (powCtr.IsBattPowerPrevious && !powCtr.IsBattPower)                                      // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования  
-    if(!inTestMod)                                                                            // если не включен режим тестирования
-      SendSms(&GetStrFromFlash(sms_NetPower), &NumberRead(E_NUM1_OutOfContr));                // отправляем смс о возобновлении питания от сетевое 220v       
+  if (powCtr.IsBattPowerPrevious && !powCtr.IsBattPower)                                  // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования      
+  {
+    if(!inTestMod && prBatteryVcc == 0)                                                   // если не включен режим тестирования и уже было оповещено о переходе на резервное питание то устанавливаем флаг о необходимости оповестить о восстановления питания  
+      reqNetVccSMS = true;
+    prBatteryVcc = 0;
+  }
+
+  // Оповещение SMS о статусе питания
+  if (reqBattVccSMS)
+    if (!CheckSensors() && gsm.IsAvailable())                                             // опрашиваем датчики и если нет подозрительной активности и gsm не зянят то отправляем смс иначе пробуем отправить в следующих итерациях цыкла
+    {
+      SendSms(&GetStrFromFlash(sms_BattPower), &NumberRead(E_NUM1_OutOfContr));           // отправляем смс о переходе на резервное питание     
+      reqBattVccSMS = false;
+    }
+      
+  if (reqNetVccSMS)    
+    if (!CheckSensors() && gsm.IsAvailable())                                             // опрашиваем датчики и если нет подозрительной активности и gsm не зянят то отправляем смс иначе пробуем отправить в следующих итерациях цыкла
+    {
+      SendSms(&GetStrFromFlash(sms_NetPower), &NumberRead(E_NUM1_OutOfContr));            // отправляем смс о возобновлении питания от сетевое 220v       
+      reqNetVccSMS = false;
+    }
 }
 
 void SkimpySiren()                                                                        // метод для кратковременного включения сирены (для теститования сирены)
