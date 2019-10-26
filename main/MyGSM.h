@@ -12,7 +12,6 @@
 #define Loading            2                    // модуль ищет сеть
 #define Registered         3                    // модуль нашел сеть и работает в штатном режиме
 #define Fail               4                    // модуль потерял сеть или перестал отвечать
-#define NotFound           5                    // модуль или сим карта не обнаружена
 
 class MyGSM
 {
@@ -41,8 +40,7 @@ class MyGSM
     void ClearUssd();   
     bool IsAvailable();                             // оправшивает готовность gsm модуля (возвращает true если модуль не занят)
     bool isNetworkRegistered();                     // проверяет зарегистрирован ли модуль в сети (готов ли модуль к работе)   
-    void SwitchOn();                                // включение gsm модуля   
-    bool CheckSIMCard();                            // возвращает true если модуль обнаружил SIM карту
+    void SwitchOn();                                // включение gsm модуля       
     
   private:   
     void Configure();                               // настройка gsm модуля 
