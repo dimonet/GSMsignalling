@@ -17,10 +17,14 @@ void Power::Refresh()
 {
   IsBattPowerPrevious = IsBattPower;
   VccValue = MeasureVccValue();  
-  if (VccValue >= (_netVcc - _netVccDelta))
-      IsBattPower = false;
-  else 
-      IsBattPower = true;  
+  byte minNetVcc = _netVcc - _netVccDelta;   //пороговое значение напряжение меньше, которого система восприниает как отключено сетевое питания
+  if(VccValue > (minNetVcc + (minNetVcc*0.2)) || VccValue < (minNetVcc - (minNetVcc*0.2)))  //для предотвращения ложного срабатывания не измеряем если мы находимся на границе порогового значения (между (пороговое + 20%) и (порогове-20)) так как напряжение пдает плавно из за конденсатора
+  {
+    if (VccValue >= minNetVcc)
+        IsBattPower = false;
+    else 
+        IsBattPower = true;  
+  }     
 }
 
 float Power::MeasureVccValue()
