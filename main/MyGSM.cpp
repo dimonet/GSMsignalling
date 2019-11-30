@@ -4,7 +4,6 @@
 
 #define serial Serial                           // если аппаратный в UNO
 
-const char AT[]      PROGMEM = {"AT"};
 const char ATCPAS[]      PROGMEM = {"AT+CPAS"};
 const char RING[]        PROGMEM = {"RING"};
 const char CMT[]         PROGMEM = {"+CMT"};
@@ -39,17 +38,12 @@ MyGSM::MyGSM(byte gsmLED, byte boardLED, byte pinBOOT)
 
 void MyGSM::SwitchOn()
 {
-  serial.begin(9600);                                                // установка скорости работы UART модема  
+  serial.begin(9600);                                              // установка скорости работы UART модема  
   delay(1000);    
- // serial.println(GetStrFromFlash(AT)); 
- // delay(200);
- // if(!serial.find("OK"))                                             // если модуль не включен то включаем его. если попытаться включить уже включенный модуль (после перезагрузки системы) то модуль сбойнет
- // {
-    digitalWrite(_pinBOOT, LOW);                                     // включаем модем   
-    Status = Loading;
-    delay(2000);                                                     // нужно дождатся включения модема                                         
-    digitalWrite(_pinBOOT, HIGH);                                    // включаем модем   
- // }
+  digitalWrite(_pinBOOT, LOW);                                     // включаем модем   
+  Status = Loading;
+  delay(2000);                                                     // нужно дождатся включения модема                                         
+  digitalWrite(_pinBOOT, HIGH);                                    // включаем модем    
 }
 
 // Инициализация gsm модуля (включения, настройка)

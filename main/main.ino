@@ -378,8 +378,7 @@ void setup()
   PIR1Sir = EEPROM.read(E_PIR1Siren);                   // читаем включена или выключена сирена для датчика движения 1
   PIR2Sir = EEPROM.read(E_PIR2Siren);                   // читаем включена или выключена сирена для датчика движения 2
 
-  //if(WDRebooted == Normal) 
-    gsm.SwitchOn();                                     // включаем модем 
+  gsm.SwitchOn();                                       // включаем модем 
       
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
   digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
