@@ -1,4 +1,4 @@
-// Версия: 5.5
+// Версия в стр. 72
 /// GSM сигналка c установкой по кнопке
 /// с датчиками движения и растяжкой (или с геркониевым датчиком)
 /// ВНИМАНИЕ: перед прошивкой устройства, необходимо перенастроить IDE среду согластно инструкции в файле IDEConfiguration.txt
@@ -36,7 +36,7 @@ const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection is turned 
 const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren was turned ON."};                                // выполнена команда для коротковременного включения сирены
 const char sms_SMSRebooted[]     PROGMEM = {"Command: Device was rebooted."};                                       // устройство перегружено по причине sms команды
 const char sms_WDRebooted[]      PROGMEM = {"System: Disaster rebooted."};                                          // аварийная перезагрузка по причине зависании
-const char sms_GsmWasRestored[]  PROGMEM = {"System: GSM was restored."};                                           // gsm модуль был перегружен и востановлен после збоя
+const char sms_GsmWasRestored[]  PROGMEM = {"System: GSM was restored. Signal: "};                                  // gsm модуль был перегружен и востановлен после збоя
 const char sms_WrongUssd[]       PROGMEM = {"Command: Wrong USSD code."};                                           // сообщение о неправельной USSD коде
 const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format should be next:\nSendSMS 'number' 'text'"};            // выполнена команда для отправки смс другому абоненту
 const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};                                              // выполнена команда для отправки смс другому абоненту
@@ -69,7 +69,7 @@ const char siren[]               PROGMEM = {"siren"};
 const char _SirenEnabled[]       PROGMEM = {"sirenenabled"};
 
 // Строки для формирования смс ответов на смс команды Status и Settings
-const char FirmwareVer[]         PROGMEM = {"Ver: 5.5"};
+const char FirmwareVer[]         PROGMEM = {"Ver: 6.0"};
 const char control[]             PROGMEM = {"On control: "}; 
 const char test[]                PROGMEM = {"Test mode: "}; 
 const char redirSms[]            PROGMEM = {"Redir.SMS: "}; 
@@ -115,10 +115,9 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 // Watch Dog (для перезагрузки)
 #define  wd_16ms           1                               // сторожовой таймер сработает по истичению 16-ти мили сек. (режим для немедленной перезагрузки) 
 #define  wd_8s             2                               // сторожовой таймер сработает по истичению 8-ми сек. (стандартный режим работы таймера)
-#define  Normal            0                               // 0 - перезагрузки небыло, 
-#define  SysDisaster       1                               // 1 - аварийная перезагрузка системы сторожовым таймером, 
-#define  GsmDisaster       2                               // 2 - аварийная перезагрузка системы из за збоя gsm модуля, 
-#define  SMSRebooted       3                               // 3 - перезагрузка по запросу sms команды
+#define  Normal            1                               // 0 - перезагрузки небыло, 
+#define  SysDisaster       2                               // 1 - аварийная перезагрузка системы сторожовым таймером, 
+#define  SMSRebooted       3                               // 2 - перезагрузка по запросу sms команды
 
 // паузы
 #define  delayOnContrTest     7                            // время паузы от нажатие кнопки до установки режима охраны в режиме тестирования
@@ -263,9 +262,8 @@ unsigned long prRing = 0;                       // время последнег
 byte countPressBtn = 0;                         // счетчик нажатий на кнопку
 
 byte WDRebooted = Normal;                       // 0 - перезагрузки небыло, 
-                                                // 1 - аварийная перезагрузка системы сторожовым таймером, 
-                                                // 
-                                                // 3 - перезагрузка по запросу sms команды 
+                                                // 1 - аварийная перезагрузка системы сторожовым таймером,                                                  
+                                                // 2 - перезагрузка по запросу sms команды 
 
 int GasPct = 0;                                 // хранит отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения
 
@@ -371,23 +369,22 @@ void setup()
   digitalWrite(boardLED, LOW);
   
   analogReference(INTERNAL);
-
-  gsm.InitUART();                                     // инициализация UART gsm модуля
-  gsm.SwitchOn();                                     // включаем модем 
-  WDRebooted = EEPROM.read(E_WDRebooted);             // читаем перезагружалось ли последний раз устройство по sms команде
-  if (WDRebooted != Normal)                           // если обнаружено, что была аварияная или по sms запросу перезагрузка системы то презагружаем gsm модуль
-  {
-    gsm.Shutdown(false);                              // выключаем gsm модуль
-    delay(3700);                                      // добавляем паузы что б gsm модуль точно успел выключится
-    gsm.SwitchOn();                                   // ыключаем gsm модуль
-  }
   
- // if (WDRebooted == Normal) 
+  WDRebooted = EEPROM.read(E_WDRebooted);               // читаем перезагружалось ли последний раз устройство по sms команде
+  inTestMod = EEPROM.read(E_inTestMod);                 // читаем тестовый режим из еепром
+  SenGas.gasClbr = ReadIntEEPROM(E_gasCalibr);          // читаем значения калибровки датчика газа/дыма
+  SirEnabled = EEPROM.read(E_SirenEnabled);             // читаем включена или выключена сирена глобально
+  TensionSir = EEPROM.read(E_TensionSiren);             // читаем включена или выключена сирена для растяжки
+  PIR1Sir = EEPROM.read(E_PIR1Siren);                   // читаем включена или выключена сирена для датчика движения 1
+  PIR2Sir = EEPROM.read(E_PIR2Siren);                   // читаем включена или выключена сирена для датчика движения 2
+
+  //if(WDRebooted == Normal) 
+    gsm.SwitchOn();                                     // включаем модем 
+      
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
-  digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом состояния питания
-  gsm.Initialize();                                     // инициализация gsm модуля     
- 
   digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
+  
+  gsm.Initialize();                                     // инициализация gsm модуля       
   
   if (EEPROM.read(E_IsGasEnabled))                      // если включен датчик газа/дыма
     SenGas.TurnOnPower();                               // включаем питание датчика газа/дыма 
@@ -396,12 +393,7 @@ void setup()
   attachInterrupt(0, ClickButton, FALLING);             // привязываем 0-е прерывание к функции ClickButton(). 
   interrupt = true;                                     // разрешаем обработку прырывания  
 
-  inTestMod = EEPROM.read(E_inTestMod);                 // читаем тестовый режим из еепром
-  SenGas.gasClbr = ReadIntEEPROM(E_gasCalibr);          // читаем значения калибровки датчика газа/дыма
-  SirEnabled = EEPROM.read(E_SirenEnabled);             // читаем включена или выключена сирена глобально
-  TensionSir = EEPROM.read(E_TensionSiren);             // читаем включена или выключена сирена для растяжки
-  PIR1Sir = EEPROM.read(E_PIR1Siren);                   // читаем включена или выключена сирена для датчика движения 1
-  PIR2Sir = EEPROM.read(E_PIR2Siren);                   // читаем включена или выключена сирена для датчика движения 2
+  
 
   // чтение конфигураций с EEPROM
   if (EEPROM.read(E_mode) == OnContrMod)                   // читаем режим из еепром 
@@ -427,39 +419,28 @@ void loop()
   
   gsm.Refresh();                                                                            // читаем сообщения от GSM модема                                                
   wdt_reset();                                                                              // сбрасываем счетчик watchdog так как обновление состояния gsm может занять некоторое время
-
-  if (gsm.Status == Fail)                                                                   // проверяем если gsm модуль в статусе Fail (не отвечает или не в сети)
-  {
-    WDRebooted = GsmDisaster;                                                               // устанавливаем флаг, указывающий на причину перезагрузки - збой gsm модуля
-    Reboot();                                                                               // вызываем полную перезагрузку устройства
-  }
-  
-  if(WDRebooted == SysDisaster)
+   
+  if(WDRebooted == SysDisaster && gsm.IsAvailable())
   {    
-     SendSms(&GetStrFromFlash(sms_WDRebooted), &NumberRead(E_NUM1_OutOfContr));
-     WDRebooted = Normal;
-     EEPROM.write(E_WDRebooted, WDRebooted);
-  }
-  else
-  if ((WDRebooted == GsmDisaster && gsm.Status == Registered) || gsm.WasRestored)
-  {
-     SendSms(&GetStrFromFlash(sms_GsmWasRestored), &NumberRead(E_NUM1_OutOfContr));
-     gsm.WasRestored = false;    
-     WDRebooted = Normal;
-     EEPROM.write(E_WDRebooted, WDRebooted); 
-  }
+    if (!inTestMod)
+      SendSms(&GetStrFromFlash(sms_WDRebooted), &NumberRead(E_NUM1_OutOfContr));
+    WDRebooted = Normal;
+    EEPROM.write(E_WDRebooted, WDRebooted);
+  }  
   else 
-  if (WDRebooted == SMSRebooted)
+  if (WDRebooted == SMSRebooted && gsm.IsAvailable())
   {
-     SendSms(&GetStrFromFlash(sms_SMSRebooted), &NumberRead(E_NUM_RebootAns));
-     WDRebooted = Normal;
-     EEPROM.write(E_WDRebooted, WDRebooted); 
-  }
-  else 
-  if (WDRebooted != Normal)
+    SendSms(&GetStrFromFlash(sms_SMSRebooted), &NumberRead(E_NUM_RebootAns));
+    WDRebooted = Normal;
+    EEPROM.write(E_WDRebooted, WDRebooted); 
+  } 
+
+
+  if(gsm.WasRestored && gsm.IsAvailable())                                                  // если обнаружно, что gsm восстановлен после сбоя и на данные момент он не занят то уведомляем, что был сбой в работе gsm
   {
-    WDRebooted = Normal;  
-    EEPROM.write(E_WDRebooted, WDRebooted);     
+    if (!inTestMod)    
+      SendSms(&String(GetStrFromFlash(sms_GsmWasRestored) + String(gsm.GetSignalStrength()) + "%"), &NumberRead(E_NUM1_OutOfContr));
+    gsm.WasRestored = false;
   }
     
   if (inTestMod && !isAlarm)                                                                // если включен режим тестирования и не тревога
@@ -509,7 +490,7 @@ void loop()
       {
         countPressBtn = 0;  
         PlayTone(sysTone, 250);                                                             // сигнализируем об этом спикером  
-        InTestMod(!inTestMod);
+        InTestMod(!inTestMod);        
       }
       else
       // запрос баланса счета
@@ -1096,8 +1077,9 @@ ISR(WDT_vect)                                          // метод для пр
   if(WDRebooted == Normal)
     WDRebooted = SysDisaster;                                    // если перезагрузка не по sms команде то устанавливаем флаг, указывающий на причину перезагрузки, 1 - сбой системы
   EEPROM.write(E_WDRebooted, WDRebooted); 
+  digitalWrite(pinBOOT, LOW);                                    // выключаем модем 
   wdt_disable();
-  wdt_enable(WDTO_15MS);    
+  wdt_enable(WDTO_2S);    
   while(1);
 }
 

@@ -4,6 +4,7 @@
 
 #define serial Serial                           // если аппаратный в UNO
 
+const char AT[]      PROGMEM = {"AT"};
 const char ATCPAS[]      PROGMEM = {"AT+CPAS"};
 const char RING[]        PROGMEM = {"RING"};
 const char CMT[]         PROGMEM = {"+CMT"};
@@ -21,7 +22,7 @@ const char ATCNMI12210[] PROGMEM = {"AT+CNMI=1,2,2,1,0"};
 const char ATCMGD14[]    PROGMEM = {"AT+CMGD=1,4"}; 
 const char ATH0[]        PROGMEM = {"ATH0"}; 
 
-byte Status;                                    // текущий статус gsm модуля (1-Shutdowned, 2-Loading, 3-Registered, 4-Fail)
+byte Status;                                    // текущий статус gsm модуля (1-Loading, 2-Registered, 3-Fail)
 
 unsigned long prStartGsm = 0;                   // время включения gsm модуля после его перезагрузки если обнаружено сбой в его работе (если =0 то сбоя небыло)
 unsigned long prCheckGsm = 0;                   // время последней проверки gsm модуля (отвечает ли он, в сети ли он). 
@@ -32,25 +33,31 @@ MyGSM::MyGSM(byte gsmLED, byte boardLED, byte pinBOOT)
   _gsmLED = gsmLED;
   _boardLED = boardLED;
   _pinBOOT = pinBOOT;  
-  Status = Shutdowned;
   _sigStrength = -31;  //дефолтное значение уровня сигнала сети (если GSM не вернет значения сигнала то смс вернет отрицательное значение, что говорит об "ошибке")
-}
-
-void MyGSM::InitUART()
-{
-  serial.begin(9600);                                              // установка скорости работы UART модема  
-  delay(1000);    
+  WasRestored = false;
 }
 
 void MyGSM::SwitchOn()
 {
-  digitalWrite(_pinBOOT, LOW);                                     // включаем модем   
-  Status = Loading;
-  delay(2000);                                                     // нужно дождатся включения модема         
+  serial.begin(9600);                                                // установка скорости работы UART модема  
+  delay(1000);    
+ // serial.println(GetStrFromFlash(AT)); 
+ // delay(200);
+ // if(!serial.find("OK"))                                             // если модуль не включен то включаем его. если попытаться включить уже включенный модуль (после перезагрузки системы) то модуль сбойнет
+ // {
+    digitalWrite(_pinBOOT, LOW);                                     // включаем модем   
+    Status = Loading;
+    delay(2000);                                                     // нужно дождатся включения модема                                         
+    digitalWrite(_pinBOOT, HIGH);                                    // включаем модем   
+ // }
 }
 
-void MyGSM::Configure()
-{
+// Инициализация gsm модуля (включения, настройка)
+bool MyGSM::Initialize()
+{                        
+  digitalWrite(_gsmLED, HIGH);                                                     // на время включаем лед на панели
+  digitalWrite(_boardLED, HIGH);                                                   // на время включаем лед на плате
+  
   serial.println(GetStrFromFlash(ATE0));         // ATE0                           // выключаем эхо  
   delay(200);
   serial.println(GetStrFromFlash(ATCLIP1));      //AT+CLIP=1                       // включаем АОН
@@ -63,28 +70,8 @@ void MyGSM::Configure()
   serial.println(GetStrFromFlash(ATIFC11));      //AT+IFC=1, 1                     // устанавливает программный контроль потоком передачи данных
   delay(200);
   serial.println(GetStrFromFlash(ATCNMI12210));  //AT+CNMI=1,2,2,1,0               // включает оповещение о новых сообщениях
-  delay(200);  
-}
-
-void MyGSM::Shutdown(bool ledIndicator)
-{  
-  ClearRing();
-  ClearSms();
-  ClearUssd();
-  serial.println(GetStrFromFlash(ATCPWROFF));      //AT+CPWROFF    // посылаем команду выключения gsm модема  
-  delay(2000);
-  digitalWrite(_pinBOOT, HIGH);                                    // выключаем пинг который включает модем   
-  if (ledIndicator) digitalWrite(_gsmLED, HIGH);                   // включаем светодиод сигнализируя о не доступности gsm модема
-  Status = Shutdowned;
-}
-
-// Инициализация gsm модуля (включения, настройка)
-bool MyGSM::Initialize()
-{                        
-  digitalWrite(_gsmLED, HIGH);                                        // на время включаем лед на панели
-  digitalWrite(_boardLED, HIGH);                                      // на время включаем лед на плате
-  Configure();  
-  serial.println(GetStrFromFlash(ATCMGD14));     //AT+CMGD=1,4        // удаление всех старых смс
+  delay(200);    
+  serial.println(GetStrFromFlash(ATCMGD14));     //AT+CMGD=1,4                     // удаление всех старых смс
   delay(300);   
   
   int i = 0;  
@@ -95,15 +82,17 @@ bool MyGSM::Initialize()
       BlinkLEDhigh(_gsmLED, 500, 150, 0);                           // блымаем светодиодом 
       BlinkLEDhigh(_gsmLED, 150, 150, 200);                         // блымаем светодиодом 
       Status = Registered;       
-      prCheckGsm = millis();                                        // запоминаем текущее время после которого начнаем отсчет интерала для тестирования gsm модуля
+      prCheckGsm = millis();                                        // запоминаем текущее время после которого начнаем отсчет интервала для тестирования gsm модуля
+      Status = Registered;
       return true;
     }    
     BlinkLEDhigh(_gsmLED, 0, 500, 0);                               // блымаем светодиодом  
     digitalWrite(_boardLED, digitalRead(_boardLED) == LOW);         // блымаем внутренним светодиодом
     i++;
-  }
-  Shutdown(true);
-  prCheckGsm = millis();                                            // запоминаем текущее время после которого начнаем отсчет интерала для тестирования gsm модуля
+  }  
+  prCheckGsm = millis();                                            // запоминаем текущее время после которого начнаем отсчет интервала для тестирования gsm модуля
+  Status = Fail;
+  digitalWrite(_gsmLED, HIGH);
   return false;        
 }
 
@@ -117,7 +106,7 @@ bool MyGSM::isNetworkRegistered()
 
 bool MyGSM::IsAvailable()
 {
-  if (Status == Shutdowned) return false;                             // модуль выключен то возвращаем сразу false указывая, что модуль не готов
+  if (Status == Fail) return false;                                   // модуль не в сети то возвращаем сразу false указывая, что модуль не готов
   serial.println(GetStrFromFlash(ATCPAS));           //AT+CPAS        // спрашиваем состояние модема
   delay(10);
   return (serial.find("+CPAS: 0")) ? true : false;  //+CPAS: 0        // возвращаем true - модуль в "готовности", иначе модуль занят и возвращаем false                                                
@@ -126,14 +115,14 @@ bool MyGSM::IsAvailable()
 // ожидание готовности gsm модуля
 bool MyGSM::WaitingAvailable()
 {
-  if (Status == Shutdowned) return false;                             // модуль выключен то возвращаем сразу false указывая, что модуль не готов
+  if (Status == Fail) return false;                                   // модуль модуль не в сети то возвращаем сразу false указывая, что модуль не готов
   unsigned long prAvailable = millis(); 
   while(GetElapsed(prAvailable) <= AVAILABLE_TIMEOUT)                 // Количество циклов считаем как: заданые таймаут в милисекундах делим на (задержку внутри цикла 40мс + задержку в методе IsAvailable 10мс)
   {  
     if (IsAvailable())                                                // спрашиваем состояние gsm модуля и если он в "готовности" 
     { 
       delay(10);
-      return true;                                                   // выходим из цикла возвращая true - модуль в "готовности"    
+      return true;                                                    // выходим из цикла возвращая true - модуль в "готовности"    
     }   
     delay(40);    
   }
@@ -272,36 +261,22 @@ void MyGSM::Refresh()
     delay(300);
   } 
 
-  //Диагностика работы gsm модема (в сети ли он) 
-  if (Status == Loading)
-  {
-    if (GetElapsed(prStartGsm) > TIMEOUT_LOADING)                                            
-    {
-      if (isNetworkRegistered())
-      {
-        Status = Registered;
-        digitalWrite(_gsmLED, LOW);                                                     // выключаем светодиод сигнализируя о готовности к работе
-        WasRestored = true;                
-      }
-      else 
-        Shutdown(true);                                             // если gsm модем не смог найти связь через заданный таймаут то выключаем его до след. проверки                   
-      prCheckGsm = millis();                                        // запоминаем текущее время после которого начнаем отсчет интерала для тестирования gsm модуля
-    } 
-  }
-  else  
+  //Диагностика работы gsm модема (в сети ли он)   
   if (GetElapsed(prCheckGsm) > TIME_DIAGNOSTIC)                     // если модуль рабочий (есть sim карта) раз в заданное время проверяем сколько прошло времени после последней проверки gsm модуля (в сети ли он). 
   {   
-    if (Status == Shutdowned)
+    if (!isNetworkRegistered())
     {
-      SwitchOn();             
-      Configure();
-      prStartGsm = millis();                                        // запоминаем время старта gsm модема что б через установленное время проверить подключился ли он к сети и готов к работе                                                                                           
+        Status = Fail;    
+        digitalWrite(_gsmLED, HIGH);          
+        WasRestored = false;
     }
-    else if (Status == Registered)
+    else  
     {
-        if (!isNetworkRegistered())
-        Status = Fail;      
-    }    
+      if(Status == Fail)
+        WasRestored = true;
+      Status = Registered;
+      digitalWrite(_gsmLED, LOW);
+    }  
     prCheckGsm = millis();                                      // запоминаем текущее время после которого начнаем отсчет интерала для тестирования gsm модуля
   }   
 
