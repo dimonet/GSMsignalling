@@ -40,7 +40,8 @@ class MyGSM
     void ClearUssd();   
     bool IsAvailable();                             // оправшивает готовность gsm модуля (возвращает true если модуль не занят)
     bool isNetworkRegistered();                     // проверяет зарегистрирован ли модуль в сети (готов ли модуль к работе)   
-    void SwitchOn();                                // включение gsm модуля       
+    void SwitchOn();                                // включение gsm модуля    
+    int GetSignalStrength();                        // возвращает уровень сигнала   
     
   private:   
     void Configure();                               // настройка gsm модуля 
@@ -50,5 +51,5 @@ class MyGSM
     byte _gsmLED;
     byte _boardLED;
     byte _pinBOOT;                                   // нога BOOT или K на модеме   
-    String _sigStrength;   
+    int _sigStrength;   
 };

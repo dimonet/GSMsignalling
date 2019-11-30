@@ -33,6 +33,7 @@ MyGSM::MyGSM(byte gsmLED, byte boardLED, byte pinBOOT)
   _boardLED = boardLED;
   _pinBOOT = pinBOOT;  
   Status = Shutdowned;
+  _sigStrength = -31;  //дефолтное значение уровня сигнала сети (если GSM не вернет значения сигнала то смс вернет отрицательное значение, что говорит об "ошибке")
 }
 
 void MyGSM::InitUART()
@@ -181,8 +182,96 @@ bool MyGSM::RequestUssd(String *code)
   return true; 
 }
 
+int MyGSM::GetSignalStrength()
+{
+  if (!WaitingAvailable()) return -1;                                    // ждем готовности модема и если он не ответил за заданный таймаут то прырываем выполнения метода 
+  serial.println(GetStrFromFlash(ATCSQ));     //ATCSQ 
+  delay(100);  
+  Refresh();
+  return round((_sigStrength/31.0)*100);   
+}
+
 void MyGSM::Refresh()
-{ 
+{   
+  // Обработка входящих звонков и смс
+  String currStr = "";     
+  byte strCount = 0;  
+  
+  while (serial.available())
+  {
+    char currSymb = serial.read();        
+    if ('\r' == currSymb) 
+    {
+      if (strCount == 0)
+      {
+        if (currStr.startsWith(GetStrFromFlash(RING)))    //RING   // если входящий звонок
+        {
+          BlinkLEDhigh(_gsmLED, 0, 250, 0);                        // сигнализируем об этом 
+          NewRing = true;          
+          strCount = 1;
+        }
+        else
+        if (currStr.startsWith(GetStrFromFlash(CMT)))    //+CMT    // если СМС
+        {
+          BlinkLEDhigh(_gsmLED, 0, 250, 0);                        // сигнализируем об этом 
+          NewSms = true;
+          SetString(&currStr, &SmsNumber, '\"', 0, '\"', 0);                                                           
+          strCount = 1;
+        }
+        else
+        if (currStr.startsWith(GetStrFromFlash(CUSD)))  //+CUSD    // если ответ от gsm команды
+        {
+          BlinkLEDhigh(_gsmLED, 0, 250, 0);                        // сигнализируем об этом
+          NewUssd = true;         
+          SetString(&currStr, &UssdText, '\"', 0, '\"', 0);                    
+          break;
+        }
+        else 
+        if (currStr.startsWith(GetStrFromFlash(CSQ)))  //+CSQ      // если ответ на запрос об уровне сигнала
+        {
+          String sStrength;
+          SetString(&currStr, &sStrength, ' ', 0, ',', 0);        
+          _sigStrength = sStrength.toInt();         
+          break;     
+        }         
+      }
+      else
+      if (strCount == 1) 
+      {         
+        if (NewRing)                                               // если входящий звонок
+          strCount = 2;           
+        else       
+        if (NewSms)                                                // если СМС
+        {
+          SmsText = currStr;  
+          break;                                      
+        }                
+      }
+      else
+      if (strCount == 2) 
+      {
+        if (NewRing)                                               // если входящий звонок
+        {
+         SetString(&currStr, &RingNumber, '\"', 0, '\"', 0);  
+         break;                             
+        }                 
+      }        
+    currStr = "";    
+    } 
+    else if ('\n' != currSymb ) 
+    {
+      if (currSymb == '\"') currStr += "\\" + String(currSymb);
+      else currStr += String(currSymb);           
+      delay(5);
+    }
+  }
+      
+  if (NewSms)
+  { 
+    serial.println(GetStrFromFlash(ATCMGD14)); //"AT+CMGD=1,4"     // удаление всех старых смс
+    delay(300);
+  } 
+
   //Диагностика работы gsm модема (в сети ли он) 
   if (Status == Loading)
   {
@@ -215,79 +304,8 @@ void MyGSM::Refresh()
     }    
     prCheckGsm = millis();                                      // запоминаем текущее время после которого начнаем отсчет интерала для тестирования gsm модуля
   }   
-  
-  // Обработка входящих звонков и смс
-  String currStr = "";     
-  byte strCount = 0;  
-  
-  while (serial.available())
-  {
-    char currSymb = serial.read();        
-    if ('\r' == currSymb) 
-    {
-      if (strCount == 0)
-      {
-        if (currStr.startsWith(GetStrFromFlash(RING)))    //RING   // если входящий звонок
-        {
-          BlinkLEDhigh(_gsmLED, 0, 250, 0);                        // сигнализируем об этом 
-          NewRing = true;          
-          strCount = 1;
-        }
-        else
-        if (currStr.startsWith(GetStrFromFlash(CMT)))    //+CMT    // если СМС
-        {
-          BlinkLEDhigh(_gsmLED, 0, 250, 0);                        // сигнализируем об этом 
-          NewSms = true;
-          SetString(&currStr, &SmsNumber, '\"', 0, '\"', 1);                                                           
-          strCount = 1;
-        }
-        else
-        if (currStr.startsWith(GetStrFromFlash(CUSD)))  //+CUSD    // если ответ от gsm команды
-        {
-          BlinkLEDhigh(_gsmLED, 0, 250, 0);                        // сигнализируем об этом
-          NewUssd = true;         
-          SetString(&currStr, &UssdText, '\"', 0, '\"', 1);                    
-        }
-        else 
-        if (currStr.startsWith(GetStrFromFlash(CSQ)))  //+CSQ      // если ответ на запрос об уровне сигнала
-        {
-          SetString(&currStr, &_sigStrength, ' ', 0, ',', 0);                 
-        }         
-      }
-      else
-      if (strCount == 1) 
-      {         
-        if (NewRing)                                               // если входящий звонок
-          strCount = 2;           
-        else       
-        if (NewSms)                                                // если СМС
-        {
-          SmsText = currStr;                                        
-        }                
-      }
-      else
-      if (strCount == 2) 
-      {
-        if (NewRing)                                               // если входящий звонок
-        {
-         SetString(&currStr, &RingNumber, '\"', 0, '\"', 1);                               
-        }                 
-      }        
-    currStr = "";    
-    } 
-    else if ('\n' != currSymb ) 
-    {
-      if (currSymb == '\"') currStr += "\\" + String(currSymb);
-      else currStr += String(currSymb);           
-      delay(5);
-    }
-  }
-      
-  if (NewSms)
-  { 
-    serial.println(GetStrFromFlash(ATCMGD14)); //"AT+CMGD=1,4"     // удаление всех старых смс
-    delay(300);
-  }    
+
+     
 }
 
 void MyGSM::SetString(String *source, String *target, char firstSymb, int offsetFirst, char secondSymb, int offsetSecond)

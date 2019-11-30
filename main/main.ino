@@ -1,4 +1,4 @@
-// Версия: 5.4
+// Версия: 5.5
 /// GSM сигналка c установкой по кнопке
 /// с датчиками движения и растяжкой (или с геркониевым датчиком)
 /// ВНИМАНИЕ: перед прошивкой устройства, необходимо перенастроить IDE среду согластно инструкции в файле IDEConfiguration.txt
@@ -69,12 +69,13 @@ const char siren[]               PROGMEM = {"siren"};
 const char _SirenEnabled[]       PROGMEM = {"sirenenabled"};
 
 // Строки для формирования смс ответов на смс команды Status и Settings
-const char FirmwareVer[]         PROGMEM = {"Ver: 5.4"};
-const char control[]             PROGMEM = {"On controlling: "}; 
+const char FirmwareVer[]         PROGMEM = {"Ver: 5.5"};
+const char control[]             PROGMEM = {"On control: "}; 
 const char test[]                PROGMEM = {"Test mode: "}; 
-const char redirSms[]            PROGMEM = {"Redirect SMS: "}; 
+const char redirSms[]            PROGMEM = {"Redir.SMS: "}; 
 const char power[]               PROGMEM = {"Power: "}; 
-const char delSiren[]            PROGMEM = {"DelaySiren: "}; 
+const char delSiren[]            PROGMEM = {"Delay siren: "}; 
+const char sign[]                PROGMEM = {"Signal: "};
 const char PIR1[]                PROGMEM = {"PIR1: "}; 
 const char PIR2[]                PROGMEM = {"PIR2: "};
 const char Gas[]                 PROGMEM = {"Gas: "}; 
@@ -82,7 +83,7 @@ const char GasCalibr[]           PROGMEM = {"GasCalibr: "};
 const char GasCurr[]             PROGMEM = {"GasCurr: "};
 const char tension[]             PROGMEM = {"Tension: "};
 const char infContr[]            PROGMEM = {"InfContr: "};
-const char sirenoff[]            PROGMEM = {"Siren Off: "};
+const char sirenoff[]            PROGMEM = {"Siren: Off"};
 const char gasOnlyOnContr[]      PROGMEM = {"GasOnlyOnContr: "};
 
 const char SirenEnabled[]        PROGMEM = {"SirenEnabled: "};
@@ -93,9 +94,9 @@ const char TensionSiren[]        PROGMEM = {"TensionSiren: "};
 const char idle[]                PROGMEM = {"Idle"};
 const char on[]                  PROGMEM = {"on"};
 const char off[]                 PROGMEM = {"off"};
-const char sec[]                 PROGMEM = {" sec."};
-const char minut[]               PROGMEM = {" min."};
-const char hour[]                PROGMEM = {" hours."};
+const char sec[]                 PROGMEM = {" sec"};
+const char minut[]               PROGMEM = {" min"};
+const char hour[]                PROGMEM = {" h"};
 const char delOnContr[]          PROGMEM = {"DelayOnContr: "};
 const char delayVcc[]            PROGMEM = {"DelayVcc: "};
 const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
