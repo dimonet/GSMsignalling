@@ -45,10 +45,11 @@ class MyGSM
   private:   
     void Configure();                               // настройка gsm модуля 
     bool WaitingAvailable();                        // ожидание готовности gsm модуля
+    bool ReqReadSIM;                                // указывает, что была СМС и возможно еще есть и нужно перечитать SIM карту)
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
-    void SetString(String *source, String *target, char firstSymb, int offsetFirst, char secondSymb, int offsetSecond);
+    void SetString(String *source, String *target, byte skipQuantity, char firstSymb, byte offsetFirst, char secondSymb, byte offsetSecond);
     byte _gsmLED;
     byte _boardLED;
-    byte _pinBOOT;                                   // нога BOOT или K на модеме   
-    String _sigStrength;   
+    byte _pinBOOT;                                   // нога BOOT или K на модеме       
+    String _sigStrength;       
 };

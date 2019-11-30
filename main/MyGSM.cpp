@@ -6,7 +6,7 @@
 
 const char ATCPAS[]      PROGMEM = {"AT+CPAS"};
 const char RING[]        PROGMEM = {"RING"};
-const char CMT[]         PROGMEM = {"+CMT"};
+const char CMGL[]        PROGMEM = {"+CMGL"};
 const char CUSD[]        PROGMEM = {"+CUSD"};
 const char CSQ[]         PROGMEM = {"+CSQ"};
 const char ATCPWROFF[]   PROGMEM = {"AT+CPWROFF"};
@@ -16,8 +16,9 @@ const char ATE0[]        PROGMEM = {"ATE0"};
 const char ATCLIP1[]     PROGMEM = {"AT+CLIP=1"}; 
 const char ATCMGF1[]     PROGMEM = {"AT+CMGF=1"}; 
 const char ATCSCSGSM[]   PROGMEM = {"AT+CSCS=\"GSM\""}; 
+const char ATCMGL4[]     PROGMEM = {"AT+CMGL=4"};
 const char ATIFC11[]     PROGMEM = {"AT+IFC=1, 1"}; 
-const char ATCNMI12210[] PROGMEM = {"AT+CNMI=1,2,2,1,0"}; 
+const char ATCNMI21000[] PROGMEM = {"AT+CNMI=2,1,0,0,0"}; 
 const char ATCMGD14[]    PROGMEM = {"AT+CMGD=1,4"}; 
 const char ATH0[]        PROGMEM = {"ATH0"}; 
 
@@ -61,7 +62,7 @@ void MyGSM::Configure()
   delay(200);
   serial.println(GetStrFromFlash(ATIFC11));      //AT+IFC=1, 1                     // устанавливает программный контроль потоком передачи данных
   delay(200);
-  serial.println(GetStrFromFlash(ATCNMI12210));  //AT+CNMI=1,2,2,1,0               // включает оповещение о новых сообщениях
+  serial.println(GetStrFromFlash(ATCNMI21000));  //AT+CNMI=2,1,0,0,0               // включает оповещение о новых сообщениях
   delay(200);  
 }
 
@@ -181,6 +182,7 @@ bool MyGSM::RequestUssd(String *code)
   return true; 
 }
 
+
 void MyGSM::Refresh()
 { 
   //Диагностика работы gsm модема (в сети ли он) 
@@ -191,7 +193,7 @@ void MyGSM::Refresh()
       if (isNetworkRegistered())
       {
         Status = Registered;
-        digitalWrite(_gsmLED, LOW);                                                     // выключаем светодиод сигнализируя о готовности к работе
+        digitalWrite(_gsmLED, LOW);                                 // выключаем светодиод сигнализируя о готовности к работе
         WasRestored = true;                
       }
       else 
@@ -213,13 +215,22 @@ void MyGSM::Refresh()
         if (!isNetworkRegistered())
         Status = Fail;      
     }    
-    prCheckGsm = millis();                                      // запоминаем текущее время после которого начнаем отсчет интерала для тестирования gsm модуля
+    prCheckGsm = millis();                                          // запоминаем текущее время после которого начнаем отсчет интерала для тестирования gsm модуля
   }   
+  
+  
+  if (serial.find("+CMTI") || ReqReadSIM)                           // если обнаружили что пришла новая смс в SIM карту или была одна и нужно повторно перечитать
+  {    
+    delay(1000);
+    serial.println(GetStrFromFlash(ATCMGL4));  //AT+CMGL=4          // Запрашиваем чтения новых СМС с SIM карты
+    delay(1000);
+    ReqReadSIM = false;
+  }  
   
   // Обработка входящих звонков и смс
   String currStr = "";     
   byte strCount = 0;  
-  
+  String SMSIndex;
   while (serial.available())
   {
     char currSymb = serial.read();        
@@ -233,26 +244,30 @@ void MyGSM::Refresh()
           NewRing = true;          
           strCount = 1;
         }
-        else
-        if (currStr.startsWith(GetStrFromFlash(CMT)))    //+CMT    // если СМС
-        {
-          BlinkLEDhigh(_gsmLED, 0, 250, 0);                        // сигнализируем об этом 
-          NewSms = true;
-          SetString(&currStr, &SmsNumber, '\"', 0, '\"', 1);                                                           
-          strCount = 1;
+        else                
+        if (currStr.startsWith(GetStrFromFlash(CMGL)))    //+CMGL  // если СМС
+        { 
+          BlinkLEDhigh(_gsmLED, 0, 250, 0);                        // сигнализируем об этом           
+          SetString(&currStr, &SMSIndex, 0, ':', 1, ',', 0);       // читаем индекс СМС в SIM карте   
+          SetString(&currStr, &SmsNumber, 2, '\"', 0, '\"', 0);    // читаем номер отправителя         
+          NewSms = true;  
+        //  ReqReadSIM = true;       
+          strCount = 1;                    
         }
-        else
+        else        
         if (currStr.startsWith(GetStrFromFlash(CUSD)))  //+CUSD    // если ответ от gsm команды
         {
           BlinkLEDhigh(_gsmLED, 0, 250, 0);                        // сигнализируем об этом
           NewUssd = true;         
-          SetString(&currStr, &UssdText, '\"', 0, '\"', 1);                    
+          SetString(&currStr, &UssdText, 0, '\"', 0, '\"', 0);
+          break;                    
         }
-        else 
+        /*else 
         if (currStr.startsWith(GetStrFromFlash(CSQ)))  //+CSQ      // если ответ на запрос об уровне сигнала
         {
-          SetString(&currStr, &_sigStrength, ' ', 0, ',', 0);                 
-        }         
+          SetString(&currStr, &_sigStrength, 0, ' ', 0, ',', 0);                 
+          break;
+        } */  //TODO       
       }
       else
       if (strCount == 1) 
@@ -262,15 +277,17 @@ void MyGSM::Refresh()
         else       
         if (NewSms)                                                // если СМС
         {
-          SmsText = currStr;                                        
-        }                
+          SmsText = currStr;                         
+          break;
+        }                        
       }
       else
       if (strCount == 2) 
       {
         if (NewRing)                                               // если входящий звонок
         {
-         SetString(&currStr, &RingNumber, '\"', 0, '\"', 1);                               
+          SetString(&currStr, &RingNumber, 0, '\"', 0, '\"', 0);
+          break;                               
         }                 
       }        
     currStr = "";    
@@ -285,15 +302,23 @@ void MyGSM::Refresh()
       
   if (NewSms)
   { 
-    serial.println(GetStrFromFlash(ATCMGD14)); //"AT+CMGD=1,4"     // удаление всех старых смс
-    delay(300);
+   serial.println("AT+CMGD=" + SMSIndex +",0");  //AT+CMGD=<Index>,0          // Удаляем прочитаное СМС   
+   delay(300);
+   //SendSms(&String("AT+CMGD=" + SMSIndex +",0"), &String("+380509151369"));
   }    
 }
 
-void MyGSM::SetString(String *source, String *target, char firstSymb, int offsetFirst, char secondSymb, int offsetSecond)
+void MyGSM::SetString(String *source, String *target, byte skipQuantity, char firstSymb, byte offsetFirst, char secondSymb, byte offsetSecond)
 {
-  byte beginStr = source->indexOf(firstSymb);
-  *target = source->substring(beginStr + 1 - offsetFirst);
+   byte beginStr = 0;
+  *target = *source;
+  for (byte i = 0; i < skipQuantity; i++) // иногда нужно вырезать строку начиная не с первого offsetFirst символа а с третего тогда skipQuantity должен быть = 2 (пропускаем 2 символа offsetFirst и вырезаем начиная с третего)
+  {
+    beginStr = target->indexOf(firstSymb);    
+    *target = target->substring(beginStr + 1);    
+  }  
+  beginStr = target->indexOf(firstSymb);  
+  *target = target->substring(beginStr + 1 + offsetFirst);
   byte duration = target->indexOf(secondSymb);  
   if (duration > 0)
     *target = target->substring(0, duration - offsetSecond);       // если длина строки не нулевая то вырезаем строку согласно вычесленной длины иначе возвращаем до конца всей строки
