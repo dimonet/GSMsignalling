@@ -3,24 +3,24 @@
 // Настройки gsm модуля
 #define AVAILABLE_TIMEOUT  1000                 // врем ожидание готовности модема (мили сек.)  
 #define TIME_DIAGNOSTIC    60000                // время проверки gsm модуля(мили сек.) (60000 = раз в минуту, 900000 = раз в 15 мин, 180000 - раз в пол часа). Если обнаружен что gsm потерял сеть то постоянно горит gsm led сигнализируя об этом
-#define INITIALIZE_TIMEOUT 120                  // врем ожидания поиска сети модема (сек.)  
+#define INITIALIZE_TIMEOUT 120000               // врем ожидания поиска сети модема (мили сек.)   
 #define SMS_LIMIT          150                  // максимальное куличество символов в смс (большео лимита все символы обрезается)
 
 // Статусы gsm модуля
-#define Loading            1                    // модуль ищет сеть
-#define Registered         2                    // модуль нашел сеть и работает в штатном режиме
-#define Fail               3                    // модуль потерял сеть или перестал отвечать
+#define NotResponding      1                    // модуль не отвечает или отсутствует
+#define NotRegistered      2                    // модуль потерял сеть
+#define Registered         3                    // модуль нашел сеть и работает в штатном режиме
+
 
 class MyGSM
 {
   public: 
     MyGSM(byte gsmLED, byte boardLED, byte pinBOOT);    
-    bool Initialize();                
+    void Initialize();                
     byte Status;                                    // текущий статус gsm модуля (1-Shutdowned, 2-Loading, 3-Registered, 4-Fail, 5-NotFound)
     bool NewRing;
     bool NewSms;
-    bool NewUssd;
-    bool WasRestored;
+    bool NewUssd;    
     String RingNumber;
     String SmsNumber;
     String SmsText;
@@ -35,15 +35,20 @@ class MyGSM
     void ClearSms();
     void ClearUssd();   
     bool IsAvailable();                             // оправшивает готовность gsm модуля (возвращает true если модуль не занят)
-    bool isNetworkRegistered();                     // проверяет зарегистрирован ли модуль в сети (готов ли модуль к работе)   
     void SwitchOn();                                // включение gsm модуля    
     int GetSignalStrength();                        // возвращает уровень сигнала   
+
+    //Events                                        // ивенты указывают на какие-то измининия на, которые нужно отреагировать в основной программеб которая обязана после обработки сбросить их в false
+    bool e_IsRestored;
     
   private:   
     void Configure();                               // настройка gsm модуля 
     bool WaitingAvailable();                        // ожидание готовности gsm модуля
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
     void SetString(String *source, String *target, char firstSymb, int offsetFirst, char secondSymb, int offsetSecond);
+    void RefreshStatus();                           // проверяет и обновляет статус модуля
+    bool IsNetworkRegistered();                     // проверяет зарегистрирован ли модуль в сети (готов ли модуль к работе) 
+    bool IsResponded();                             // проверяет отвечает ли модуль (включен, апаратно присутствует)
     byte _gsmLED;
     byte _boardLED;
     byte _pinBOOT;                                   // нога BOOT или K на модеме   
