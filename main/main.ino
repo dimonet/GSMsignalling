@@ -158,7 +158,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 //Power control 
 #define pinMeasureVcc A0                        // нога чтения типа питания (БП или батарея)
 #define netVcc      10.0                        // значения питяния от сети (вольт)
-#define battVcc     0.1                         // значения питяния от батареи (вольт)
+#define minNetVcc   7                           // минимально возможное напряжения от сети (пороговое значение) меньше, которого система восприниает как отключено сетевое питания
 
 //Sensores
 #define pinSH1      A2                          // нога на растяжку
@@ -271,7 +271,7 @@ byte WDRebooted = Normal;                       // 0 - перезагрузки 
 
 int GasPct = 0;                                 // хранит отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения
 
-Power powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
+Power powCtr (netVcc, minNetVcc, pinMeasureVcc, BattPowerLED);   // контроль питания
 
 MyGSM gsm(gsmLED, boardLED, pinBOOT);           // GSM модуль
 
@@ -385,7 +385,6 @@ void setup()
   gsm.SwitchOn();                                       // включаем модем 
       
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
-  digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
   
   gsm.Initialize();                                     // инициализация gsm модуля       
   
@@ -978,12 +977,13 @@ void StopAlarm()
 
 void PowerControl()                                                                       // метод для обработки событий питания системы (переключение на батарею или на сетевое)
 {
-  powCtr.Refresh();    
-  digitalWrite(BattPowerLED, powCtr.IsBattPower);
+  powCtr.Refresh();      
 
-  if (!powCtr.IsBattPowerPrevious && powCtr.IsBattPower)                                  // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v)
-    prBatteryVcc = millis();    
-
+  if (powCtr.e_BatteryPower)                                                                     // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v)
+  {    
+    prBatteryVcc = millis();        
+    powCtr.e_BatteryPower = false;
+  }
   if (prBatteryVcc != 0)
     if (GetElapsed(prBatteryVcc) > EEPROM.read(E_delayVcc) * 1000)                        // выдержываем установленную в конф. паузу перед оповещением, что б не оповещать каждый раз при непродолжительных сбоях в питании
     {
@@ -992,11 +992,12 @@ void PowerControl()                                                             
       prBatteryVcc = 0;
     }   
   
-  if (powCtr.IsBattPowerPrevious && !powCtr.IsBattPower)                                  // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования      
+  if (powCtr.e_NetworkPower)                                                                     // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования      
   {
     if(!inTestMod && prBatteryVcc == 0)                                                   // если не включен режим тестирования и уже было оповещено о переходе на резервное питание то устанавливаем флаг о необходимости оповестить о восстановления питания  
       reqNetVccSMS = true;
     prBatteryVcc = 0;
+    powCtr.e_NetworkPower = false;
   }
 
   // Оповещение SMS о статусе питания

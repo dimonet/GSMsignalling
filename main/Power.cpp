@@ -4,26 +4,34 @@
 const float R1 = 100000;
 const float R2 = 10000;
 
-Power::Power(byte netVcc, byte  battVcc, byte pinMeasureVcc)
+Power::Power(byte netVcc, byte  minNetVcc, byte pinMeasureVcc, byte battPowerLED)
 {
   analogReference(INTERNAL);
   _netVcc = netVcc;
-  _battVcc = battVcc;
-  _pinMeasureVcc = pinMeasureVcc;
-  _netVccDelta = (_netVcc - _battVcc)*0.7; //дельта высчитывается как 70% от разници между питаниями
+  _minNetVcc = minNetVcc;
+  _pinMeasureVcc = pinMeasureVcc;  
+  _battPowerLED = battPowerLED;
+  IsBattPower = false; 
 }
 
 void Power::Refresh()
 {
-  IsBattPowerPrevious = IsBattPower;
-  VccValue = MeasureVccValue();  
-  byte minNetVcc = _netVcc - _netVccDelta;   //пороговое значение напряжение меньше, которого система восприниает как отключено сетевое питания
-  if(VccValue > (minNetVcc + (minNetVcc*0.2)) || VccValue < (minNetVcc - (minNetVcc*0.2)))  //для предотвращения ложного срабатывания не измеряем если мы находимся на границе порогового значения (между (пороговое + 20%) и (порогове-20)) так как напряжение пдает плавно из за конденсатора
+  VccValue = MeasureVccValue();    
+  if(VccValue > (_minNetVcc + (_minNetVcc*0.2)) || VccValue < (_minNetVcc - (_minNetVcc*0.2)))  //для предотвращения ложного срабатывания не измеряем если мы находимся на границе порогового значения (между (пороговое + 20%) и (порогове-20)) так как напряжение пдает плавно из за конденсатора
   {
-    if (VccValue >= minNetVcc)
-        IsBattPower = false;
+    if (VccValue >= _minNetVcc)
+    {
+      if(IsBattPower)                                   // если система питается от сети но перед этим питалась от батареи то устанавливаем ивент в true, указывая на изминения в типе питания
+        e_NetworkPower = true;
+      IsBattPower = false;      
+    }
     else 
-        IsBattPower = true;  
+    {
+      if(!IsBattPower)                                  // если система питается от сети но перед этим питалась от батареи то устанавливаем ивент в true, указывая на изминения в типе питания
+        e_BatteryPower = true;
+      IsBattPower = true;            
+    }
+    digitalWrite(_battPowerLED, IsBattPower);           // сигнализируем светодиодом режим питания (от сети - не светится, от батареи - светится)      
   }     
 }
 
