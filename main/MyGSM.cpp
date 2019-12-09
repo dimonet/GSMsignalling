@@ -24,7 +24,6 @@ const char ATH0[]        PROGMEM = {"ATH0"};
 
 byte Status;                                    // текущий статус gsm модуля (1-Loading, 2-Registered, 3-Fail)
 
-unsigned long prStartGsm = 0;                   // время включения gsm модуля после его перезагрузки если обнаружено сбой в его работе (если =0 то сбоя небыло)
 unsigned long prCheckGsm = 0;                   // время последней проверки gsm модуля (отвечает ли он, в сети ли он). 
 
 
@@ -49,8 +48,8 @@ void MyGSM::SwitchOn()
 // Инициализация gsm модуля (включения, настройка)
 void MyGSM::Initialize()
 {                        
-  //digitalWrite(_gsmLED, HIGH);                                                     // на время включаем лед на панели
-  //digitalWrite(_boardLED, HIGH);                                                   // на время включаем лед на плате
+  digitalWrite(_gsmLED, HIGH);                                                     // на время включаем лед на панели
+  digitalWrite(_boardLED, HIGH);                                                   // на время включаем лед на плате
   
   serial.println(GetStrFromFlash(ATE0));         // ATE0                           // выключаем эхо  
   delay(200);
@@ -72,14 +71,14 @@ void MyGSM::Initialize()
   { 
     unsigned long i = 0;  
     while(i < INITIALIZE_TIMEOUT)                                  // ждем подключение модема к сети  (приблезительно за одну сек. выполняется 0.6 итераций)
-    {       
-      //if (i%10500 == 0)                                          // опрашивать модуль раз в 10 сек.
-      if (i%6000 == 0)                                             // опрашивать модуль раз в 10 сек.
+    {   
+      if (i%6000 == 0)                                             // опрашивать модуль раз в 6 сек.
       {                  
         if (IsNetworkRegistered())          
         {
           BlinkLEDhigh(_gsmLED, 500, 150, 0);                      // блымаем светодиодом 
           BlinkLEDhigh(_gsmLED, 150, 150, 200);                    // блымаем светодиодом                       
+          Status = Registered;
           break;
         }           
         BlinkLEDhigh(_gsmLED, 0, 500, 0);                          // блымаем светодиодом  (пауза меньше так как 1с. забирает опрашивания модуля)
@@ -89,7 +88,7 @@ void MyGSM::Initialize()
       digitalWrite(_boardLED, digitalRead(_boardLED) == LOW);      // блымаем внутренним светодиодом   
       i+=1500;                                                     // инкреминтируем на то время за какое проходит одна итерация
     }  
-  }
+  }  
   RefreshStatus();                                                 // обновляем статус модуля (устанавливаем значение в свойство Status, сигнализируем светодиодом)  
   prCheckGsm = millis();                                           // запоминаем текущее время после которого начнаем отсчет интервала для тестирования gsm модуля          
 }
@@ -114,13 +113,15 @@ bool MyGSM::IsNetworkRegistered()
 
 void MyGSM::RefreshStatus()
 {
+  delay(10);
   if(!IsResponded())                                      // проверяем отвичает ли модем
   {
     Status = NotResponding;                               // если модуль не ответил то устанавливаем статус NotResponding   
     digitalWrite(_gsmLED, HIGH);
   }
-  else                                                    // если модуль отвечает то проверяем зарегистрировался ли он в сети     
+  else                                                    // если модуль отвечает то проверяем зарегистрировался ли он в сети      
   {
+    delay(30);
     if(IsNetworkRegistered())                             
     {
       if(Status != Registered)
