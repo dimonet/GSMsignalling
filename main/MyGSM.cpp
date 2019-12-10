@@ -98,8 +98,8 @@ bool MyGSM::IsResponded()
   serial.println(GetStrFromFlash(AT)); //AT              // проверяем отвичает ли модем
   delay(10);
   if (serial.find("OK")) 
-    Status = true;                                       // если модуль не ответил то прерывает работу метода и возвращаем false
-  else false;
+    return true;                                         
+  else return false;                                    // если модуль не ответил то возвращаем false
 }
 
 bool MyGSM::IsNetworkRegistered()
@@ -246,16 +246,14 @@ void MyGSM::Refresh()
         {
           BlinkLEDhigh(_gsmLED, 0, 250, 0);                        // сигнализируем об этом
           NewUssd = true;         
-          SetString(&currStr, &UssdText, '\"', 0, '\"', 0);                    
-          break;
+          SetString(&currStr, &UssdText, '\"', 0, '\"', 0); 
         }
         else 
         if (currStr.startsWith(GetStrFromFlash(CSQ)))  //+CSQ      // если ответ на запрос об уровне сигнала
         {
           String sStrength;
           SetString(&currStr, &sStrength, ' ', 0, ',', 0);        
-          _sigStrength = sStrength.toInt();         
-          break;     
+          _sigStrength = sStrength.toInt(); 
         }         
       }
       else
@@ -268,8 +266,7 @@ void MyGSM::Refresh()
         {
           SmsText = currStr;                       
           if (Status != Registered)                                // если статус модуля "не в сети" но пришла новая смс то это значит, что сеть восстановлена но статус еще не успел обновиться, одновляем его немедленно
-            RefreshStatus();         
-          break;                                      
+            RefreshStatus();               
         }                
       }
       else
@@ -279,8 +276,7 @@ void MyGSM::Refresh()
         {
          SetString(&currStr, &RingNumber, '\"', 0, '\"', 1);  
          if (Status != Registered)                                // если статус модуля "не в сети" но обнаружен входящий звонок то это значит, что сеть восстановлена но статус еще не успел обновиться, одновляем его немедленно
-            RefreshStatus(); 
-         break;                             
+            RefreshStatus();    
         }                 
       }        
     currStr = "";    
