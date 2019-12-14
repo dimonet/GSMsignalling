@@ -10,6 +10,7 @@
 #define NotResponding      1                    // модуль не отвечает или отсутствует
 #define NotRegistered      2                    // модуль потерял сеть
 #define Registered         3                    // модуль нашел сеть и работает в штатном режиме
+#define NotAvailable       4                    // Модуль не возможно проверить так как он не доступен (возможно занят над другой задачей)
 
 
 class MyGSM
@@ -46,9 +47,9 @@ class MyGSM
     bool WaitingAvailable();                        // ожидание готовности gsm модуля
     void BlinkLED(unsigned int millisBefore, unsigned int millisHIGH, unsigned int millisAfter);
     void SetString(String *source, String *target, char firstSymb, int offsetFirst, char secondSymb, int offsetSecond);
-    void RefreshStatus();                           // проверяет и обновляет статус модуля
-    bool IsNetworkRegistered();                     // проверяет зарегистрирован ли модуль в сети (готов ли модуль к работе) 
+    void RefreshStatus();                           // проверяет и обновляет статус модуля    
     bool IsResponded();                             // проверяет отвечает ли модуль (включен, апаратно присутствует)
+    byte IsNetworkRegistered();                     // проверяет зарегистрирован ли модуль в сети (готов ли модуль к работе) 
     byte _gsmLED;
     byte _boardLED;
     byte _pinBOOT;                                   // нога BOOT или K на модеме   
