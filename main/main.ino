@@ -12,7 +12,7 @@
 #include "Utilities.h"
 
 // Версия прошивки
-const char FirmwareVer[]         PROGMEM = {"Ver: 6.0"};
+const char FirmwareVer[]         PROGMEM = {"Ver: 6.1"};
 
 //#define debug Serial
 
@@ -71,11 +71,11 @@ const char siren[]               PROGMEM = {"siren"};
 const char _SirenEnabled[]       PROGMEM = {"sirenenabled"};
 
 // Строки для формирования смс ответов на смс команды Status и Settings
-const char control[]             PROGMEM = {"On control: "}; 
-const char test[]                PROGMEM = {"Test mode: "}; 
+const char control[]             PROGMEM = {"OnControl: "}; 
+const char test[]                PROGMEM = {"TestMode: "}; 
 const char redirSms[]            PROGMEM = {"Redir.SMS: "}; 
 const char power[]               PROGMEM = {"Power: "}; 
-const char delSiren[]            PROGMEM = {"Delay siren: "}; 
+const char delSiren[]            PROGMEM = {"DelaySiren: "}; 
 const char sign[]                PROGMEM = {"Signal: "};
 const char PIR1[]                PROGMEM = {"PIR1: "}; 
 const char PIR2[]                PROGMEM = {"PIR2: "};
