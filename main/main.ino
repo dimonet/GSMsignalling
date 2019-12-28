@@ -1,4 +1,3 @@
-// Версия в стр. 72
 /// GSM сигналка c установкой по кнопке
 /// с датчиками движения и растяжкой (или с геркониевым датчиком)
 /// ВНИМАНИЕ: перед прошивкой устройства, необходимо перенастроить IDE среду согластно инструкции в файле IDEConfiguration.txt
@@ -11,6 +10,9 @@
 #include "MyGSM.h"
 #include "Power.h"
 #include "Utilities.h"
+
+// Версия прошивки
+const char FirmwareVer[]         PROGMEM = {"Ver: 6.0"};
 
 //#define debug Serial
 
@@ -69,7 +71,6 @@ const char siren[]               PROGMEM = {"siren"};
 const char _SirenEnabled[]       PROGMEM = {"sirenenabled"};
 
 // Строки для формирования смс ответов на смс команды Status и Settings
-const char FirmwareVer[]         PROGMEM = {"Ver: 6.0"};
 const char control[]             PROGMEM = {"On control: "}; 
 const char test[]                PROGMEM = {"Test mode: "}; 
 const char redirSms[]            PROGMEM = {"Redir.SMS: "}; 
