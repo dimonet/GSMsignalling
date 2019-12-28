@@ -1,4 +1,3 @@
-// Версия: 5.4
 /// GSM сигналка c установкой по кнопке
 /// с датчиками движения и растяжкой (или с геркониевым датчиком)
 /// ВНИМАНИЕ: перед прошивкой устройства, необходимо перенастроить IDE среду согластно инструкции в файле IDEConfiguration.txt
@@ -11,6 +10,9 @@
 #include "MyGSM.h"
 #include "Power.h"
 #include "Utilities.h"
+
+// Версия прошивки
+const char FirmwareVer[]         PROGMEM = {"Ver: 6.0"};
 
 //#define debug Serial
 
@@ -36,7 +38,7 @@ const char sms_RedirectOff[]     PROGMEM = {"Command: SMS redirection is turned 
 const char sms_SkimpySiren[]     PROGMEM = {"Command: Skimpy siren was turned ON."};                                // выполнена команда для коротковременного включения сирены
 const char sms_SMSRebooted[]     PROGMEM = {"Command: Device was rebooted."};                                       // устройство перегружено по причине sms команды
 const char sms_WDRebooted[]      PROGMEM = {"System: Disaster rebooted."};                                          // аварийная перезагрузка по причине зависании
-const char sms_GsmWasRestored[]  PROGMEM = {"System: GSM was restored."};                                           // gsm модуль был перегружен и востановлен после збоя
+const char sms_GsmWasRestored[]  PROGMEM = {"System: GSM was restored. Signal: "};                                  // gsm модуль был перегружен и востановлен после збоя
 const char sms_WrongUssd[]       PROGMEM = {"Command: Wrong USSD code."};                                           // сообщение о неправельной USSD коде
 const char sms_ErrorSendSms[]    PROGMEM = {"Command: Format should be next:\nSendSMS 'number' 'text'"};            // выполнена команда для отправки смс другому абоненту
 const char sms_SmsWasSent[]      PROGMEM = {"Command: Sms was sent."};                                              // выполнена команда для отправки смс другому абоненту
@@ -69,12 +71,12 @@ const char siren[]               PROGMEM = {"siren"};
 const char _SirenEnabled[]       PROGMEM = {"sirenenabled"};
 
 // Строки для формирования смс ответов на смс команды Status и Settings
-const char FirmwareVer[]         PROGMEM = {"Ver: 5.4"};
-const char control[]             PROGMEM = {"On controlling: "}; 
+const char control[]             PROGMEM = {"On control: "}; 
 const char test[]                PROGMEM = {"Test mode: "}; 
-const char redirSms[]            PROGMEM = {"Redirect SMS: "}; 
+const char redirSms[]            PROGMEM = {"Redir.SMS: "}; 
 const char power[]               PROGMEM = {"Power: "}; 
-const char delSiren[]            PROGMEM = {"DelaySiren: "}; 
+const char delSiren[]            PROGMEM = {"Delay siren: "}; 
+const char sign[]                PROGMEM = {"Signal: "};
 const char PIR1[]                PROGMEM = {"PIR1: "}; 
 const char PIR2[]                PROGMEM = {"PIR2: "};
 const char Gas[]                 PROGMEM = {"Gas: "}; 
@@ -82,7 +84,7 @@ const char GasCalibr[]           PROGMEM = {"GasCalibr: "};
 const char GasCurr[]             PROGMEM = {"GasCurr: "};
 const char tension[]             PROGMEM = {"Tension: "};
 const char infContr[]            PROGMEM = {"InfContr: "};
-const char sirenoff[]            PROGMEM = {"Siren Off: "};
+const char sirenoff[]            PROGMEM = {"Siren: Off"};
 const char gasOnlyOnContr[]      PROGMEM = {"GasOnlyOnContr: "};
 
 const char SirenEnabled[]        PROGMEM = {"SirenEnabled: "};
@@ -93,9 +95,9 @@ const char TensionSiren[]        PROGMEM = {"TensionSiren: "};
 const char idle[]                PROGMEM = {"Idle"};
 const char on[]                  PROGMEM = {"on"};
 const char off[]                 PROGMEM = {"off"};
-const char sec[]                 PROGMEM = {" sec."};
-const char minut[]               PROGMEM = {" min."};
-const char hour[]                PROGMEM = {" hours."};
+const char sec[]                 PROGMEM = {" sec"};
+const char minut[]               PROGMEM = {" min"};
+const char hour[]                PROGMEM = {" h"};
 const char delOnContr[]          PROGMEM = {"DelayOnContr: "};
 const char delayVcc[]            PROGMEM = {"DelayVcc: "};
 const char balanceUssd[]         PROGMEM = {"BalanceUssd: "};
@@ -114,10 +116,9 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 // Watch Dog (для перезагрузки)
 #define  wd_16ms           1                               // сторожовой таймер сработает по истичению 16-ти мили сек. (режим для немедленной перезагрузки) 
 #define  wd_8s             2                               // сторожовой таймер сработает по истичению 8-ми сек. (стандартный режим работы таймера)
-#define  Normal            0                               // 0 - перезагрузки небыло, 
-#define  SysDisaster       1                               // 1 - аварийная перезагрузка системы сторожовым таймером, 
-#define  GsmDisaster       2                               // 2 - аварийная перезагрузка системы из за збоя gsm модуля, 
-#define  SMSRebooted       3                               // 3 - перезагрузка по запросу sms команды
+#define  Normal            1                               // 0 - перезагрузки небыло, 
+#define  SysDisaster       2                               // 1 - аварийная перезагрузка системы сторожовым таймером, 
+#define  SMSRebooted       3                               // 2 - перезагрузка по запросу sms команды
 
 // паузы
 #define  delayOnContrTest     7                            // время паузы от нажатие кнопки до установки режима охраны в режиме тестирования
@@ -158,7 +159,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 //Power control 
 #define pinMeasureVcc A0                        // нога чтения типа питания (БП или батарея)
 #define netVcc      10.0                        // значения питяния от сети (вольт)
-#define battVcc     0.1                         // значения питяния от батареи (вольт)
+#define minNetVcc   7                           // минимально возможное напряжения от сети (пороговое значение) меньше, которого система восприниает как отключено сетевое питания
 
 //Sensores
 #define pinSH1      A2                          // нога на растяжку
@@ -248,6 +249,10 @@ bool reqSirena = false;                         // уст. в true когда с
 bool isRun = true;                              // флаг для управления выполнения блока кода в loop только при старте устройства
 bool reqBattVccSMS = false;                     // Флаг указывает о необходимости оповещения SMS о переходе на резервное питание
 bool reqNetVccSMS = false;                      // Флаг указывает о необходимости оповещения SMS о возобновлении питания
+
+bool reqOutOfContrSMS = false;                  // флаг указывает о необходимости оповещения SMS о снятии с охраны
+bool reqOnContrSMS = false;                     // флаг указывает о необходимости оповещения SMS об установки на охрану
+
 String numberAnsUssd = "";                      // для промежуточного хранения номера телефона, от которого получено gsm код и которому необходимо отправить ответ (баланс и т.д.)
 
 
@@ -262,13 +267,12 @@ unsigned long prRing = 0;                       // время последнег
 byte countPressBtn = 0;                         // счетчик нажатий на кнопку
 
 byte WDRebooted = Normal;                       // 0 - перезагрузки небыло, 
-                                                // 1 - аварийная перезагрузка системы сторожовым таймером, 
-                                                // 
-                                                // 3 - перезагрузка по запросу sms команды 
+                                                // 1 - аварийная перезагрузка системы сторожовым таймером,                                                  
+                                                // 2 - перезагрузка по запросу sms команды 
 
 int GasPct = 0;                                 // хранит отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения
 
-Power powCtr (netVcc, battVcc, pinMeasureVcc);   // контроль питания
+Power powCtr (netVcc, minNetVcc, pinMeasureVcc, BattPowerLED);   // контроль питания
 
 MyGSM gsm(gsmLED, boardLED, pinBOOT);           // GSM модуль
 
@@ -370,23 +374,20 @@ void setup()
   digitalWrite(boardLED, LOW);
   
   analogReference(INTERNAL);
-
-  gsm.InitUART();                                     // инициализация UART gsm модуля
-  gsm.SwitchOn();                                     // включаем модем 
-  WDRebooted = EEPROM.read(E_WDRebooted);             // читаем перезагружалось ли последний раз устройство по sms команде
-  if (WDRebooted != Normal)                           // если обнаружено, что была аварияная или по sms запросу перезагрузка системы то презагружаем gsm модуль
-  {
-    gsm.Shutdown(false);                              // выключаем gsm модуль
-    delay(3700);                                      // добавляем паузы что б gsm модуль точно успел выключится
-    gsm.SwitchOn();                                   // ыключаем gsm модуль
-  }
   
- // if (WDRebooted == Normal) 
+  WDRebooted = EEPROM.read(E_WDRebooted);               // читаем перезагружалось ли последний раз устройство по sms команде
+  inTestMod = EEPROM.read(E_inTestMod);                 // читаем тестовый режим из еепром
+  SenGas.gasClbr = ReadIntEEPROM(E_gasCalibr);          // читаем значения калибровки датчика газа/дыма
+  SirEnabled = EEPROM.read(E_SirenEnabled);             // читаем включена или выключена сирена глобально
+  TensionSir = EEPROM.read(E_TensionSiren);             // читаем включена или выключена сирена для растяжки
+  PIR1Sir = EEPROM.read(E_PIR1Siren);                   // читаем включена или выключена сирена для датчика движения 1
+  PIR2Sir = EEPROM.read(E_PIR2Siren);                   // читаем включена или выключена сирена для датчика движения 2
+
+  gsm.SwitchOn();                                       // включаем модем 
+      
   powCtr.Refresh();                                     // читаем тип питания (БП или батарея)
-  digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом состояния питания
-  gsm.Initialize();                                     // инициализация gsm модуля     
- 
-  digitalWrite(BattPowerLED, powCtr.IsBattPower);       // сигнализируем светодиодом режим питания (от батареи - светится, от сети - не светится)
+  
+  gsm.Initialize();                                     // инициализация gsm модуля       
   
   if (EEPROM.read(E_IsGasEnabled))                      // если включен датчик газа/дыма
     SenGas.TurnOnPower();                               // включаем питание датчика газа/дыма 
@@ -395,12 +396,7 @@ void setup()
   attachInterrupt(0, ClickButton, FALLING);             // привязываем 0-е прерывание к функции ClickButton(). 
   interrupt = true;                                     // разрешаем обработку прырывания  
 
-  inTestMod = EEPROM.read(E_inTestMod);                 // читаем тестовый режим из еепром
-  SenGas.gasClbr = ReadIntEEPROM(E_gasCalibr);          // читаем значения калибровки датчика газа/дыма
-  SirEnabled = EEPROM.read(E_SirenEnabled);             // читаем включена или выключена сирена глобально
-  TensionSir = EEPROM.read(E_TensionSiren);             // читаем включена или выключена сирена для растяжки
-  PIR1Sir = EEPROM.read(E_PIR1Siren);                   // читаем включена или выключена сирена для датчика движения 1
-  PIR2Sir = EEPROM.read(E_PIR2Siren);                   // читаем включена или выключена сирена для датчика движения 2
+  
 
   // чтение конфигураций с EEPROM
   if (EEPROM.read(E_mode) == OnContrMod)                   // читаем режим из еепром 
@@ -426,39 +422,28 @@ void loop()
   
   gsm.Refresh();                                                                            // читаем сообщения от GSM модема                                                
   wdt_reset();                                                                              // сбрасываем счетчик watchdog так как обновление состояния gsm может занять некоторое время
-
-  if (gsm.Status == Fail)                                                                   // проверяем если gsm модуль в статусе Fail (не отвечает или не в сети)
-  {
-    WDRebooted = GsmDisaster;                                                               // устанавливаем флаг, указывающий на причину перезагрузки - збой gsm модуля
-    Reboot();                                                                               // вызываем полную перезагрузку устройства
-  }
-  
-  if(WDRebooted == SysDisaster)
+   
+  if(WDRebooted == SysDisaster && gsm.IsAvailable())
   {    
-     SendSms(&GetStrFromFlash(sms_WDRebooted), &NumberRead(E_NUM1_OutOfContr));
-     WDRebooted = Normal;
-     EEPROM.write(E_WDRebooted, WDRebooted);
-  }
-  else
-  if ((WDRebooted == GsmDisaster && gsm.Status == Registered) || gsm.WasRestored)
-  {
-     SendSms(&GetStrFromFlash(sms_GsmWasRestored), &NumberRead(E_NUM1_OutOfContr));
-     gsm.WasRestored = false;    
-     WDRebooted = Normal;
-     EEPROM.write(E_WDRebooted, WDRebooted); 
-  }
+    if (!inTestMod)
+      SendSms(&GetStrFromFlash(sms_WDRebooted), &NumberRead(E_NUM1_OutOfContr));
+    WDRebooted = Normal;
+    EEPROM.write(E_WDRebooted, WDRebooted);
+  }  
   else 
-  if (WDRebooted == SMSRebooted)
+  if (WDRebooted == SMSRebooted && gsm.IsAvailable())
   {
-     SendSms(&GetStrFromFlash(sms_SMSRebooted), &NumberRead(E_NUM_RebootAns));
-     WDRebooted = Normal;
-     EEPROM.write(E_WDRebooted, WDRebooted); 
-  }
-  else 
-  if (WDRebooted != Normal)
+    SendSms(&GetStrFromFlash(sms_SMSRebooted), &NumberRead(E_NUM_RebootAns));
+    WDRebooted = Normal;
+    EEPROM.write(E_WDRebooted, WDRebooted); 
+  } 
+
+
+  if(gsm.e_IsRestored && gsm.IsAvailable())                                                  // если обнаружно, что gsm восстановлен после сбоя и на данные момент он не занят то уведомляем, что был сбой в работе gsm
   {
-    WDRebooted = Normal;  
-    EEPROM.write(E_WDRebooted, WDRebooted);     
+    if (!inTestMod)    
+      SendSms(&String(GetStrFromFlash(sms_GsmWasRestored) + String(gsm.GetSignalStrength()) + "%"), &NumberRead(E_NUM1_OutOfContr));
+    gsm.e_IsRestored = false;
   }
     
   if (inTestMod && !isAlarm)                                                                // если включен режим тестирования и не тревога
@@ -482,8 +467,7 @@ void loop()
   }
 
   if (prRing > 0 && GetElapsed(prRing) > timeRejectCall)                                    // если задетектили входящий звонок и выдержана пауза перед сбросом звонка
-  {
-    gsm.RejectCall();                                                                       // сбрасываем вызов               
+  {              
     if (mode == OutOfContrMod)                                                              // если режим не на охране то
       Set_OnContrMod(false, EEPROM.read(E_infContr));                                       // устанавливаем на охрану без паузы    
     else                                                                                    // если режим на охране то 
@@ -508,7 +492,7 @@ void loop()
       {
         countPressBtn = 0;  
         PlayTone(sysTone, 250);                                                             // сигнализируем об этом спикером  
-        InTestMod(!inTestMod);
+        InTestMod(!inTestMod);        
       }
       else
       // запрос баланса счета
@@ -549,8 +533,7 @@ void loop()
     if (mode == OnContrMod && inTestMod)                                                    // в тестовом режиме можно сниамть кнопкой с охраны
     {
       delay(200);                                                                           // пайза, что б не сливались звуковые сигналы нажатия кнопки и установки режима
-      countPressBtn = 0;  
-      gsm.RejectCall();                                                                     // сбрасываем вызов      
+      countPressBtn = 0;        
       Set_OutOfContrMod(0);       
     }                  
   }
@@ -741,6 +724,18 @@ void loop()
     }            
   }                                                                                       // end OnContrMod
  
+  // Обработка оповещений о снятий или об установке на охрану
+  if(reqOutOfContrSMS && gsm.IsAvailable())
+  {  
+    SendSms(&GetStrFromFlash(sms_InfContrOff), &NumberRead(E_NUM1_OutOfContr));           // отправляем смс о снятии с охраны;
+    reqOutOfContrSMS = false;
+  }
+
+  if(reqOnContrSMS && gsm.IsAvailable())
+  {  
+    SendSms(&GetStrFromFlash(sms_InfContrOn), &NumberRead(E_NUM1_OutOfContr));  // отправляем смс о постановке на охрану;
+    reqOnContrSMS = false;
+  }
  
   // обработка датчика газа/дыма
   if (SenGas.IsTurnOn)                                                                    // если датчик газа/дыма включен
@@ -843,6 +838,7 @@ void ClickButton()
 
 bool Set_OutOfContrMod(bool infContr)                   // метод для снятие с охраны
 { 
+  gsm.RejectCall();                                     // сбрасываем вызов 
   mode = OutOfContrMod;                                 // снимаем с охраны
 
   if (EEPROM.read(E_gasOnlyOnContr) == 1)               // если включен режим включения датчика газа только в режиме на охране    
@@ -866,12 +862,13 @@ bool Set_OutOfContrMod(bool infContr)                   // метод для с�
   EEPROM.write(E_mode, mode);                           // пишим режим в еепром, что б при следующем включении устройства, оно оставалось в данном режиме
  
   if (!inTestMod && infContr)
-    SendSms(&GetStrFromFlash(sms_InfContrOff), &NumberRead(E_NUM1_OutOfContr));  // отправляем смс о снятии с охраны;
+    reqOutOfContrSMS = true;    
   return true;
 }
 
 bool Set_OnContrMod(bool IsWaiting, bool infContr)      // метод для установки на охрану
 { 
+  gsm.RejectCall();                                     // сбрасываем вызов 
   if (IsWaiting == true)                                // если включен режим ожидание перед установкой охраны, выдерживаем заданную паузу, что б успеть покинуть помещение
   { 
     digitalWrite(OutOfContrLED, LOW);   
@@ -933,7 +930,7 @@ bool Set_OnContrMod(bool IsWaiting, bool infContr)      // метод для у�
   prReqSirena = 1;                                      // устанавливаем в 1 для активации паузы между срабатыванием датчиков и включением сирены
   
   if (!inTestMod && infContr)                         
-    SendSms(&GetStrFromFlash(sms_InfContrOn), &NumberRead(E_NUM1_OutOfContr));  // отправляем смс о постановке на охрану;
+    reqOnContrSMS = true;
   return true;
 }
 
@@ -981,12 +978,13 @@ void StopAlarm()
 
 void PowerControl()                                                                       // метод для обработки событий питания системы (переключение на батарею или на сетевое)
 {
-  powCtr.Refresh();    
-  digitalWrite(BattPowerLED, powCtr.IsBattPower);
+  powCtr.Refresh();      
 
-  if (!powCtr.IsBattPowerPrevious && powCtr.IsBattPower)                                  // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v)
-    prBatteryVcc = millis();    
-
+  if (powCtr.e_BatteryPower)                                                                     // если предыдущий раз было от сети а сейчас от батареи (пропало сетевое питание 220v)
+  {    
+    prBatteryVcc = millis();        
+    powCtr.e_BatteryPower = false;
+  }
   if (prBatteryVcc != 0)
     if (GetElapsed(prBatteryVcc) > EEPROM.read(E_delayVcc) * 1000)                        // выдержываем установленную в конф. паузу перед оповещением, что б не оповещать каждый раз при непродолжительных сбоях в питании
     {
@@ -995,11 +993,12 @@ void PowerControl()                                                             
       prBatteryVcc = 0;
     }   
   
-  if (powCtr.IsBattPowerPrevious && !powCtr.IsBattPower)                                  // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования      
+  if (powCtr.e_NetworkPower)                                                                     // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования      
   {
     if(!inTestMod && prBatteryVcc == 0)                                                   // если не включен режим тестирования и уже было оповещено о переходе на резервное питание то устанавливаем флаг о необходимости оповестить о восстановления питания  
       reqNetVccSMS = true;
     prBatteryVcc = 0;
+    powCtr.e_NetworkPower = false;
   }
 
   // Оповещение SMS о статусе питания
@@ -1095,8 +1094,9 @@ ISR(WDT_vect)                                          // метод для пр
   if(WDRebooted == Normal)
     WDRebooted = SysDisaster;                                    // если перезагрузка не по sms команде то устанавливаем флаг, указывающий на причину перезагрузки, 1 - сбой системы
   EEPROM.write(E_WDRebooted, WDRebooted); 
+  digitalWrite(pinBOOT, LOW);                                    // выключаем модем 
   wdt_disable();
-  wdt_enable(WDTO_15MS);    
+  wdt_enable(WDTO_2S);    
   while(1);
 }
 
