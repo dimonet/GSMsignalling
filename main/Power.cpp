@@ -1,13 +1,9 @@
 #include "Arduino.h"
 #include "Power.h"
 
-const float R1 = 100000;
-const float R2 = 10000;
-
-Power::Power(byte netVcc, byte  minNetVcc, byte pinMeasureVcc, byte battPowerLED)
+Power::Power(byte  minNetVcc, byte pinMeasureVcc, byte battPowerLED)
 {
   analogReference(INTERNAL);
-  _netVcc = netVcc;
   _minNetVcc = minNetVcc;
   _pinMeasureVcc = pinMeasureVcc;  
   _battPowerLED = battPowerLED;
