@@ -159,7 +159,7 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 //Power control 
 #define pinMeasureVcc A0                        // нога чтения типа питания (БП или батарея)
 #define netVcc      10.0                        // значения питяния от сети (вольт)
-#define minNetVcc   7                           // минимально возможное напряжения от сети (пороговое значение) меньше, которого система восприниает как отключено сетевое питания
+#define minNetVcc   4                           // минимально возможное напряжения от сети (пороговое значение) меньше, которого система восприниает как отключено сетевое питания
 
 //Sensores
 #define pinSH1      A2                          // нога на растяжку
@@ -305,7 +305,8 @@ void setup()
   pinMode(pinPIR2, INPUT);                    // нога датчика движения 2
   pinMode(pinGas, INPUT);                     // нога датчика газа/дыма 
   pinMode(pinGasPower, OUTPUT);               // нога управления питанием датчика газа/дыма 
-  pinMode(Button, INPUT_PULLUP);              // кнопка для установки режима охраны
+  //pinMode(Button, INPUT_PULLUP);              // кнопка для установки режима охраны
+  pinMode(Button, INPUT);                     // кнопка для установки режима охраны
   pinMode(SirenGenerator, OUTPUT);            // нога на сирену
   pinMode(pinMeasureVcc, INPUT);              // нога чтения типа питания (БП или батарея)      
 
@@ -988,33 +989,18 @@ void PowerControl()                                                             
   if (prBatteryVcc != 0)
     if (GetElapsed(prBatteryVcc) > EEPROM.read(E_delayVcc) * 1000)                        // выдержываем установленную в конф. паузу перед оповещением, что б не оповещать каждый раз при непродолжительных сбоях в питании
     {
-      if(!inTestMod)                                                                      // если не включен режим тестирования то устанавливаем флаг о необходимости оповестить СМС  
-        reqBattVccSMS = true;
       prBatteryVcc = 0;
+      if(!inTestMod)                                                                      // если не включен режим тестирования то устанавливаем флаг о необходимости оповестить СМС  
+        SendSms(&GetStrFromFlash(sms_BattPower), &NumberRead(E_NUM1_OutOfContr));         // отправляем смс о переходе на резервное питание              
     }   
   
   if (powCtr.e_NetworkPower)                                                                     // если предыдущий раз было от батареи a сейчас от сети (сетевое питание 220v возобновлено) и если не включен режим тестирования      
-  {
-    if(!inTestMod && prBatteryVcc == 0)                                                   // если не включен режим тестирования и уже было оповещено о переходе на резервное питание то устанавливаем флаг о необходимости оповестить о восстановления питания  
-      reqNetVccSMS = true;
-    prBatteryVcc = 0;
+  {    
     powCtr.e_NetworkPower = false;
-  }
-
-  // Оповещение SMS о статусе питания
-  if (reqBattVccSMS)
-    if (!CheckSensors() && gsm.IsAvailable())                                             // опрашиваем датчики и если нет подозрительной активности и gsm не зянят то отправляем смс иначе пробуем отправить в следующих итерациях цыкла
-    {
-      SendSms(&GetStrFromFlash(sms_BattPower), &NumberRead(E_NUM1_OutOfContr));           // отправляем смс о переходе на резервное питание     
-      reqBattVccSMS = false;
-    }
-      
-  if (reqNetVccSMS)    
-    if (!CheckSensors() && gsm.IsAvailable())                                             // опрашиваем датчики и если нет подозрительной активности и gsm не зянят то отправляем смс иначе пробуем отправить в следующих итерациях цыкла
-    {
-      SendSms(&GetStrFromFlash(sms_NetPower), &NumberRead(E_NUM1_OutOfContr));            // отправляем смс о возобновлении питания от сетевое 220v       
-      reqNetVccSMS = false;
-    }
+    if(!inTestMod && prBatteryVcc == 0)                                                   // если не включен режим тестирования и уже было оповещено о переходе на резервное питание то устанавливаем флаг о необходимости оповестить о восстановления питания  
+      SendSms(&GetStrFromFlash(sms_NetPower), &NumberRead(E_NUM1_OutOfContr));            // отправляем смс о возобновлении питания от сетевое 220v             
+    prBatteryVcc = 0;
+  }  
 }
 
 void SkimpySiren()                                                                        // метод для кратковременного включения сирены (для теститования сирены)
