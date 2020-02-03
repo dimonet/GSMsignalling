@@ -1,9 +1,12 @@
 #include "Arduino.h"
 
+const float R1 = 100000;
+const float R2 = 10000;
+
 class Power
 {
   public: 
-    Power(byte netVcc, byte  minNetVcc, byte pinMeasureVcc, byte battPowerLED);
+    Power(byte  minNetVcc, byte pinMeasureVcc, byte battPowerLED);
     void Refresh();                               // делает измерения питания и обновляет все данные   
     float VccValue;                               // текущее напряжение питания (вольт)
     bool IsBattPower;                             // тип питания, true - система питается от батареи, false - от сети)
@@ -13,8 +16,7 @@ class Power
     bool e_NetworkPower;                          // тип питания (true - система вернулась на питание от сети
     
   private:
-    float MeasureVccValue();      // считывает и возвращает текущее напряжение питания (вольт)
-    byte _netVcc;                 // ожидаемое значения питяния от сети (вольт)
+    float MeasureVccValue();      // считывает и возвращает текущее напряжение питания (вольт) 
     byte _minNetVcc;              // минимально возможное напряжения от сети (пороговое значение) меньше, которого система восприниает как отключено сетевое питания   
     byte _pinMeasureVcc;          // пинг для измерения напряжения питания   
     byte _battPowerLED;           // содержит номер пина LED для идентификации типа питания (не горит - от сети, горит - от батареи)

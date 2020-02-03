@@ -86,8 +86,8 @@ void ExecSmsCommand()
       else
       if (gsm.SmsText == GetStrFromFlash(controlon))                                     // если обнаружена смс команда для установки на охрану
       {
-        Set_OnContrMod(false, 0);                                                           // устанавливаем на охрану без паузы
-        SendSms(&GetStrFromFlash(sms_OnContrMod), &gsm.SmsNumber);                       // отправляем смс о завершении выполнения даной смс команды
+        if (Set_OnContrMod(false, 0))                                                    // устанавливаем на охрану без паузы
+          SendSms(&GetStrFromFlash(sms_OnContrMod), &gsm.SmsNumber);                     // если установка на охрану выполнилась успешно то отправляем смс о завершении выполнения даной смс команды
       }
       else
       if (gsm.SmsText == GetStrFromFlash(controloff))                                    // если обнаружена смс команда для снятие с охраны
