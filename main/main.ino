@@ -12,7 +12,7 @@
 #include "Utilities.h"
 
 // Версия прошивки
-const char FirmwareVer[]         PROGMEM = {"Ver: 6.1"};
+const char FirmwareVer[]         PROGMEM = {"Ver: 6.2"};
 
 //#define debug Serial
 
@@ -158,7 +158,6 @@ const char BtnOutOfContr[]       PROGMEM = {"BtnOutOfContr: "};
 
 //Power control 
 #define pinMeasureVcc A0                        // нога чтения типа питания (БП или батарея)
-#define netVcc      10.0                        // значения питяния от сети (вольт)
 #define minNetVcc   7                           // минимально возможное напряжения от сети (пороговое значение) меньше, которого система восприниает как отключено сетевое питания
 
 //Sensores
@@ -272,7 +271,7 @@ byte WDRebooted = Normal;                       // 0 - перезагрузки 
 
 int GasPct = 0;                                 // хранит отклонение от нормы (в процентах) на основании полученого от дат.газа знаяения
 
-Power powCtr (netVcc, minNetVcc, pinMeasureVcc, BattPowerLED);   // контроль питания
+Power powCtr (minNetVcc, pinMeasureVcc, BattPowerLED);   // контроль питания
 
 MyGSM gsm(gsmLED, boardLED, pinBOOT);           // GSM модуль
 
@@ -900,8 +899,7 @@ bool Set_OnContrMod(bool IsWaiting, bool infContr)      // метод для у�
   
   if (EEPROM.read(E_TensionEnabled) &&  SenTension.GetState())   // проверяем растяжку, если она нарушена (не закрыта дверь) то прырываем установку на охрану и информируем смс об этом
   {
-    if (!inTestMod)                                                 // если не включен режим тестирования то отправляем смс о прырывании установки на охрану;
-      SendSms(&GetStrFromFlash(sms_ErrorTension), &NumberRead(E_NUM1_OutOfContr));
+    SendSms(&GetStrFromFlash(sms_ErrorTension), &NumberRead(E_NUM1_OutOfContr));
     Break_OnContrMod();
     return false;
   }
